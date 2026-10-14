@@ -146,7 +146,7 @@ def merge():
 
 def embed(db):
     scripts = [ROOT / 'src' / name for name in
-               ('world-engine.js', 'world-ui.js', 'world-storage.js',
+               ('world-engine.js', 'competition-formats.js', 'world-ui.js', 'world-storage.js',
                 'club-ai.js', 'market-contracts.js', 'player-profile.js',
                 'tactics-workbench.js', 'action-inbox.js', 'dressing-room.js', 'match-realism.js', 'negotiation-workspace.js', 'viewport-workspace.js')]
     styles = [ROOT / 'src' / name for name in

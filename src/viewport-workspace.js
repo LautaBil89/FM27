@@ -1,6 +1,6 @@
 /* Viewport-sized workspaces: navigation stays fixed; long records scroll locally. */
 (() => {
-  const original=render, ui={tabs:{},menu:false};
+  const original=render, ui={tabs:{},menu:false,competitionFormat:'realistic'};
   const active=()=>!GameState||GameState.worldVersion===1;
   const element=(tag,cls)=>{const e=document.createElement(tag);e.className=cls;return e};
   const title=(node,fallback)=>node.querySelector?.('h2,h3')?.textContent||fallback;
@@ -30,6 +30,7 @@
     const start=form.querySelector('[data-action="new"]'),importer=form.querySelector('[data-action="import"]'),footer=element('div','ws-welcome-footer');footer.append(start,importer);
     const source=[...form.children].filter(n=>n.matches('.world-source-summary,.fm-welcome-disclosure'));
     const controls=[...form.children].filter(n=>n.matches('.field,.world-career-selectors,.world-career-results,.fm-selected-club'));
+    const format=element('label','field');format.innerHTML=`Formato argentino<select id="careerCompetitionFormat"><option value="realistic" ${ui.competitionFormat==='realistic'?'selected':''}>Zonas, playoffs y promedios</option><option value="classic" ${ui.competitionFormat==='classic'?'selected':''}>Calendario anual clásico</option></select>`;controls.push(format);
     const head=element('div','ws-welcome-heading');head.innerHTML='<strong>FM<span class="gold">27</span></strong><span>Nueva carrera</span>';
     panels(form,[{id:'career',label:'Carrera',nodes:controls,cls:'ws-career-fields'},{id:'sources',label:'Datos y reglas',nodes:source,cls:'ws-reader'}],'welcome',[head]);form.append(footer);
   }
@@ -105,5 +106,6 @@
   render=function(){const requested=view;if(active()&&view==='dressing-room')view='squad';try{original()}finally{view=requested}layout()};
   document.addEventListener('click',e=>{if(e.target.closest('[data-view],[data-action]'))ui.menu=false;if(e.target.closest('[data-inbox-open]'))ui.tabs['inbox-mobile']='reading'},true);
   document.addEventListener('click',e=>{const tab=e.target.closest('[data-ws-tab]');if(tab){ui.tabs[tab.dataset.wsKey]=tab.dataset.wsTab;render();return}const b=e.target.closest('[data-ws-menu]');if(b){ui.menu=b.dataset.wsMenu==='toggle'?!ui.menu:false;render()}});
-  window.FM_WORKSPACE={layout,ui,panels};
+  document.addEventListener('change',e=>{if(e.target.id==='careerCompetitionFormat')ui.competitionFormat=e.target.value});
+  window.FM_WORKSPACE={layout,ui,panels,redraw:()=>render()};
 })();
