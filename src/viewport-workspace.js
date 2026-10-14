@@ -19,7 +19,7 @@
     return wrapper;
   }
   function cardGroups(host,key) {
-    const nodes=[...host.children],intro=nodes.filter(n=>n.matches('.fm-page-intro,.fm-section-head,.fm-tabbar'));
+    const nodes=[...host.children],intro=nodes.filter(n=>n.matches('.fm-page-intro,.fm-section-head,.fm-tabbar')||['finances','scouting'].includes(key)&&n.matches('.grid.cols3'));
     let cards=nodes.filter(n=>!intro.includes(n));
     cards=cards.flatMap(n=>n.matches('.grid,.fm-dashboard-grid')?[...n.children].flatMap(c=>c.matches('.card')?[c]:[...c.children]):[n]);
     panels(host,cards.map((n,i)=>({id:String(i),label:title(n,`Panel ${i+1}`),nodes:[n],cls:n.querySelector('table')?'':'ws-reader'})),key,intro);

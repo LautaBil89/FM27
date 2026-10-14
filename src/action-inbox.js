@@ -116,6 +116,7 @@ window.FM_INBOX = (() => {
     if(o?.status==='pending') {
       if(o.type==='sell'&&owned(p)){add('sale-accept','Aceptar oferta',blocked,true);add('sale-reject','Rechazar oferta',blocked);}
       else if(o.type==='buy'){if(o.awaitingUser&&o.counter){add('counter-accept','Aceptar contraoferta',blocked,true);add('counter-reject','Rechazar contraoferta',blocked);}add('offer-cancel','Retirar oferta',blocked);}
+      if(o.type==='buy'&&o.awaitingPlayerTerms)add('personal-contract','Negociar contrato',blocked,true);
     }
     if(p) {
       add('profile','Ficha del jugador');
@@ -186,6 +187,7 @@ window.FM_INBOX = (() => {
     const allowed=actionsFor(m).find(a=>a.id===action&&!a.disabled);if(!allowed)return toast('La situación cambió. Revisá el estado del mensaje.');
     const p=lookup(m.playerId);m.read=true;
     if(action==='profile'){saveGame(true);return details(p.id);}
+    if(action==='personal-contract')return MARKET_CONTRACTS.openPlayerNegotiation(m.offerId);
     if(action==='sale-accept'||action==='sale-reject'){window.CLUB_AI.respondToSaleOffer(m.offerId,action==='sale-accept');saveGame(true);return render();}
     if(action==='counter-accept'||action==='counter-reject'){window.MARKET_CONTRACTS.respondCounter(m.offerId,action==='counter-accept');saveGame(true);return render();}
     if(action==='offer-cancel'){window.CLUB_AI.cancelUserOffer(m.offerId);saveGame(true);return render();}

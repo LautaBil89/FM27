@@ -317,6 +317,7 @@
   function completeOne(result=null,event=currentEvent()) {
     if(!eventDue(event)||fixture(event)&&!result)return false;
     settleFinances(GameState.today);const userGame=fixture(event),m=GameState.match?.eventId===event.id?GameState.match:null,playing=new Set(event.games.flatMap(g=>[g.home,g.away]));
+    const beforeStats=userGame?Object.fromEntries(mine().map(p=>[p.id,{minutes:p.minutes,goals:p.goals,appearances:p.appearances}])):null;
     processingEvent=event;
     try {
     for(const g of event.games){const mineGame=g===userGame,r=mineGame&&result?copy(result):simulated(g,false);r.pen??=null;if(event.phase==='groups'||event.type==='LPF')r.pen=null;g.result=r;
@@ -325,6 +326,7 @@
       for(const [side,id]of [[0,g.home],[1,g.away]]){const c=club(id);c.form??=[];c.form.push((side===0?r.home:r.away)>(side===0?r.away:r.home)?'G':r.home===r.away?'E':'P');c.form=c.form.slice(-5)}
     }
     if(m&&result)recordLiveMatch(m,result);
+    if(userGame)window.MARKET_CONTRACTS?.onMatchResult?.(event,userGame,userGame.result,beforeStats);
     for(const p of GameState.players)if(p.ban&&playing.has(p.clubId)&&(!p.banCompetition||p.banCompetition===event.type)&&!m?.newBans?.includes(p.id)&&!m?.red.includes(p.id))p.ban--;
     if(event.type!=='LPF'){if(event.phase==='groups'&&event.round===6)afterGroups(event.type);else if(event.phase==='knockout')settleTie(event.type,event.stage)}
     event.done=true;while(currentEvent()?.done)GameState.eventIndex++;
