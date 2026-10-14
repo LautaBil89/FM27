@@ -145,9 +145,13 @@ def merge():
 
 
 def embed(db):
-    paths = [ROOT / 'src' / name for name in
-             ('world-engine.js', 'world-ui.js', 'world-storage.js', 'world-ui.css')]
-    for path in paths:
+    scripts = [ROOT / 'src' / name for name in
+               ('world-engine.js', 'world-ui.js', 'world-storage.js',
+                'club-ai.js', 'market-contracts.js', 'player-profile.js',
+                'tactics-workbench.js', 'action-inbox.js')]
+    styles = [ROOT / 'src' / name for name in
+              ('world-ui.css', 'player-profile.css', 'tactics-workbench.css', 'action-inbox.css')]
+    for path in scripts + styles:
         if not path.exists():
             raise FileNotFoundError('Implementation not ready: ' + str(path))
     file = ROOT / 'index.html'
@@ -186,14 +190,56 @@ def embed(db):
     new_meta = "const record = {...(typeof CLUB_META !== 'undefined' ? CLUB_META[id] || {} : {}),...(GameState?.worldVersion?GameState.world.clubs.find(c=>c.id===id):{})};"
     html = html.replace(old_meta, new_meta)
     html = html.replace('title="Evaluación relativa al fútbol argentino"', 'title="Evaluación estimada del jugador"')
-    js = '\n'.join(path.read_text() for path in paths[:3])
+    html = html.replace("const addMessage = (title,body,type='club') => {", "const addMessage = (title,body,type='club',options={}) => {")
+    html = html.replace("GameState.inbox.unshift({id:GameState.nextMessageId++,title,body,date:GameState.today,read:false,type});", "GameState.inbox.unshift({...options,id:GameState.nextMessageId++,title,body,date:GameState.today,read:false,type});")
+    html = html.replace("const wageBill = () => mine().reduce((total,p)=>total+p.salario,0);", "const wageBill = () => GameState?.worldVersion&&window.CLUB_AI?CLUB_AI.wageBill(GameState.userClub.id):mine().reduce((total,p)=>total+p.salario,0);")
+    html = html.replace("const pendingCommitments=()=>GameState.offers.filter", "const pendingCommitments=()=>GameState?.worldVersion&&window.CLUB_AI?CLUB_AI.reservation(GameState.userClub.id):GameState.offers.filter")
+    html = html.replace('Compromisos de fichajes pendientes:', 'Compromisos de fichajes y cuotas:')
+    if 'function discretionaryFunds(' not in html:
+        html = html.replace('const overall=p=>', "function discretionaryFunds(){return GameState?.worldVersion&&window.CLUB_AI?CLUB_AI.availableBudget(GameState.userClub.id):GameState.userClub.presupuesto_dolares}\nconst overall=p=>", 1)
+    if 'function registrationLimit(' not in html:
+        helper = "function registrationLimit(id=GameState?.userClub.id){const held=GameState?.worldVersion?(GameState.world.ai?.contracts?.loans||[]).filter(l=>l.status==='active'&&l.ownerClub===id&&isForeign(player(l.playerId),id)).length:0;return Math.max(0,foreignLimit(id)-held)}\n"
+        html = html.replace('const overall=p=>', helper + 'const overall=p=>', 1)
+    html = html.replace('GameState.userClub.presupuesto_dolares<cost', 'discretionaryFunds()<cost')
+    html = html.replace('GameState.userClub.presupuesto_dolares-pendingCommitments()<1000000', 'discretionaryFunds()-(GameState.worldVersion?0:pendingCommitments())<1000000')
+    html = html.replace('meta=CLUB_META[u.id];return', 'meta=(GameState.worldVersion?club(u.id):CLUB_META[u.id]);return')
+    html = html.replace('money(u.presupuesto_dolares-pendingCommitments())', 'money(GameState.worldVersion?discretionaryFunds():u.presupuesto_dolares-pendingCommitments())')
+    html = html.replace("renew=function(id){if(locked())return;const p=player(id),cost=", "renew=function(id){if(locked())return;if(GameState.worldVersion&&player(id)?.loanId)return toast('El contrato del jugador pertenece al club propietario del préstamo');const p=player(id),cost=")
+    html = html.replace('el.checked&&isForeign(p,GameState.userClub.id)&&foreigners(GameState.userClub.id)>=foreignLimit(GameState.userClub.id)', 'el.checked&&isForeign(p,GameState.userClub.id)&&foreigners(GameState.userClub.id)>=registrationLimit(GameState.userClub.id)')
+    if 'CLUB_AI.submitOffer(form)' not in html:
+        html = html.replace('function sendOffer(form){', 'function sendOffer(form){\n    if(GameState?.worldVersion&&window.CLUB_AI)return CLUB_AI.submitOffer(form);', 1)
+    html = html.replace('function resolveSale(id,accept){const offer=', 'function resolveSale(id,accept){if(GameState?.worldVersion&&window.CLUB_AI)return CLUB_AI.respondToSaleOffer(id,accept);const offer=', 1)
+    html = html.replace('const views={dashboard,', "const views={player:()=>window.FM_PLAYER?FM_PLAYER.renderPage():roster(),dashboard,", 1)
+    html = html.replace("const tabInfo=tabs.find(item=>item[0]===view)||tabs[0];", "const tabInfo=view==='player'?['player','squad','Ficha del jugador']:tabs.find(item=>item[0]===view)||tabs[0];")
+    html = html.replace('compactMoney(mine().reduce((sum,p)=>sum+p.salario,0))', 'compactMoney(MANAGEMENT.wageBill())')
+    # Metadata permits inbox actions to refer to a real entity, rather than
+    # interpreting the narrative text of medical/scouting/contract messages.
+    html = html.replace("GameState.scouting.reports[id].verdict}.`, 'ojeo');", "GameState.scouting.reports[id].verdict}.`, 'ojeo',{playerId:id,action:'scout'});")
+    html = html.replace("renueva hasta diciembre de ${p.contract}.`, 'contratos');", "renueva hasta diciembre de ${p.contract}.`, 'contratos',{playerId:p.id,action:'contract'});")
+    html = html.replace("días de baja.`, 'medico')", "días de baja.`, 'medico',{playerId:p.id,action:'medical'})")
+    # Tactical settings affect player suitability, collective attack/defence,
+    # movement, work rate and card risk. The exported modifiers are bounded.
+    html = html.replace('return fit * roleFits(p) * fitness * moraleFactor * formFactor;', "return fit * roleFits(p) * fitness * moraleFactor * formFactor * (GameState?.worldVersion&&window.FM_TACTICS?FM_TACTICS.playerMatchFactor(p,side===m.userSide?GameState.tactics:m.aiTactics,expected):1);")
+    old_position = "const fit = expected === p.posicion ? 1 : p.posicion === 'POR' ? .55 : .84;"
+    new_position = "const exactSlot=GameState?.worldVersion&&window.FM_TACTICS&&side===m.userSide?FM_TACTICS.slots(t.formation)[m.lineups[side].indexOf(p.id)]:null;\n      const fit = exactSlot?.length ? .55+FM_TACTICS.positionFit(p,exactSlot)*.0045 : expected === p.posicion ? 1 : p.posicion === 'POR' ? .55 : .84;"
+    html = html.replace(old_position, new_position)
+    old_factors = 'return { attack, build, defense, keeper: keeper ? keeper.defensa'
+    new_factors = "if(GameState?.worldVersion&&window.FM_TACTICS){const modifiers=FM_TACTICS.teamMatchModifiers(side===m.userSide?GameState.tactics:m.aiTactics);attack*=modifiers.attack;defense*=modifiers.defence;build*=modifiers.movement;}\n    return { attack, build, defense, keeper: keeper ? keeper.defensa"
+    if 'attack*=modifiers.attack;' not in html:
+        html = html.replace(old_factors, new_factors, 1)
+    if 'FM_TACTICS.teamMatchModifiers(teamSide===m.userSide?' not in html:
+        html = html.replace('work * intensity * (1.18 - p.fisico * .003)', "work * intensity * (1.18 - p.fisico * .003) * (GameState?.worldVersion&&window.FM_TACTICS?FM_TACTICS.teamMatchModifiers(teamSide===m.userSide?GameState.tactics:m.aiTactics).stamina:1)")
+    old_aggression = "const aggression = (t.style === 'Garra/Huevo' ? 1.25 : 1) * (calm ? .75 : 1);"
+    new_aggression = "const aggression = (t.style === 'Garra/Huevo' ? 1.25 : 1) * (calm ? .75 : 1) * (GameState?.worldVersion&&window.FM_TACTICS?FM_TACTICS.teamMatchModifiers(foulSide===m.userSide?GameState.tactics:m.aiTactics).foulRisk:1);"
+    html = html.replace(old_aggression, new_aggression)
+    js = '\n'.join(path.read_text() for path in scripts)
     database = json.dumps(db, ensure_ascii=False, separators=(',', ':')).replace('<', '\\u003c')
     expansion = '\n/* WORLD_EXPANSION_START */\nconst WORLD_DATABASE = ' + database + ';\n' + js + '\n/* WORLD_EXPANSION_END */\n'
     marker = 'restoreGame();if(GameState?.match)view="match";render();'
     if html.count(marker) != 1:
         raise ValueError('Ambiguous startup boundary')
     html = html.replace(marker, expansion + marker)
-    css = '\n/* WORLD_CSS_START */\n' + paths[-1].read_text() + '\n/* WORLD_CSS_END */\n'
+    css = '\n/* WORLD_CSS_START */\n' + '\n'.join(path.read_text() for path in styles) + '\n/* WORLD_CSS_END */\n'
     html = html.replace('</style>', css + '</style>', 1)
     file.write_text(html)
 

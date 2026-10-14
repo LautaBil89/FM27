@@ -51,6 +51,24 @@ La temporada inicial utiliza los **ocho grupos reales de 2026 y sus 32 participa
 
 La edición comienza directamente en grupos: no incluye las fases preliminares. Las copas UEFA no están incluidas; las tablas europeas señalan zonas de referencia para objetivos deportivos.
 
+## Fichas, tácticas y decisiones del club
+
+Las carreras ampliadas incorporan una ficha de jugador completa, con pestañas Resumen, Atributos, Evolución, Estadísticas, Contrato y Fuentes. Podés comparar con cualquier futbolista del mundo, revisar posiciones naturales y aptitud de roles, y ver estrellas relativas a tu plantel. Los 36 atributos detallados son estimaciones derivadas de la simulación; las biografías y tasaciones siguen separadas en Fuentes. La evolución registra tus propios meses de carrera, sin inventar un historial previo. Abrir una ficha durante el partido lo pausa y permite volver al encuentro.
+
+La cancha táctica permite intercambiar jugadores mediante arrastre, selección por toque o teclado. Muestra adaptación al puesto y alternativas, y permite guardar, cargar, renombrar o eliminar hasta cinco planes. Cada jugador tiene instrucciones de desmarques, pases, riesgo, entradas, marcaje y deber. La familiaridad mejora con la práctica. Las instrucciones y la aptitud afectan ataque, defensa, movimiento, desgaste y riesgo de tarjetas. La convocatoria elegida se conserva al avanzar mientras siga disponible; la selección automática se aplica cuando la pedís o hace falta reemplazar bajas. Durante el partido la convocatoria permanece bloqueada: las sustituciones se hacen desde el banco; los ajustes individuales sí están disponibles.
+
+La bandeja tiene listado y panel de lectura, búsqueda y filtros de pendientes, no leídos y categoría. Sus acciones permiten aceptar o rechazar propuestas, resolver contraofertas, renovar, abrir fichas e informes, encargar ojeo y asignar recuperación. Las acciones revisan la situación actual y una oferta cerrada no vuelve a ejecutarse. La recuperación modifica el plan y no cura una lesión inmediatamente.
+
+## IA de los clubes y contratos
+
+Los clubes rivales administran caja, presupuesto salarial, necesidades de posición y preferencias de juego. Analizan oportunidades en las ventanas del simulador, compiten por jugadores, compran, piden préstamos y renuevan a futbolistas importantes. Buscan mantener cobertura y respetar el máximo de 32 jugadores, cupos y reservas para retornos de préstamos. Los jugadores de tu equipo permanecen bajo tu control: la IA envía una oferta y la venta requiere tu decisión.
+
+El mercado ofrece compras o préstamos de seis/doce meses, reparto salarial, pagos al contado o en 3/6/12 cuotas mensuales, porcentajes de futura venta y cláusulas de rescisión. Las contraofertas necesitan aceptación y pueden retirarse antes del acuerdo. Los compromisos completos reservan presupuesto; las cuotas tienen vencimientos y se cobran o pagan efectivamente. La devolución de un préstamo restaura su club propietario y las condiciones que corresponden. El dueño y el prestatario pagan su parte del salario. Un jugador cedido no puede revenderse ni renovar su vínculo con el club prestatario.
+
+El registro del mercado muestra las últimas operaciones y renovaciones de la IA, enlazadas a las fichas. Los historiales se limitan para mantener el guardado compacto. La IA y los contratos pertenecen a la simulación, no a un mercado real ni a fichajes posteriores verificados en Transfermarkt.
+
+Las partidas ampliadas anteriores a esta actualización conservan jugadores, resultados, contratos y economía al importar o continuar; los módulos nuevos se inicializan sin reiniciar la carrera.
+
 ## Gestión y partidos
 
 - Bandeja de entrada, noticias, presión de la hinchada, confianza directiva, finanzas y estadios.
@@ -79,7 +97,7 @@ La aplicación es autocontenida: no consulta Transfermarkt, Google Drive ni serv
 
 - [data/world-database.json](data/world-database.json): base final deduplicada, clubes, ligas, jugadores, fuentes y reglas de selección.
 - [data/world/](data/world/): instantáneas regionales revisadas, reservas verificadas, IDs compatibles y participantes continentales.
-- [src/](src/): módulos de mundo, competiciones, interfaz y persistencia, incorporados en el HTML.
+- [src/](src/): módulos de mundo, competiciones, IA, contratos, fichas, tácticas, bandeja y persistencia, incorporados en el HTML.
 - [data/transfermarkt-2025.json](data/transfermarkt-2025.json): referencia anterior de 400 jugadores, conservada para las carreras previas.
 
 Reconstrucción local de las instantáneas revisadas, sin red:
@@ -111,9 +129,10 @@ python3 -m http.server 8000
 En otra terminal:
 
 ```bash
+python3 tests/test_management.py
 python3 tests/test_world_game.py
 python3 tests/test_world_storage.py
 python3 tests/test_game.py
 ```
 
-`FM27_TEST_URL` permite seleccionar otro servidor y `FM27_CHROMIUM` otro ejecutable. Las pruebas de compatibilidad recuperan los HTML originales del historial Git; requieren la copia Git, no sólo el ZIP de distribución. Los escenarios comprueban carreras y planteles, partidos, copas, temporadas, ascensos, navegación, exportación/importación y guardados anteriores. El codec se prueba también con 10.000 jugadores, cambios económicos, partidos pausados y falta de espacio sin perder el guardado anterior.
+`FM27_TEST_URL` permite seleccionar otro servidor y `FM27_CHROMIUM` otro ejecutable. Las pruebas de compatibilidad recuperan los HTML originales del historial Git; requieren la copia Git, no sólo el ZIP de distribución. Los escenarios comprueban carreras y planteles, partidos, copas, temporadas, ascensos, navegación, exportación/importación y guardados anteriores; también decisiones de la bandeja, instrucciones, planes, fichas, IA, cuotas, préstamos, reventa y reservas de fondos. El codec se prueba también con 10.000 jugadores, cambios económicos, partidos pausados y falta de espacio sin perder el guardado anterior.
