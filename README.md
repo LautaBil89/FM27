@@ -9,7 +9,7 @@ Simulador de dirección técnica con **310 clubes, 16 ligas y 9.220 jugadores re
 3. Usá **Continuar** para avanzar un turno: mañana, mediodía, tarde y noche. Revisá informes, negociá fichajes y prepará el equipo entre partidos.
 4. Cuando llegue el horario de inicio, entrá al Centro de partido. Pausá para ajustar el planteo y realizar sustituciones.
 
-Las partidas anteriores conservan sus equipos, calendarios, jugadores y condiciones. La nueva interfaz y la gestión se incorporan sin reiniciar. Los formatos argentinos nuevos se eligen al crear carrera; en una carrera anterior podés activarlos para la próxima temporada desde Competiciones, conservando la temporada actual. Exportá tu carrera antes de empezar otra. El guardado pertenece al navegador y a esa ubicación del archivo; Exportar e Importar permiten trasladarlo a otro dispositivo.
+Las partidas anteriores conservan sus equipos, calendarios, jugadores y condiciones. La nueva interfaz y la gestión se incorporan sin reiniciar. Los formatos deportivos por país se eligen al crear carrera; en una carrera anterior podés activarlos para la próxima temporada desde Competiciones, conservando la temporada actual. Exportá tu carrera antes de empezar otra. El guardado pertenece al navegador y a esa ubicación del archivo; Exportar e Importar permiten trasladarlo a otro dispositivo.
 
 También se puede servir en desarrollo con `python3 -m http.server 8000 --directory .`.
 
@@ -46,13 +46,33 @@ Esta mejora se aplica también a las partidas ampliadas existentes: al importar 
 
 Son las primeras divisiones completas de los diez países de CONMEBOL, la segunda división argentina completa y las cinco grandes ligas europeas completas. Todos los clubes pueden dirigirse. Las tablas, partidos y estadísticas de las otras ligas se simulan en paralelo y pueden consultarse en Competiciones. El mercado permite filtrar por país, liga y club y muestra resultados paginados.
 
-Al crear carrera podés elegir **Formato argentino realista** (predeterminado) o **Calendario clásico**. En el formato nuevo:
+Al crear carrera podés elegir **Formatos por país** (predeterminado) o **Calendario clásico**. En Argentina:
 
 - LPF: Apertura y Clausura, cada uno con dos zonas de 15, 16 fechas regulares por club y eliminatorias de los ocho primeros de cada zona. La tabla anual suma las 32 fechas regulares; las eliminatorias deciden los campeones.
 - Primera Nacional: dos zonas de 18, 34 fechas por club, final entre ganadores de zona para el primer ascenso y reducido para el segundo. El perdedor de la final se incorpora al reducido.
 - Descienden dos clubes de LPF: el último anual y el peor promedio restante. Los promedios usan hasta tres temporadas efectivamente jugadas en la carrera; no se inventan puntos históricos. Los campeones tienen prioridad para la clasificación continental.
 
-Las zonas y fechas son una adaptación jugable, no una importación del fixture oficial. No se incluyen descensos de Nacional a una tercera categoría. El modo clásico mantiene una vuelta en ambas divisiones y dos ascensos/descensos por tabla. Las demás ligas conservan dos vueltas y calendario anual adaptado, sin reproducir agosto–mayo ni todas sus fases nacionales. Conservan participantes porque no se incluyen sus divisiones inferiores.
+Las zonas y fechas son una adaptación jugable, no una importación del fixture oficial. No se incluyen descensos de Nacional a una tercera categoría. El modo clásico mantiene una vuelta en ambas divisiones y dos ascensos/descensos por tabla. Las demás ligas incorporan estas estructuras deportivas:
+
+| Liga | Estructura implementada |
+|---|---|
+| Brasil | 38 fechas, título por tabla y victorias como primer desempate |
+| Chile | 30 fechas y desempate neutral si hay igualdad de puntos por el título |
+| Bolivia | Torneo largo de 30 fechas |
+| Paraguay | Apertura y Clausura independientes de 22 fechas cada uno, anual de 44 y promedios |
+| Uruguay | Apertura 15, Intermedio de dos grupos con siete fechas y final, Clausura 15 y definición contra el líder anual |
+| Colombia | Apertura 19 + playoffs de ocho a ida/vuelta; Finalización 19 + cuadrangulares de seis fechas y final de ida/vuelta |
+| Ecuador | Fase inicial de 30 fechas; hexagonales de título y descenso de diez fechas y cuadrangular internacional de seis, conservando puntos |
+| Perú | Apertura y Clausura de 17 fechas; playoffs condicionales según campeones y acumulada, con finales directas o pases de ronda |
+| Venezuela | Apertura y Clausura de 13 fechas, cuadrangulares de seis fechas, finales únicas y final absoluta condicional |
+| Inglaterra, España e Italia | 38 fechas; minitablas de enfrentamientos directos en España e Italia, y desempates italianos por título y salvación |
+| Alemania y Francia | 34 fechas y posiciones diferenciadas de descenso directo y promoción |
+
+**El calendario civil sigue siendo anual y adaptado**: todavía no reproduce agosto–mayo en Europa, el fixture oficial ni todos los descansos internacionales. Fuera de Argentina no se incluyen divisiones inferiores: se registra el descenso deportivo y la posición de promoción, pero los clubes no se intercambian al año siguiente. Las copas nacionales no están cargadas; sus cupos continentales se cubren con la clasificación de liga. Los promedios usan únicamente puntos efectivamente jugados en la carrera. Estas limitaciones también aparecen en Reglamento: las fases deportivas nuevas no equivalen a una reproducción completa de cada reglamento federativo.
+
+En **Competiciones → Ligas nacionales**, elegí la liga y alterná Fases y finales, Acumulada, Calendario, Promedios y Reglamento. Las etapas finales reciben únicamente equipos clasificados; los cruces opcionales quedan sin jugar cuando el reglamento resuelve el título automáticamente. Cada campeón se registra por su torneo y los objetivos consideran sus títulos, no únicamente la posición anual.
+
+Las carreras anteriores conservan la temporada actual. **Activar formatos por país el próximo año** aplica las estructuras nuevas al comenzar la siguiente temporada. La actualización mantiene exactamente los 310 clubes y las 9.220 identidades de referencia.
 
 ## Libertadores y Sudamericana
 
@@ -61,9 +81,9 @@ La temporada inicial utiliza los **ocho grupos reales de 2026 y sus 32 participa
 - Cada grupo tiene cuatro clubes y seis jornadas de ida y vuelta. Se ordena por puntos, diferencia de gol y goles a favor.
 - Libertadores: los dos primeros de cada grupo pasan a octavos; los terceros acceden al playoff de Sudamericana.
 - Sudamericana: los ganadores de grupo pasan a octavos. Los segundos juegan un playoff contra los terceros de Libertadores.
-- Playoff, octavos, cuartos y semifinales se juegan a ida y vuelta; la final es única. Empate en el global: penales, sin regla de gol visitante. Los grupos y partidos de ida permiten empates.
+- Playoff, octavos, cuartos y semifinales se juegan a ida y vuelta; la final es única. Empate en el global: penales, sin regla de gol visitante. Con los nuevos reglamentos, las finales continentales tienen 30 minutos de prórroga antes de los penales. Los grupos y partidos de ida permiten empates.
 - Las fechas continentales alternan con el torneo local, de martes a jueves; las finales se juegan en fin de semana.
-- En temporadas siguientes, la tabla anual de cada país decide las plazas. Se conserva la distribución nacional de los grupos iniciales, con sorteos simulados sin repetir países dentro de un grupo.
+- En temporadas siguientes, los campeones y la clasificación deportiva de cada país ordenan las plazas. Se conserva la distribución nacional de los grupos iniciales, con sorteos simulados sin repetir países dentro de un grupo.
 
 La edición comienza directamente en grupos: no incluye las fases preliminares. Las copas UEFA no están incluidas; las tablas europeas señalan zonas de referencia para objetivos deportivos.
 
@@ -112,6 +132,17 @@ El inicio muestra un acceso a las decisiones pendientes y Carrera ofrece botones
 **Vestuario** incorpora confianza, expectativas de minutos, charlas individuales y reuniones de grupo. Elogiar, exigir o apoyar tiene consecuencias según rendimiento y situación; las charlas y reuniones tienen límites de frecuencia. Podés prometer 180 minutos en 21 días: sólo cuentan minutos efectivamente disputados, y cumplir o incumplir modifica la relación. Los roles negociados influyen en las expectativas. Son relaciones simuladas, no datos personales de Transfermarkt.
 
 El partido muestra trayectorias de las ocasiones realmente generadas por el motor, con protagonista, resultado y xG. Podés usar presentación animada o estática; respeta pausa y movimiento reducido. La IA rival ajusta su planteo alrededor de los minutos 60 y 75 según el marcador. El panel Lectura del ayudante explica diferencias de xG, calidad media de remates, delanteros sin tiros y fatiga, con los datos que sustentan cada consejo. Aplicar una sugerencia pausa el encuentro y modifica tu planteo sólo cuando lo pedís. No se inventan mapas de pérdidas ni pases recibidos: el motor todavía no registra esos datos.
+
+## Centro de partido
+
+El marcador y los controles de pausa y velocidad permanecen visibles. El botón del encabezado también pausa, reanuda o cierra el informe según el estado. En escritorio la cancha horizontal comparte espacio con el relato; en celular las vistas se organizan en Cancha, Relato, Cambios, Estadísticas, Jugadores y Ayudante, sin desplazar toda la página. Los listados largos tienen desplazamiento interno.
+
+- Los 22 marcadores abren fichas y reflejan expulsiones, lesiones y sustituciones. La ubicación representa el esquema; no pretende ser seguimiento posicional real.
+- La cronología muestra goles, tarjetas y cambios del motor. El relato puede filtrarse a momentos clave.
+- Abrir Cambios pausa el partido y conserva la selección. Podés realizar varios cambios en la misma pausa, respetando cinco cambios y tres ventanas, con la excepción del descanso.
+- Estilo, mentalidad, ritmo, presión y línea defensiva se ajustan desde la misma pantalla; las arengas conservan sus efectos y tiempos de espera.
+- Las estadísticas incluyen posesión, remates, xG, córners y disciplina. El gráfico de xG acumulado usa las ocasiones realmente registradas y diferencia a ambos equipos.
+- Las finales continentales y argentinas incluyen prórroga con los nuevos reglamentos. El reducido de Nacional aplica ventaja deportiva en las rondas anteriores a su final.
 
 ## Gestión y partidos
 
@@ -173,6 +204,7 @@ python3 -m http.server 8000
 En otra terminal:
 
 ```bash
+python3 tests/test_match_formats.py
 python3 tests/test_football_depth.py
 python3 tests/test_workspace_update.py
 python3 tests/test_offer_form.py
@@ -186,3 +218,7 @@ python3 tests/test_game.py
 `FM27_TEST_URL` permite seleccionar otro servidor y `FM27_CHROMIUM` otro ejecutable. Las pruebas de compatibilidad recuperan los HTML originales del historial Git; requieren la copia Git, no sólo el ZIP de distribución. Los escenarios comprueban los cuatro turnos diarios, partidos a su hora, recuperación y salarios sin duplicación, respuestas entre partidos y migración del reloj; también carreras y planteles, partidos, copas, temporadas, ascensos, navegación, exportación/importación y guardados anteriores, decisiones de la bandeja, instrucciones, planes, fichas, IA, cuotas, préstamos, reventa y reservas de fondos. El codec se prueba también con 10.000 jugadores, cambios económicos, partidos pausados y falta de espacio sin perder el guardado anterior.
 
 La batería de paneles verifica escritorio y celular, controles visibles, ofertas en dos etapas, préstamos, primas sin duplicación, vestuario y temporadas completas con los nuevos formatos. Las regresiones del calendario anterior eligen explícitamente el modo clásico.
+
+La batería de formatos comprueba que la base permanezca intacta, los 22 marcadores y controles sean accesibles en cuatro tamaños de pantalla, los cambios compartan ventana y las estadísticas correspondan al motor. Simula temporadas completas, verifica todos los campeones y fases, prueba minitablas, prórroga y activación desde una partida anterior.
+
+El reloj respeta partidos locales de tarde y continentales de noche aun cuando un calendario anterior los almacenó en otro orden; terminar un partido no salta ni omite el encuentro nocturno pendiente.

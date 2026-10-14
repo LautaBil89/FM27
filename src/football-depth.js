@@ -114,6 +114,7 @@ window.FM_DEPTH=(()=>{
     const s=ensure(),h=GameState.history[0];if(!h||!GameState.finished||s.reviews.some(r=>r.year===h.year))return;
     const user=GameState.userClub.id,formats=h.sportingFormats,won=[];
     if(formats&&['ARG1','ARG2'].includes(h.leagueId||GameState.world.userLeagueId)){for(const [name,id]of Object.entries(formats.champions||{}))if(id===user)won.push(name);if(formats.nacionalChampion===user)won.push('Primera Nacional')}
+    else if(h.domesticFormats?.[h.leagueId||GameState.world.userLeagueId]){for(const [phase,pid]of Object.entries(h.domesticFormats[h.leagueId||GameState.world.userLeagueId].winners))if(pid===user&&!['NACIONAL'].includes(phase))won.push(phase);if(!won.length&&h.champion===user)won.push(WORLD_ENGINE.userLeague().name)}
     else if(h.champion===user)won.push(WORLD_ENGINE.userLeague().name);
     if(h.cup===user)won.push('Libertadores');if(h.sudCup===user)won.push('Sudamericana');
     const titlePrizes=won.length*mine().filter(p=>(p.appearances||0)>0).reduce((n,p)=>n+(p.contractBonuses?.title||0),0);if(titlePrizes)MANAGEMENT.transaction(-titlePrizes,'Primas por títulos de la temporada','primas');

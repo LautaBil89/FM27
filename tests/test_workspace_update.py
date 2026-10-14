@@ -203,7 +203,7 @@ class WorkspaceUpdate(unittest.TestCase):
     def test_13_classic_career_can_enable_formats_only_next_season(self):
         self.career(mode='classic');self.nav('tables')
         before=self.page.evaluate('JSON.stringify(GameState.calendar)')
-        self.page.click('[data-arg-next-format]')
+        self.page.click('[data-reg-next]' if self.page.locator('[data-reg-next]').count() else '[data-arg-next-format]')
         self.assertEqual(self.page.evaluate('JSON.stringify(GameState.calendar)'),before)
         self.assertFalse(self.page.evaluate('FM_COMPETITIONS.active()'))
         result=self.page.evaluate("""()=>{let n=0;while(!GameState.finished){if(WORLD_CLOCK.ready()){const g=fixture(currentEvent());WORLD_ENGINE.completeOne({home:g.home===GameState.userClub.id?2:0,away:g.away===GameState.userClub.id?2:0,pen:null})}else WORLD_CLOCK.advance({silent:true});if(++n>2200)throw Error('stalled')}nextSeason();return {active:FM_COMPETITIONS.active(),year:GameState.year,history:GameState.world.competitionHistory,zones:Object.values(GameState.world.competitionFormats).map(f=>[f.zones.A.length,f.zones.B.length])}}""")

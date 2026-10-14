@@ -146,11 +146,11 @@ def merge():
 
 def embed(db):
     scripts = [ROOT / 'src' / name for name in
-               ('world-engine.js', 'competition-formats.js', 'world-ui.js', 'world-storage.js',
+               ('world-engine.js', 'competition-formats.js', 'domestic-regulations.js', 'world-ui.js', 'world-storage.js',
                 'club-ai.js', 'market-contracts.js', 'player-profile.js',
-                'tactics-workbench.js', 'action-inbox.js', 'dressing-room.js', 'match-realism.js', 'negotiation-workspace.js', 'football-depth.js', 'viewport-workspace.js')]
+                'tactics-workbench.js', 'action-inbox.js', 'dressing-room.js', 'match-realism.js', 'negotiation-workspace.js', 'football-depth.js', 'match-centre.js', 'viewport-workspace.js')]
     styles = [ROOT / 'src' / name for name in
-              ('world-ui.css', 'player-profile.css', 'tactics-workbench.css', 'action-inbox.css', 'dressing-room.css', 'match-realism.css', 'negotiation-workspace.css', 'viewport-workspace.css', 'football-depth.css')]
+              ('world-ui.css', 'player-profile.css', 'tactics-workbench.css', 'action-inbox.css', 'dressing-room.css', 'match-realism.css', 'negotiation-workspace.css', 'viewport-workspace.css', 'football-depth.css', 'match-centre.css')]
     for path in scripts + styles:
         if not path.exists():
             raise FileNotFoundError('Implementation not ready: ' + str(path))
@@ -237,6 +237,7 @@ def embed(db):
     html = html.replace('clamp(1.1-delta,.3,2.5)', 'clamp((g.neutral?1.225:1.1)-delta,.3,2.5)')
     html = html.replace('function scout(id){const p=', 'function scout(id){if(GameState?.worldVersion&&window.FM_DEPTH)return FM_DEPTH.scout(id);const p=')
     html = html.replace('function scoutingView(){const list=', 'function scoutingView(){if(GameState?.worldVersion&&window.FM_DEPTH)return FM_DEPTH.scouting();const list=')
+    html = html.replace('if (m.minute >= 90 + m.addedTime) {\n      m.done = true;', 'if (m.minute >= 90 + m.addedTime) {\n      if(window.FM_REGULATIONS?.extend(m)){if(m.minute%5===0)saveGame(true);if(view==="match")render();return;}\n      m.done = true;')
     js = '\n'.join(path.read_text() for path in scripts)
     database = json.dumps(db, ensure_ascii=False, separators=(',', ':')).replace('<', '\\u003c')
     expansion = '\n/* WORLD_EXPANSION_START */\nconst WORLD_DATABASE = ' + database + ';\n' + js + '\n/* WORLD_EXPANSION_END */\n'

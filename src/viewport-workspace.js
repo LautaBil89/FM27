@@ -30,7 +30,7 @@
     const start=form.querySelector('[data-action="new"]'),importer=form.querySelector('[data-action="import"]'),footer=element('div','ws-welcome-footer');footer.append(start,importer);
     const source=[...form.children].filter(n=>n.matches('.world-source-summary,.fm-welcome-disclosure'));
     const controls=[...form.children].filter(n=>n.matches('.field,.world-career-selectors,.world-career-results,.fm-selected-club'));
-    const format=element('label','field');format.innerHTML=`Formato argentino<select id="careerCompetitionFormat"><option value="realistic" ${ui.competitionFormat==='realistic'?'selected':''}>Zonas, playoffs y promedios</option><option value="classic" ${ui.competitionFormat==='classic'?'selected':''}>Calendario anual clásico</option></select>`;controls.push(format);
+    const format=element('label','field');format.innerHTML=`Formato de competiciones<select id="careerCompetitionFormat"><option value="realistic" ${ui.competitionFormat==='realistic'?'selected':''}>Formatos por país · zonas, fases y playoffs</option><option value="classic" ${ui.competitionFormat==='classic'?'selected':''}>Calendario anual clásico</option></select>`;controls.push(format);
     const head=element('div','ws-welcome-heading');head.innerHTML='<strong>FM<span class="gold">27</span></strong><span>Nueva carrera</span>';
     panels(form,[{id:'career',label:'Carrera',nodes:controls,cls:'ws-career-fields'},{id:'sources',label:'Datos y reglas',nodes:source,cls:'ws-reader'}],'welcome',[head]);form.append(footer);
   }
@@ -50,7 +50,9 @@
   }
   function competitions(content) {
     const fixed=[...content.children].filter(n=>n.matches('.fm-page-intro,.fm-tabbar'));
-    if(window.FM_COMPETITIONS&&!GameState.world.competitionFormatsVersion&&content.querySelector('#worldTableLeague')){
+    if(window.FM_REGULATIONS&&!FM_REGULATIONS.enabled()&&content.querySelector('#worldTableLeague')){const next=element('div','ws-format-switch');next.innerHTML=`<span>${GameState.world.nextRegulations?'Los nuevos reglamentos se aplicarán el próximo año.':'Tu temporada conserva su formato guardado.'}</span><button data-reg-next>${GameState.world.nextRegulations?'Mantener reglamentos actuales':'Activar formatos por país el próximo año'}</button>`;fixed.push(next)}
+    if(window.FM_REGULATIONS?.enabled()&&content.querySelector('#worldTableLeague')&&FM_REGULATIONS.rules[content.querySelector('#worldTableLeague').value]){const body=element('div','ws-competition-formats');body.innerHTML=FM_REGULATIONS.render(content.querySelector('#worldTableLeague').value);const filters=content.querySelector('.fm-filters');if(filters)fixed.push(filters);content.replaceChildren(...fixed,body);return}
+    if(window.FM_COMPETITIONS&&!window.FM_REGULATIONS&&!GameState.world.competitionFormatsVersion&&content.querySelector('#worldTableLeague')){
       const next=element('div','ws-format-switch');next.innerHTML=`<span>${GameState.world.nextCompetitionFormat==='realistic'?'El próximo año se jugará con zonas, playoffs y promedios.':'Tu carrera conserva su calendario actual.'}</span><button data-arg-next-format>${GameState.world.nextCompetitionFormat==='realistic'?'Conservar formato clásico':'Activar nuevo formato el próximo año'}</button>`;fixed.push(next);
     }
     if(window.FM_COMPETITIONS?.render&&GameState.world.competitionFormatsVersion&&content.querySelector('#worldTableLeague')&&['ARG1','ARG2'].includes(content.querySelector('#worldTableLeague').value)){
@@ -83,6 +85,7 @@
     if(innerWidth<=650)panels(layout,[{id:'messages',label:'Mensajes',nodes:[list]},{id:'reading',label:'Lectura y decisiones',nodes:[reader]}],'inbox-mobile');
   }
   function liveMatch(content) {
+    if(content.querySelector('.mc-root'))return;
     if(!GameState.match){cardGroups(content,'prematch');return}
     const scoreboard=content.querySelector('.scoreboard')?.closest('.card')||content.querySelector('.card'),cards=[...content.querySelectorAll('.card')].filter(n=>n!==scoreboard&&!n.contains(scoreboard));
     const grid=content.querySelector('.fm-match-grid');if(!cards.length)return;if(window.FM_DEPTH){const reader=element('div','depth-match');reader.innerHTML=FM_DEPTH.analysisHTML();const card=reader.firstElementChild;content.append(card);cards.push(card)}
@@ -107,7 +110,7 @@
     else if(handlers[view])handlers[view](content);
     else if(['squad','training','scouting','finances'].includes(view))cardGroups(content,view);
     if(['career','dressing-room'].includes(view)){for(const button of shell.querySelectorAll('aside nav [data-view]'))button.classList.remove('active');const crumb=shell.querySelector('.fm-breadcrumb');if(crumb)crumb.textContent=GameState.userClub.nombre+' / '+(view==='career'?'Carrera':'Vestuario')}
-    window.FM_DRESSING_ROOM?.ensure();menu(shell);window.FM_MATCH_REALISM?.decorate();window.FM_DEPTH?.decorate();
+    window.FM_DRESSING_ROOM?.ensure();menu(shell);window.FM_MATCH_REALISM?.decorate();window.FM_DEPTH?.decorate();window.FM_MATCH_CENTRE?.decorate();
   }
   render=function(){const requested=view;if(active()&&['dressing-room','career'].includes(view))view='squad';try{original()}finally{view=requested}layout()};
   document.addEventListener('click',e=>{if(e.target.closest('[data-view],[data-action]'))ui.menu=false;if(e.target.closest('[data-inbox-open]'))ui.tabs['inbox-mobile']='reading'},true);
