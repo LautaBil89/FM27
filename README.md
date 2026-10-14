@@ -89,13 +89,29 @@ El registro del mercado muestra las últimas operaciones y renovaciones de la IA
 
 Las partidas ampliadas anteriores a esta actualización conservan jugadores, resultados, contratos y economía al importar o continuar; los módulos nuevos se inicializan sin reiniciar la carrera.
 
+## Proyectos, representantes y carrera
+
+La IA tiene políticas deportivas persistentes: **competir por títulos**, **desarrollar y vender** o **equilibrar las cuentas**. La política modifica la puntuación de candidatos y los precios de venta. Al revisar la temporada, un club con poca liquidez puede pasar a ahorrar; un aspirante a títulos que termina en el último cuarto de su liga cambia de ciclo técnico y ajusta su planteo. Son decisiones del simulador, no nombres o noticias de entrenadores reales. Cada cantera prioriza técnica, físico o defensa, y eso afecta a los juveniles generados en años siguientes.
+
+Los jugadores valoran reputación, rol ofrecido, nivel competitivo, participación continental, relación disponible con el DT e interés rival reciente. Pueden pedir más salario o rechazar una promesa de titularidad poco creíble. Un rival con necesidad y fondos puede presentar condiciones por tu objetivo: al resolver el contrato, el jugador compara ambas propuestas. Si elige al rival, se valida y ejecuta esa operación; tu pase no se cobra. El representante explica sus preferencias y su referencia salarial. Las primas incluyen un importe por título, liquidado una vez al cerrar la temporada a los integrantes que hayan participado.
+
+Los préstamos admiten **opción** u **obligación de compra**. Se acuerdan precio y modalidad con el propietario, quedan bloqueados durante la negociación personal y se conservan al guardar. Una opción se ejecuta desde Préstamos activos en Ofertas y contratos. Una obligación reserva también su precio futuro y se intenta cobrar al vencimiento. Si faltan fondos, permanece pendiente y no se transforma en una devolución gratuita. La compra mantiene salario y condiciones personales pactadas, con el plazo restante de contrato y un mínimo de un año.
+
+En **Carrera y proyectos** podés consultar prioridades, políticas de tu liga, ciclos técnicos, trayectoria y títulos registrados desde esta actualización. Al terminar cada temporada llegan hasta tres propuestas acordes con tu nivel; aceptarlas cambia de club al iniciar el próximo año y conserva el mundo, resultados e historial. La caja y el plantel pertenecen al club, no al entrenador. Con confianza inferior a 20 y objetivo incumplido, la directiva termina el ciclo y necesitás elegir un nuevo proyecto para continuar. Los cambios de trabajo se realizan entre temporadas.
+
+## Ojeo progresivo
+
+Las identidades y referencias públicas siguen visibles. La calidad y el potencial de futbolistas externos empiezan como rangos con 15% de conocimiento; tus propios jugadores están evaluados. Cada encargo cuesta USD 1.500 en total y ocupa uno de cinco observadores. El seguimiento avanza al pasar días: 40% en dos días, 70% en cuatro y evaluación completa en siete. Repetir el botón no duplica cargos. Los informes completos pierden precisión con los meses y pueden renovarse; los informes de partidas anteriores se conservan.
+
+El centro de ojeo permite filtrar por puesto, edad y costo estimado del primer año, y comparar hasta tres objetivos por calidad conocida, potencial, salario y encaje en tu plantel. El costo orientativo suma pase estimado y 52 salarios, sin primas. Mercado, fichas y comparaciones muestran rangos de atributos mientras falta observación; las estadísticas de partidos son registros públicos de la carrera. Los filtros de mercado y ojeo se guardan con la partida.
+
 ## Interfaz, vestuario y jugadas
 
-La interfaz ocupa la ventana: las pantallas se dividen en pestañas y paneles, con las acciones principales visibles. Las tablas, listados y lectores extensos tienen desplazamiento interno. En celular hay un menú desplegable y pestañas adaptadas; tácticas separa cancha, banco, equipo, jugador y planes. El diálogo de negociación mantiene el envío visible y separa condiciones de primas.
+El inicio muestra un acceso a las decisiones pendientes y Carrera ofrece botones para resolver contratos, ofertas y bajas. La interfaz ocupa la ventana: las pantallas se dividen en pestañas y paneles, con las acciones principales visibles. Las tablas, listados y lectores extensos tienen desplazamiento interno. En celular hay un menú desplegable y pestañas adaptadas; tácticas separa cancha, banco, equipo, jugador y planes. El diálogo de negociación mantiene el envío visible y separa condiciones de primas.
 
 **Vestuario** incorpora confianza, expectativas de minutos, charlas individuales y reuniones de grupo. Elogiar, exigir o apoyar tiene consecuencias según rendimiento y situación; las charlas y reuniones tienen límites de frecuencia. Podés prometer 180 minutos en 21 días: sólo cuentan minutos efectivamente disputados, y cumplir o incumplir modifica la relación. Los roles negociados influyen en las expectativas. Son relaciones simuladas, no datos personales de Transfermarkt.
 
-El partido muestra trayectorias de las ocasiones realmente generadas por el motor, con protagonista, resultado y xG. Podés usar presentación animada o estática; respeta pausa y movimiento reducido. La IA rival ajusta su planteo alrededor de los minutos 60 y 75 según el marcador. Esta representación no añade resultados ni estadísticas de pases ficticias.
+El partido muestra trayectorias de las ocasiones realmente generadas por el motor, con protagonista, resultado y xG. Podés usar presentación animada o estática; respeta pausa y movimiento reducido. La IA rival ajusta su planteo alrededor de los minutos 60 y 75 según el marcador. El panel Lectura del ayudante explica diferencias de xG, calidad media de remates, delanteros sin tiros y fatiga, con los datos que sustentan cada consejo. Aplicar una sugerencia pausa el encuentro y modifica tu planteo sólo cuando lo pedís. No se inventan mapas de pérdidas ni pases recibidos: el motor todavía no registra esos datos.
 
 ## Gestión y partidos
 
@@ -157,6 +173,7 @@ python3 -m http.server 8000
 En otra terminal:
 
 ```bash
+python3 tests/test_football_depth.py
 python3 tests/test_workspace_update.py
 python3 tests/test_offer_form.py
 python3 tests/test_daily_clock.py

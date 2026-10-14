@@ -96,7 +96,7 @@
     if(!from)return 0;
     const roster=squad(from).filter(q=>q.posicion===p.posicion).sort((a,b)=>overall(b)-overall(a)),rank=roster.findIndex(q=>q.id===p.id),rotation=rank>({POR:0,DEF:3,MED:2,DEL:2}[p.posicion]??2);
     const youngster=p.edad<24&&p.potential>overall(p)+8;
-    return roundMoney(p.valor_mercado*(rotation?.88:1.12)*(youngster?1.15:1));
+    const policy=window.FM_DEPTH?.project(from)?.policy;return roundMoney(p.valor_mercado*(rotation?.88:1.12)*(youngster?1.15:1)*(policy==='balance'?.88:policy==='academy'&&youngster?1.14:1));
   }
   function appeal(p,id,wage){const c=club(id),e=economy(id),from=club(p.clubId);return positive(e.reputation||c?.reputation||c?.rating)+Math.min(18,(wage/Math.max(100,p.salario)-1)*25)+(from?.country===c?.country?4:0)+(p.edad<24?4:0)}
   function expectedWage(p,id){const rep=economy(id)?.reputation||club(id)?.reputation||60,origin=club(p.clubId)?.reputation||p.potential||60;return Math.max(100,roundMoney(p.salario*(rep+12<origin?1.35:p.clubId?1.08:1.02)))}
@@ -111,7 +111,7 @@
       if(p.potential>=88&&rep<65&&wage<p.salario*1.7)continue;
       if(quality<s.positions[p.posicion].quality-4&&need.count>=TARGET[p.posicion])continue;
       if(quality>s.quality+15&&rep<70)continue;
-      const score=need.score+(quality-s.positions[p.posicion].quality)*1.7+(p.edad<25?3:0)+(c.country===club(p.clubId)?.country?3:0);
+      const score=(window.FM_DEPTH?.projectScore(p,c.id)||0)+need.score+(quality-s.positions[p.posicion].quality)*1.7+(p.edad<25?3:0)+(c.country===club(p.clubId)?.country?3:0);
       if(score<3)continue;
       result.push({id:c.id,nombre:c.nombre,score:Math.round(score),need:need.count<TARGET[p.posicion]?'Profundidad de plantel':'Mejora del once',offer:fee,wage,style:economy(c.id).style});
     }
@@ -126,7 +126,7 @@
     if(quality>summary.quality+15&&e.reputation<70)return null;
     if(p.potential>=88&&e.reputation<65&&wage<p.salario*1.7)return null;
     const countryBonus=club(p.clubId)?.country===club(clubId)?.country?4:0;
-    const score=need.score+(quality-summary.positions[p.posicion].quality)*2+(p.edad<24?Math.min(6,(p.potential-quality)*.35):0)+countryBonus-(p.edad>31?3:0);
+    const score=(window.FM_DEPTH?.projectScore(p,clubId)||0)+need.score+(quality-summary.positions[p.posicion].quality)*2+(p.edad<24?Math.min(6,(p.potential-quality)*.35):0)+countryBonus-(p.edad>31?3:0);
     if(score<4)return null;
     const bid={playerId:p.id,fromClub:p.clubId,toClub:clubId,type:'buy',dealType:'permanent',fee,wage,bonus,years:p.edad<25?4:p.edad<31?3:2,installments:0,upfrontPercent:100,sellOnPercent:0,releaseClause:roundMoney(Math.max(fee,p.valor_mercado)*2.2),score,appeal:appeal(p,clubId,wage)};
     const tooExpensive=availableBudget(clubId)<fee+bonus+Math.max(wage*6,10000)||fee>availableBudget(clubId)*.55&&need.count>=MINIMUM[p.posicion];

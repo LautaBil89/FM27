@@ -2,7 +2,7 @@
 window.FM_INBOX = (() => {
   const legacyInbox = window.inboxView, legacyRender = render;
   const categories = {mercado:'Mercado',contratos:'Contratos',ojeo:'Ojeo',plantel:'Plantel',partidos:'Partidos',directiva:'Directiva',sistema:'Sistema',prensa:'Prensa'};
-  const supported = new Set(['sale','offer','scout','contract','tactics','medical','match','finance','recovery']);
+  const supported = new Set(['sale','offer','scout','contract','tactics','medical','match','finance','recovery','career']);
   const active = () => !!GameState?.world && GameState.version === 3;
   const owned = p => !!p && p.clubId === GameState.userClub.id;
   const lookup = id => Number.isSafeInteger(Number(id)) ? player(Number(id)) : null;
@@ -92,6 +92,7 @@ window.FM_INBOX = (() => {
     if(!active()||m.dismissed)return false;
     const p=lookup(m.playerId),o=m.offerId?offerFor(m):null;
     if(m.offerId)return !!o&&o.status==='pending'&&(o.type!=='sell'||owned(p));
+    if(m.action==='career')return m.date.slice(0,4)===String(GameState.year)&&!!GameState.world.depth?.jobs?.some(j=>j.status==='open');
     if(m.action==='contract')return owned(p)&&!p.loanId&&p.contract<=GameState.year+1&&(!Number.isInteger(m.contractAtCreation)||p.contract===m.contractAtCreation);
     if(m.action==='medical')return owned(p)&&(p.injury>0||p.condicion_fisica<65)&&p.trainingFocus!=='Recuperación';
     if(m.action==='recovery'){const members=mine();return GameState.training.focus!=='Recuperación'&&members.length>0&&members.reduce((sum,p)=>sum+p.condicion_fisica,0)/members.length<73;}
@@ -133,6 +134,7 @@ window.FM_INBOX = (() => {
     if(m.action==='recovery'&&isPending(m))add('team-recovery','Aplicar recuperación colectiva',blocked,true);
     if(m.action==='recovery'||m.action==='medical')add('go-training','Plan de entrenamiento');
     if(m.action==='finance')add('go-finances','Revisar finanzas');
+    if(m.action==='career')add('go-career','Revisar proyectos',false,true);
     if(m.action==='match')add('report','Ver informe del partido');
     if(m.action==='match'||m.type==='partidos')add('go-match','Centro de partido');
     if(!m.offerId&&isPending(m))add('dismiss','Revisado por el DT');

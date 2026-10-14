@@ -19,7 +19,7 @@
     return wrapper;
   }
   function cardGroups(host,key) {
-    const nodes=[...host.children],intro=nodes.filter(n=>n.matches('.fm-page-intro,.fm-section-head,.fm-tabbar')||['finances','scouting'].includes(key)&&n.matches('.grid.cols3'));
+    const nodes=[...host.children],intro=nodes.filter(n=>n.matches('.fm-page-intro,.fm-section-head,.fm-tabbar,.depth-controls')||['finances','scouting'].includes(key)&&n.matches('.grid.cols3'));
     let cards=nodes.filter(n=>!intro.includes(n));
     cards=cards.flatMap(n=>n.matches('.grid,.fm-dashboard-grid')?[...n.children].flatMap(c=>c.matches('.card')?[c]:[...c.children]):[n]);
     panels(host,cards.map((n,i)=>({id:String(i),label:title(n,`Panel ${i+1}`),nodes:[n],cls:n.querySelector('table')?'':'ws-reader'})),key,intro);
@@ -85,13 +85,14 @@
   function liveMatch(content) {
     if(!GameState.match){cardGroups(content,'prematch');return}
     const scoreboard=content.querySelector('.scoreboard')?.closest('.card')||content.querySelector('.card'),cards=[...content.querySelectorAll('.card')].filter(n=>n!==scoreboard&&!n.contains(scoreboard));
-    const grid=content.querySelector('.fm-match-grid');if(!cards.length)return;
+    const grid=content.querySelector('.fm-match-grid');if(!cards.length)return;if(window.FM_DEPTH){const reader=element('div','depth-match');reader.innerHTML=FM_DEPTH.analysisHTML();const card=reader.firstElementChild;content.append(card);cards.push(card)}
     const unique=cards.filter(n=>!cards.some(p=>p!==n&&p.contains(n)));
     panels(content,unique.map((n,i)=>({id:String(i),label:n.querySelector('.pitch')?'Cancha':n.querySelector('.feed')?'Relato':title(n,`Partido ${i+1}`),nodes:[n],cls:n.querySelector('.feed,table')?'':'ws-reader'})),'match',[scoreboard]);
     const feed=content.querySelector('.feed');if(feed)feed.classList.add('ws-list');
   }
   function menu(shell) {
     const aside=shell.querySelector('aside'),nav=aside?.querySelector('nav');if(!nav)return;
+    if(window.FM_DEPTH){const b=element('button',view==='career'?'active':'');b.dataset.view='career';b.innerHTML=`${FMUI.icon('trust')}<span class="fm-nav-label">Carrera y proyectos</span>`;nav.append(b)}
     if(window.FM_DRESSING_ROOM){const b=element('button',view==='dressing-room'?'active':'');b.dataset.view='dressing-room';b.innerHTML=`${FMUI.icon('users')}<span class="fm-nav-label">Vestuario</span>`;nav.append(b)}
     const button=element('button','ws-menu-toggle');button.dataset.wsMenu='toggle';button.setAttribute('aria-label','Abrir menú');button.innerHTML='☰';aside.prepend(button);
     const drawer=element('section','ws-menu');drawer.hidden=!ui.menu;drawer.innerHTML=`<div class="row between"><strong>${esc(GameState.userClub.nombre)}</strong><button data-ws-menu="close">Cerrar</button></div><nav>${nav.innerHTML}</nav><div class="row"><button data-action="save">Guardar</button><button data-action="export">Exportar</button><button data-action="import">Importar</button></div>`;shell.append(drawer);
@@ -101,12 +102,14 @@
     if(!GameState)return welcome();
     const shell=document.querySelector('.shell'),content=document.querySelector('#content');if(!content)return;shell.dataset.workspaceView=view;
     const handlers={dashboard,market,tables:competitions,tactics,player:profile,inbox,match:liveMatch};
-    if(view==='dressing-room'&&window.FM_DRESSING_ROOM){content.innerHTML=FM_DRESSING_ROOM.render();document.querySelector('.fm-topbar h1').textContent='Vestuario'}
+    if(view==='career'&&window.FM_DEPTH){content.innerHTML=FM_DEPTH.career();document.querySelector('.fm-topbar h1').textContent='Carrera';cardGroups(content,'career')}
+    else if(view==='dressing-room'&&window.FM_DRESSING_ROOM){content.innerHTML=FM_DRESSING_ROOM.render();document.querySelector('.fm-topbar h1').textContent='Vestuario'}
     else if(handlers[view])handlers[view](content);
     else if(['squad','training','scouting','finances'].includes(view))cardGroups(content,view);
-    window.FM_DRESSING_ROOM?.ensure();menu(shell);window.FM_MATCH_REALISM?.decorate();
+    if(['career','dressing-room'].includes(view)){for(const button of shell.querySelectorAll('aside nav [data-view]'))button.classList.remove('active');const crumb=shell.querySelector('.fm-breadcrumb');if(crumb)crumb.textContent=GameState.userClub.nombre+' / '+(view==='career'?'Carrera':'Vestuario')}
+    window.FM_DRESSING_ROOM?.ensure();menu(shell);window.FM_MATCH_REALISM?.decorate();window.FM_DEPTH?.decorate();
   }
-  render=function(){const requested=view;if(active()&&view==='dressing-room')view='squad';try{original()}finally{view=requested}layout()};
+  render=function(){const requested=view;if(active()&&['dressing-room','career'].includes(view))view='squad';try{original()}finally{view=requested}layout()};
   document.addEventListener('click',e=>{if(e.target.closest('[data-view],[data-action]'))ui.menu=false;if(e.target.closest('[data-inbox-open]'))ui.tabs['inbox-mobile']='reading'},true);
   document.addEventListener('click',e=>{const tab=e.target.closest('[data-ws-tab]');if(tab){ui.tabs[tab.dataset.wsKey]=tab.dataset.wsTab;render();return}const b=e.target.closest('[data-ws-menu]');if(b){ui.menu=b.dataset.wsMenu==='toggle'?!ui.menu:false;render()}});
   document.addEventListener('change',e=>{if(e.target.id==='careerCompetitionFormat')ui.competitionFormat=e.target.value});
