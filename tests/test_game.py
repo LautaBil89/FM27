@@ -6,6 +6,7 @@ actual DOM controls for management actions and advance the public match clock
 synchronously to avoid spending wall time on the presentation timer.
 """
 import copy
+from datetime import date
 import json
 import os
 import shutil
@@ -232,6 +233,10 @@ class FM27Scenarios(unittest.TestCase):
         for tab in expected:
             self.nav(tab)
         self.nav('squad')
+        lavagnino=next(p for p in state['players'] if p['nombre']=='Lucas Lavagnino')
+        self.assertEqual(lavagnino['transfermarkt']['marketValueEUR'],150000)
+        self.assertEqual(lavagnino['transfermarkt']['valuationDate'],'2024-06-12')
+        self.assertTrue(lavagnino['transfermarkt']['noQuotationAtLastRevision'])
         cavani=next(p for p in state['players'] if 'Cavani' in p['nombre'] and p['clubId']=='boca')
         self.page.locator('[data-player="'+str(cavani['id'])+'"]').first.click()
         details=self.page.locator('#details')
@@ -454,7 +459,14 @@ class FM27Scenarios(unittest.TestCase):
         self.assertEqual('boca' in cup_teams,expected_participation)
         self.assertEqual(cup_teams.intersection(set(p['id'] for p in next_state['league'])),qualified)
         self.assertTrue(all(row['pj']==0 for row in next_state['annual'].values()))
-        self.assertTrue(all(p['birthYear']+p['edad']==2027 for p in next_state['players']))
+        career_day=date.fromisoformat(next_state['today'])
+        for player in next_state['players']:
+            if player.get('fecha_nacimiento'):
+                birthday=date.fromisoformat(player['fecha_nacimiento'])
+                expected=career_day.year-birthday.year-((career_day.month,career_day.day)<(birthday.month,birthday.day))
+                self.assertEqual(player['edad'],expected,player['nombre'])
+            else:
+                self.assertEqual(player['birthYear']+player['edad'],2027)
         self.assertTrue(any(not p['realIdentity'] for p in next_state['players']))
 
     def test_07_export_import_and_invalid_schema_preserve_career(self):
@@ -532,6 +544,64 @@ class FM27Scenarios(unittest.TestCase):
         self.play_event()
         self.assertEqual(self.state()['annual']['newells']['pj'],1)
 
+
+    def test_09_transfermarkt_sources_values_birthdays_and_nulls(self):
+        state=self.career()
+        db=json.loads((REPO/'data'/'transfermarkt-2025.json').read_text())
+        self.assertEqual(len(state['players']),400)
+        ids=[p['transfermarkt']['playerId'] for p in state['players']]
+        self.assertEqual(len(set(ids)),400)
+        self.assertEqual(state['dataSource']['name'],'Transfermarkt')
+        self.assertEqual(state['dataSource']['datedValues'],397)
+        self.assertEqual(db['supplementaryDataset']['matchedPlayers'],369)
+        self.assertEqual(db['supplementaryDataset']['matchedContracts'],362)
+        self.assertEqual(sum('archiveReference' in p['transfermarkt'] for p in state['players']),369)
+        cavani_reference=next(p for p in state['players'] if p['nombre']=='Edinson Cavani')['transfermarkt']['archiveReference']
+        self.assertEqual(cavani_reference['contractEnd'],'2026-12-31')
+        self.assertEqual(db['playerDetails']['Manuel Vicentini']['dateOfBirth'],'1990-04-19')
+        self.assertTrue(db['playerDetails']['Manuel Vicentini']['archiveReference']['birthDateDisagreesWithProfile'])
+        cutoff=date(2025,12,31)
+        published=[p for p in state['players'] if p['transfermarkt']['marketValueEUR'] is not None]
+        missing=[p for p in state['players'] if p['transfermarkt']['marketValueEUR'] is None]
+        self.assertEqual(len(published),397)
+        self.assertEqual({p['nombre'] for p in missing},{'Damián Fernández','Germán Barbas','Julio Daguer'})
+        for player in state['players']:
+            reference=player['transfermarkt']
+            self.assertEqual(reference,db['playerDetails'][player['nombre']])
+            self.assertTrue(reference['profileUrl'].startswith('https://www.transfermarkt.'))
+            self.assertIn('/spieler/'+str(reference['playerId']),reference['profileUrl'])
+            self.assertTrue(reference['nationalities'])
+            self.assertEqual(player['fecha_nacimiento'],reference['dateOfBirth'])
+            if reference['marketValueEUR'] is not None:
+                self.assertLessEqual(date.fromisoformat(reference['valuationDate']),cutoff)
+                self.assertEqual(player['valor_mercado'],round(reference['marketValueEUR']*1.10))
+            else:
+                self.assertIsNone(reference['valuationDate'])
+                self.assertIn('Estimación',player['marketValueOrigin'])
+        lavagnino=next(p for p in state['players'] if p['nombre']=='Lucas Lavagnino')
+        self.assertEqual(lavagnino['transfermarkt']['marketValueEUR'],150000)
+        self.assertEqual(lavagnino['transfermarkt']['valuationDate'],'2024-06-12')
+        self.assertTrue(lavagnino['transfermarkt']['noQuotationAtLastRevision'])
+        cavani=next(p for p in state['players'] if p['nombre']=='Edinson Cavani')
+        self.assertEqual(cavani['fecha_nacimiento'],'1987-02-14')
+        self.assertEqual(cavani['edad'],38)
+        self.assertEqual(cavani['transfermarkt']['marketValueEUR'],500000)
+        self.assertEqual(cavani['transfermarkt']['valuationDate'],'2025-12-17')
+        paredes=next(p for p in state['players'] if p['nombre']=='Leandro Paredes')
+        self.assertEqual(paredes['transfermarkt']['marketValueEUR'],5000000)
+        self.assertEqual(paredes['valor_mercado'],5500000)
+        self.page.evaluate('(id)=>details(id)',paredes['id'])
+        profile=self.page.locator('#details')
+        self.assertIn('Transfermarkt',profile.inner_text())
+        self.assertIn('17 de diciembre de 2025',profile.inner_text())
+        self.assertTrue(profile.locator('a[href*="spieler/166237"]').count()>0)
+        self.page.locator('[data-action="close"]').click()
+        self.page.evaluate("GameState.today='2026-02-14';saveGame(true)")
+        # Calendar advance recalculates birthdays; a birthday is a full year,
+        # not a blanket increment at the start of a calendar year.
+        self.play_event()
+        aged=next(p for p in self.state()['players'] if p['nombre']=='Edinson Cavani')
+        self.assertEqual(aged['edad'],39)
 
 if __name__=='__main__':
     unittest.main(verbosity=2)

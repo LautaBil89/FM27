@@ -32,9 +32,17 @@ python3 -m http.server 8000 --directory .
 
 ## Base y reglas de simulación
 
-La base se reconstruyó a partir de **planteles de 2025**, principalmente revisiones históricas de diciembre, y biografías públicas para el año de nacimiento. No representa fichajes actualizados en vivo a 2026. Las edades se calculan por año y pueden diferir en un año antes del cumpleaños. Los atributos, pie preferido, personalidad, potencial, contratos, valores, salarios y presupuestos son **estimaciones de juego**, no datos oficiales.
+La fuente principal es **Transfermarkt**: 400 perfiles con ID y enlace de origen, fecha de nacimiento, posición específica, nacionalidades y, cuando están publicados, pie y altura. Los planteles jugables se seleccionan entre los participantes de **2025** que aparecen en sus páginas históricas. Se prioriza el núcleo histórico de la versión anterior cuando coincide con Transfermarkt, corrigiendo fechas, posiciones y participantes que no aparecen en esa temporada. No se presenta como una nómina activa al 31 de diciembre ni como fichajes actuales de 2026.
 
-Las nacionalidades deportivas y la ciudadanía argentina se distinguen al calcular los cupos. La edición usa seis extranjeros inscritos y como máximo 32 jugadores en el plantel. Los futbolistas sin inscripción no pueden jugar. La ventana de pases simplificada abre de enero a marzo y de julio a agosto. El tipo de cambio de simulación es USD 1 = ARS 1.200.
+Los valores de las tablas históricas de planteles pueden corresponder a fechas anteriores y no incluyen una fecha individual de tasación. Por eso se consultó el **historial público de valoración de los 400 perfiles**, conservando la última publicación no posterior al **31/12/2025** y su fecha exacta. Hay **397 referencias positivas fechadas**: 396 publicadas en 2025 y una en 2024. Damián Fernández, Germán Barbas y Julio Daguer no tienen una cotización publicada antes de ese corte; su referencia Transfermarkt permanece `null` (un guion en el historial no se convierte en un precio cero) y su valor de juego es una estimación explícita. Lucas Lavagnino e Imanol Machuca tienen una revisión posterior sin cotización; se muestra su último valor positivo anterior como referencia histórica, con la fecha y una aclaración en la ficha.
+
+Cada ficha separa el **valor publicado en EUR** del valor utilizado por la carrera en USD. La conversión fija de simulación es **EUR 1 = USD 1,10**; no representa un tipo de cambio financiero vigente. Las cotizaciones de Transfermarkt son valoraciones de referencia, no precios de venta ni cláusulas garantizadas. Los atributos, personalidad, potencial, roles tácticos, contratos, salarios, cláusulas y presupuestos siguen siendo **estimaciones del juego**: Transfermarkt no publica atributos de Football Manager ni todos esos términos contractuales.
+
+Las edades se calculan desde la fecha completa de nacimiento en la fecha de la carrera. La fecha de consulta aparece separada de la fecha de valoración. La aplicación conserva una instantánea y no solicita datos de Transfermarkt durante la partida.
+
+La base auditable está en [data/transfermarkt-2025.json](data/transfermarkt-2025.json) y también está completamente incorporada en `index.html`; no hace falta descargar ese JSON para jugar. Las partidas existentes conservan sus fichajes, presupuestos y valores de carrera. Cuando una identidad real de una partida anterior coincide con seguridad, se añaden referencias Transfermarkt sin cambiar sus términos económicos. Para usar los planteles y valores iniciales nuevos, comenzá una nueva carrera después de exportar la anterior.
+
+Las fichas conservan las nacionalidades publicadas y tienen en cuenta la ciudadanía argentina al calcular los cupos. La edición usa seis extranjeros inscritos y como máximo 32 jugadores en el plantel. Los futbolistas sin inscripción no pueden jugar. La ventana de pases simplificada abre de enero a marzo y de julio a agosto. El tipo de cambio de simulación es USD 1 = ARS 1.200.
 
 La primera Libertadores utiliza cuatro clubes argentinos elegibles y cuatro invitados continentales en una fase final abreviada. La Sudamericana figura como plaza clasificatoria, sin torneo jugable. La zona de descenso tiene consecuencias deportivas, económicas y para la confianza; esta edición conserva los mismos 12 clubes en la temporada siguiente. Los juveniles creados por las inferiores en temporadas posteriores son ficticios y se identifican como tales.
 
@@ -62,42 +70,54 @@ python3 tests/test_game.py
 
 Se puede seleccionar un Chromium ya instalado con `FM27_CHROMIUM` y otra dirección de servidor con `FM27_TEST_URL`. Las pruebas de migración recuperan el HTML original desde el historial Git; por eso requieren la copia Git y no sólo el ZIP de distribución.
 
-## Fuentes de la base histórica
+## Archivo complementario y método de extracción
 
-- [Boca Juniors](https://en.wikipedia.org/w/index.php?title=Boca+Juniors&oldid=1329612050) · revisión 2025-12-27
-- [Club Atlético River Plate](https://en.wikipedia.org/w/index.php?title=Club+Atl%C3%A9tico+River+Plate&oldid=1330274954) · revisión 2025-12-30
-- [Racing Club de Avellaneda](https://en.wikipedia.org/w/index.php?title=Racing+Club+de+Avellaneda&oldid=1330119331) · revisión 2025-12-29
-- [Club Atlético Independiente](https://en.wikipedia.org/w/index.php?title=Club+Atl%C3%A9tico+Independiente&oldid=1329184488) · revisión 2025-12-24
-- [San Lorenzo de Almagro](https://en.wikipedia.org/w/index.php?title=San+Lorenzo+de+Almagro&oldid=1330312135) · revisión 2025-12-30
-- [Club Atlético Huracán](https://en.wikipedia.org/w/index.php?title=Club+Atl%C3%A9tico+Hurac%C3%A1n&oldid=1329366048) · revisión 2025-12-25
-- [Newell's Old Boys](https://en.wikipedia.org/w/index.php?title=Newell%27s+Old+Boys&oldid=1327963298) · revisión 2025-12-17
-- [Rosario Central](https://en.wikipedia.org/w/index.php?title=Rosario+Central&oldid=1330013090) · revisión 2025-12-29
-- [Talleres de Córdoba](https://en.wikipedia.org/w/index.php?title=Talleres+de+C%C3%B3rdoba&oldid=1330304881) · revisión 2025-12-30
-- [Club Atlético Belgrano](https://en.wikipedia.org/w/index.php?title=Club+Atl%C3%A9tico+Belgrano&oldid=1329701468) · revisión 2025-12-27
-- [Club Atlético Vélez Sarsfield](https://en.wikipedia.org/w/index.php?title=Club+Atl%C3%A9tico+V%C3%A9lez+Sarsfield&oldid=1329940588) · revisión 2025-12-28
-- [Estudiantes de La Plata](https://en.wikipedia.org/w/index.php?title=Estudiantes+de+La+Plata&oldid=1329366949) · revisión 2025-12-25
-- [CR Flamengo](https://en.wikipedia.org/w/index.php?title=CR+Flamengo&oldid=1330304717) · revisión 2025-12-30
-- [2025 Sociedade Esportiva Palmeiras season](https://en.wikipedia.org/wiki/2025_Sociedade_Esportiva_Palmeiras_season) · revisión 2025-seaso
-- [Club Nacional de Football](https://en.wikipedia.org/w/index.php?title=Club+Nacional+de+Football&oldid=1329729166) · revisión 2025-12-27
-- [Peñarol](https://en.wikipedia.org/w/index.php?title=Pe%C3%B1arol&oldid=1330270080) · revisión 2025-12-30
-- [Huracán · plantel de la temporada 2025 (Spina y datos de posiciones)](https://en.wikipedia.org/wiki/2025_Club_Atl%C3%A9tico_Hurac%C3%A1n_season) · revisión Temporada 
-- [Francisco Perruzzi · datos biográficos](https://es.wikipedia.org/wiki/Francisco_Perruzzi)
-- [Andrés Madruga · datos biográficos](https://es.wikipedia.org/wiki/Andrés_Madruga)
-- [Julián Millán · datos biográficos](https://es.wikipedia.org/wiki/Julián_Millán)
-- [Nicolás Goitea · datos biográficos](https://es.wikipedia.org/wiki/Nicolás_Goitea)
-- [Nahuel Arias · datos biográficos](https://es.wikipedia.org/wiki/Nahuel_Arias)
-- [Daniel Zabala · datos biográficos](https://es.wikipedia.org/wiki/Daniel_Zabala)
-- [Bruno Arady · datos biográficos](https://es.wikipedia.org/wiki/Bruno_Arady)
-- [Paolo Calione · datos biográficos](https://es.wikipedia.org/wiki/Paolo_Calione)
-- [Jaime Peralta · datos biográficos](https://es.wikipedia.org/wiki/Jaime_Peralta)
-- [Plantel intermiami · temporada 2025](https://en.wikipedia.org/wiki/2025_Inter_Miami_CF_season) · revisión Temporada 
-- [Plantel santos · temporada 2025](https://en.wikipedia.org/wiki/2025_Santos_FC_season) · revisión Temporada 
-- [Plantel fluminense · temporada 2025](https://en.wikipedia.org/wiki/2025_Fluminense_FC_season) · revisión Temporada 
-- [Plantel cruzeiro · temporada 2025](https://en.wikipedia.org/wiki/2025_Cruzeiro_Esporte_Clube_season) · revisión Temporada 
-- [Plantel atleticomineiro · temporada 2025](https://en.wikipedia.org/wiki/2025_Clube_Atl%C3%A9tico_Mineiro_season) · revisión Temporada 
-- [Plantel vasco · temporada 2025](https://en.wikipedia.org/wiki/2025_CR_Vasco_da_Gama_season) · revisión Temporada 
-- [Plantel saopaulo · temporada 2025](https://en.wikipedia.org/wiki/2025_S%C3%A3o_Paulo_FC_season) · revisión Temporada 
-- [Plantel corinthians · temporada 2025](https://en.wikipedia.org/wiki/2025_Sport_Club_Corinthians_Paulista_season) · revisión Temporada 
-- [Plantel lanus · temporada 2025](https://en.wikipedia.org/wiki/2025_Club_Atl%C3%A9tico_Lan%C3%BAs_season) · revisión Temporada 
-- [Plantel tigre · temporada 2025](https://en.wikipedia.org/wiki/2025_Club_Atl%C3%A9tico_Tigre_season) · revisión Temporada 
-- [Plantel argentinos · temporada 2025](https://en.wikipedia.org/wiki/2025_Argentinos_Juniors_season) · revisión Temporada 
+Se revisó el ZIP de datos aportado durante el desarrollo: 12 CSV, 50.149 perfiles, 796 clubes, 65 competiciones y 656.301 tasaciones. Sus CSV principales coinciden con el dataset público de [David Cariboo](https://github.com/dcaribou/transfermarkt-datasets). Las fechas del contenido llegan al **12/06/2026** para tasaciones y al **06/07/2026** para partidos; el timestamp del ZIP, **05/09/2026**, es una fecha de empaquetado y no acredita datos actualizados hasta ese día.
+
+Coinciden 369 perfiles del juego y hay 362 contratos de referencia disponibles. Se incorporan esos datos como complemento en las fichas, con sus fechas y su última temporada declarada. La carrera mantiene sus propios contratos y valores. Los registros antiguos, los futbolistas retirados y las transferencias futuras —incluidos retornos previstos hasta 2030— no se usan para reasignar planteles automáticamente. Los clubes uruguayos y la Libertadores no tienen cobertura completa en el archivo; se conservan las fuentes directas de Transfermarkt.
+
+El archivo contiene partidos y eventos parciales de la LPF: pueden recuperar goles, asistencias informadas y tarjetas. No aporta minutos individuales domésticos argentinos ni brasileños y no contiene atributos técnicos o mentales de Football Manager. Se evita deducir valoraciones oficiales de esos campos ausentes.
+
+La guía de [worldfootballR para extraer Transfermarkt](https://jaseziv.github.io/worldfootballR/articles/extract-transfermarkt-data.html) sirve de referencia para descubrir perfiles, biografías y valoraciones por equipo. El proyecto worldfootballR fue archivado en septiembre de 2025, por lo que la guía se usa como referencia del método. La aplicación utiliza la instantánea incorporada y no depende de R ni de consultas durante la partida. El historial individual permite seleccionar valores con una fecha verificable, evitando asignar la temporada visible de una tabla a una cotización sin fecha.
+
+La base JSON revisada puede reincorporarse al HTML con:
+
+```bash
+python3 tools/embed_database.py
+```
+
+Esta operación es local, valida identidades únicas y conserva el archivo autocontenido.
+
+## Fuentes Transfermarkt
+
+Páginas de participantes 2025 consultadas por HTTPS. En esta fuente, `saison_id/2024` selecciona la temporada visible 2025 para estos clubes sudamericanos; se comprobaron el título y la temporada seleccionada.
+
+- [CA Boca Juniors](https://www.transfermarkt.com.ar/boca/kader/verein/189/saison_id/2024/plus/1)
+- [CA River Plate](https://www.transfermarkt.com.ar/river/kader/verein/209/saison_id/2024/plus/1)
+- [Racing Club](https://www.transfermarkt.com.ar/racing/kader/verein/1444/saison_id/2024/plus/1)
+- [CA Independiente](https://www.transfermarkt.com.ar/independiente/kader/verein/1234/saison_id/2024/plus/1)
+- [CA San Lorenzo de Almagro](https://www.transfermarkt.com.ar/sanlorenzo/kader/verein/1775/saison_id/2024/plus/1)
+- [CA Huracán](https://www.transfermarkt.com.ar/huracan/kader/verein/2063/saison_id/2024/plus/1)
+- [CA Newell's Old Boys](https://www.transfermarkt.com.ar/newells/kader/verein/1286/saison_id/2024/plus/1)
+- [CA Rosario Central](https://www.transfermarkt.com.ar/central/kader/verein/1418/saison_id/2024/plus/1)
+- [CA Talleres](https://www.transfermarkt.com.ar/talleres/kader/verein/3938/saison_id/2024/plus/1)
+- [CA Belgrano](https://www.transfermarkt.com.ar/belgrano/kader/verein/2417/saison_id/2024/plus/1)
+- [CA Vélez Sarsfield](https://www.transfermarkt.com.ar/velez/kader/verein/1029/saison_id/2024/plus/1)
+- [Club Estudiantes de La Plata](https://www.transfermarkt.com.ar/estudiantes/kader/verein/288/saison_id/2024/plus/1)
+- [CR Flamengo](https://www.transfermarkt.com.ar/flamengo/kader/verein/614/saison_id/2024/plus/1)
+- [SE Palmeiras](https://www.transfermarkt.com.ar/palmeiras/kader/verein/1023/saison_id/2024/plus/1)
+- [Club Nacional](https://www.transfermarkt.com.ar/nacional/kader/verein/866/saison_id/2024/plus/1)
+- [CA Peñarol](https://www.transfermarkt.com.ar/penarol/kader/verein/861/saison_id/2024/plus/1)
+- [Inter Miami CF](https://www.transfermarkt.com.ar/intermiami/kader/verein/69261/saison_id/2024/plus/1)
+- [Santos FC](https://www.transfermarkt.com.ar/santos/kader/verein/221/saison_id/2024/plus/1)
+- [Fluminense](https://www.transfermarkt.com.ar/fluminense/kader/verein/2462/saison_id/2024/plus/1)
+- [Cruzeiro](https://www.transfermarkt.com.ar/cruzeiro/kader/verein/609/saison_id/2024/plus/1)
+- [Atlético Mineiro](https://www.transfermarkt.com.ar/atleticomineiro/kader/verein/330/saison_id/2024/plus/1)
+- [Vasco da Gama](https://www.transfermarkt.com.ar/vasco/kader/verein/978/saison_id/2024/plus/1)
+- [São Paulo](https://www.transfermarkt.com.ar/saopaulo/kader/verein/585/saison_id/2024/plus/1)
+- [Corinthians](https://www.transfermarkt.com.ar/corinthians/kader/verein/199/saison_id/2024/plus/1)
+- [Lanús](https://www.transfermarkt.com.ar/lanus/kader/verein/333/saison_id/2024/plus/1)
+- [Tigre](https://www.transfermarkt.com.ar/tigre/kader/verein/11831/saison_id/2024/plus/1)
+- [Argentinos Juniors](https://www.transfermarkt.com.ar/argentinos/kader/verein/1030/saison_id/2024/plus/1)
+
+Las fichas enlazan el perfil y el historial de tasaciones específicos de cada jugador. Los 400 IDs y sus referencias están en el JSON de la base. La valoración se obtiene del endpoint público de historial `https://www.transfermarkt.com/ceapi/marketValueDevelopment/graph/<ID>` y conserva la fecha publicada, no sólo la fecha de descarga.
