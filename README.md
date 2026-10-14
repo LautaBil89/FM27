@@ -75,6 +75,8 @@ Los clubes rivales administran caja, presupuesto salarial, necesidades de posici
 
 El mercado ofrece compras o préstamos de seis/doce meses, reparto salarial, pagos al contado o en 3/6/12 cuotas mensuales, porcentajes de futura venta y cláusulas de rescisión. Las contraofertas necesitan aceptación y pueden retirarse antes del acuerdo. Los compromisos completos reservan presupuesto; las cuotas tienen vencimientos y se cobran o pagan efectivamente. La devolución de un préstamo restaura su club propietario y las condiciones que corresponden. El dueño y el prestatario pagan su parte del salario. Un jugador cedido no puede revenderse ni renovar su vínculo con el club prestatario.
 
+La negociación muestra plazas del plantel, extranjeros inscritos, margen salarial y fondos disponibles. Si una oferta no puede enviarse, el motivo permanece visible dentro de la ventana, con acceso a Plantilla o Finanzas cuando corresponde. Algunos clubes comienzan con las 32 plazas ocupadas: deben concretar una salida antes de incorporar otro jugador. Los importes inválidos se explican en el mismo formulario y los salarios permiten valores enteros, sin exigir múltiplos de 100.
+
 El registro del mercado muestra las últimas operaciones y renovaciones de la IA, enlazadas a las fichas. Los historiales se limitan para mantener el guardado compacto. La IA y los contratos pertenecen a la simulación, no a un mercado real ni a fichajes posteriores verificados en Transfermarkt.
 
 Las partidas ampliadas anteriores a esta actualización conservan jugadores, resultados, contratos y economía al importar o continuar; los módulos nuevos se inicializan sin reiniciar la carrera.
@@ -139,6 +141,7 @@ python3 -m http.server 8000
 En otra terminal:
 
 ```bash
+python3 tests/test_offer_form.py
 python3 tests/test_daily_clock.py
 python3 tests/test_management.py
 python3 tests/test_world_game.py

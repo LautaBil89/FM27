@@ -81,3 +81,6 @@
   .fm-date:has(.world-header-time) strong{font-size:10px}
   .world-day-progress-compact{width:84px}
 }
+.world-offer-resources{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:15px 0;padding:12px;border:1px solid var(--fm-border);border-radius:6px;background:#1b1c2d}
+.world-offer-resources>div{min-width:0}.world-offer-resources span,.world-offer-resources strong,.world-offer-resources small{display:block}.world-offer-resources span,.world-offer-resources small{font-size:11px;color:var(--fm-muted)}.world-offer-resources strong{font-size:14px;margin:3px 0;color:#ece6ff}
+.world-offer-feedback{margin:12px 0;padding:13px;border:1px solid #bb6173;border-radius:6px;background:#392530;color:#ffe0e7;overflow-wrap:anywhere}.world-offer-feedback[hidden]{display:none}.world-offer-feedback strong{font-size:13px}.world-offer-feedback p{font-size:12px;margin:8px 0}.world-offer-feedback button{margin-top:5px}.world-offer-feedback:focus{outline:2px solid #db93a7;outline-offset:2px}
