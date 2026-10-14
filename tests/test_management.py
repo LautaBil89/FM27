@@ -5,6 +5,8 @@ These scenarios run the actual embedded world with outside requests blocked.
 They check economic and sporting consequences in addition to visible controls.
 """
 import json
+import calendar
+from datetime import date, timedelta
 import os
 from pathlib import Path
 import shutil
@@ -19,6 +21,14 @@ REPO = Path(__file__).resolve().parents[1]
 URL = os.environ.get('FM27_TEST_URL', 'http://127.0.0.1:8000/index.html')
 KEY = 'fm27-pasion-v1'
 ARTIFACTS = Path(tempfile.gettempdir()) / 'fm27-management-qa'
+
+
+def add_months(value, months):
+    """Match calendar months without allowing a short February to overflow."""
+    value = date.fromisoformat(value)
+    year, month = divmod(value.year * 12 + value.month - 1 + months, 12)
+    month += 1
+    return date(year, month, min(value.day, calendar.monthrange(year, month)[1])).isoformat()
 
 
 class ManagementScenarios(unittest.TestCase):
@@ -59,6 +69,20 @@ class ManagementScenarios(unittest.TestCase):
         self.page.evaluate("""()=>{
             let seed=3102026;
             Math.random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296};
+            window.__qaReachReady=()=>{
+                if(!window.WORLD_CLOCK||GameState?.version!==3)return;
+                let turns=0;
+                while(!GameState.finished&&!WORLD_CLOCK.ready()){
+                    WORLD_CLOCK.advance({silent:true});
+                    if(++turns>1600)throw Error('Daily calendar did not reach a playable fixture');
+                }
+            };
+            // Contract tests isolate settlement from unrelated daily AI trades.
+            window.__qaProcessResponse=offer=>{
+                if(window.WORLD_CLOCK&&offer.responseDate)GameState.today=offer.responseDate;
+                else GameState.eventIndex++;
+                CLUB_AI.processUserOffers();
+            };
         }""")
 
     def tearDown(self):
@@ -84,6 +108,7 @@ class ManagementScenarios(unittest.TestCase):
         self.assertGreater(len(self.page.locator('#content').inner_text()), 100)
 
     def complete_user_match(self):
+        self.page.evaluate('__qaReachReady()')
         self.page.evaluate("""()=>{
             autoLineup();startMatch();clearInterval(timer);timer=null;
             if(!GameState.match)throw Error('No se pudo iniciar el partido');
@@ -225,6 +250,7 @@ class ManagementScenarios(unittest.TestCase):
         self.reload_state()
         self.assertEqual(self.page.evaluate('GameState.tactics.savedPlans[0].name'), 'Presión y pases cortos')
         self.assertEqual(self.page.evaluate('(id)=>GameState.tactics.instructions[id].passing', pair['sourcePlayer']), 'Cortos')
+        self.page.evaluate('__qaReachReady()')
         blocked = self.page.evaluate("""(planId)=>{
             startMatch();clearInterval(timer);timer=null;GameState.match.paused=true;
             const before=JSON.stringify({xi:GameState.tactics.xi,bench:GameState.tactics.bench,formation:GameState.tactics.formation});
@@ -239,6 +265,7 @@ class ManagementScenarios(unittest.TestCase):
 
     def test_08_browsing_live_player_pauses_without_changing_match_or_lineup(self):
         self.career()
+        self.page.evaluate('__qaReachReady()')
         self.page.evaluate("""()=>{
             autoLineup();startMatch();clearInterval(timer);timer=null;
             while(GameState.match.minute<21){GameState.match.paused=false;tick()}
@@ -391,12 +418,15 @@ class ManagementScenarios(unittest.TestCase):
         self.assertEqual(pending['cash'], target['openingCash'])
         self.assertEqual(pending['available'], pending['cash']-1010000)
         self.assertEqual(pending['club'], target['owner'])
+        self.assertEqual(pending['offer']['responseDate'], '2026-01-29')
+        self.page.evaluate('CLUB_AI.processUserOffers()')
+        self.assertEqual(self.page.evaluate('(id)=>GameState.offers.find(o=>o.id===id).status', pending['offer']['id']), 'pending')
         accepted = self.page.evaluate("""(id)=>{
-            GameState.eventIndex++;CLUB_AI.processUserOffers();
             const o=GameState.offers.find(o=>o.playerId===id);
+            __qaProcessResponse(o);
             return {status:o.status,awaiting:o.awaitingUser||false,player:player(id),
                 cash:GameState.userClub.presupuesto_dolares,ownerCash:CLUB_AI.cash(o.fromClub),
-                available:CLUB_AI.availableBudget(GameState.userClub.id),
+                available:CLUB_AI.availableBudget(GameState.userClub.id),acceptedDate:GameState.today,
                 payments:GameState.world.ai.contracts.payments.filter(p=>p.offerId===o.id)};
         }""", target['id'])
         self.assertEqual(accepted['status'], 'accepted')
@@ -409,16 +439,17 @@ class ManagementScenarios(unittest.TestCase):
         self.assertEqual(accepted['available'], accepted['cash']-750000)
         self.assertEqual(len(accepted['payments']), 3)
         self.assertEqual(sum(p['amount'] for p in accepted['payments']), 750000)
-        self.assertEqual([p['dueDate'] for p in accepted['payments']], ['2026-02-28','2026-03-28','2026-04-28'])
+        expected_dates = [add_months(accepted['acceptedDate'], months) for months in [1, 2, 3]]
+        self.assertEqual([p['dueDate'] for p in accepted['payments']], expected_dates)
         self.reload_state()
-        final = self.page.evaluate("""(target)=>{
-            MARKET_CONTRACTS.settle('2026-04-28');
+        final = self.page.evaluate("""({target,dueDate})=>{
+            MARKET_CONTRACTS.settle(dueDate);
             const once={cash:GameState.userClub.presupuesto_dolares,ownerCash:CLUB_AI.cash(target.owner)};
-            MARKET_CONTRACTS.settle('2026-04-28');CLUB_AI.processUserOffers();
+            MARKET_CONTRACTS.settle(dueDate);CLUB_AI.processUserOffers();
             return {once,cash:GameState.userClub.presupuesto_dolares,ownerCash:CLUB_AI.cash(target.owner),
                 payments:GameState.world.ai.contracts.payments,available:CLUB_AI.availableBudget(target.user),
                 clause:player(target.id).sellOnClause};
-        }""", target)
+        }""", {'target':target, 'dueDate':expected_dates[-1]})
         self.assertEqual(final['once']['cash'], final['cash'])
         self.assertEqual(final['once']['ownerCash'], final['ownerCash'])
         self.assertEqual(final['cash'], target['openingCash']-1010000)
@@ -455,17 +486,17 @@ class ManagementScenarios(unittest.TestCase):
         self.page.locator('#negotiation [name="wageShare"]').fill('50')
         self.page.locator('#negotiation button[type="submit"]').click()
         result = self.page.evaluate("""(target)=>{
-            GameState.eventIndex++;CLUB_AI.processUserOffers();
             const o=GameState.offers.find(o=>o.playerId===target.id);
-            if(o.awaitingUser){MARKET_CONTRACTS.respondCounter(o.id,true);GameState.eventIndex++;CLUB_AI.processUserOffers()}
+            __qaProcessResponse(o);
+            if(o.awaitingUser){MARKET_CONTRACTS.respondCounter(o.id,true);__qaProcessResponse(o)}
             const p=player(target.id),loan=GameState.world.ai.contracts.loans.find(l=>l.playerId===p.id&&l.status==='active');
-            return {status:o.status,share:loan?.wageShare,loan,player:p,
+            return {status:o.status,share:loan?.wageShare,loan,player:p,acceptedDate:GameState.today,
                 ownPart:MARKET_CONTRACTS.loanWageFor(p,target.user),ownerPart:MARKET_CONTRACTS.loanWageFor(p,target.owner),
                 ownerSlots:MARKET_CONTRACTS.returnSlots(target.owner),
                 userWages:CLUB_AI.wageBill(target.user),ownerWages:CLUB_AI.wageBill(target.owner)};
         }""", target)
         self.assertEqual(result['status'], 'accepted')
-        self.assertEqual(result['loan']['endDate'], '2026-07-28')
+        self.assertEqual(result['loan']['endDate'], add_months(result['acceptedDate'], 6))
         self.assertEqual(result['player']['clubId'], target['user'])
         self.assertEqual(result['player']['contract'], target['contract'])
         self.assertEqual(result['player']['salario'], target['wage'])
@@ -474,17 +505,19 @@ class ManagementScenarios(unittest.TestCase):
         self.assertEqual(result['ownerWages'], target['ownerWages']-result['ownPart'])
         self.assertEqual(result['ownerSlots'], 1)
         self.reload_state()
-        returned = self.page.evaluate("""(target)=>{
-            const p=player(target.id);MARKET_CONTRACTS.returnLoans('2026-07-27');const early=p.clubId;
-            MARKET_CONTRACTS.returnLoans('2026-07-28');const after=JSON.stringify(GameState.world.ai.contracts.loans);
-            MARKET_CONTRACTS.returnLoans('2026-07-28');
+        return_date = result['loan']['endDate']
+        early_date = (date.fromisoformat(return_date) - timedelta(days=1)).isoformat()
+        returned = self.page.evaluate("""({target,returnDate,earlyDate})=>{
+            const p=player(target.id);MARKET_CONTRACTS.returnLoans(earlyDate);const early=p.clubId;
+            MARKET_CONTRACTS.returnLoans(returnDate);const after=JSON.stringify(GameState.world.ai.contracts.loans);
+            MARKET_CONTRACTS.returnLoans(returnDate);
             return {early,club:p.clubId,wage:p.salario,contract:p.contract,loanId:p.loanId||null,
                 idempotent:after===JSON.stringify(GameState.world.ai.contracts.loans),
                 ownPart:MARKET_CONTRACTS.loanWageFor(p,target.user),ownerPart:MARKET_CONTRACTS.loanWageFor(p,target.owner),
                 ownerSlots:MARKET_CONTRACTS.returnSlots(target.owner),
                 userWages:CLUB_AI.wageBill(target.user),ownerWages:CLUB_AI.wageBill(target.owner),
                 xiOwned:GameState.tactics.xi.every(id=>player(id)?.clubId===target.user)};
-        }""", target)
+        }""", {'target':target, 'returnDate':return_date, 'earlyDate':early_date})
         self.assertEqual(returned['early'], target['user'])
         self.assertEqual(returned['club'], target['owner'])
         self.assertEqual(returned['wage'], target['wage'])
@@ -509,8 +542,8 @@ class ManagementScenarios(unittest.TestCase):
                 .map(row=>CLUB_AI.submitOffer(row));
             const intact=baseline===JSON.stringify({cash:GameState.userClub.presupuesto_dolares,offers:GameState.offers,club:player(target.id).clubId});
             const result=CLUB_AI.submitOffer({...terms,fee:0,wage:100,releaseClause:0});
-            GameState.eventIndex++;CLUB_AI.processUserOffers();
             const offer=GameState.offers.find(o=>o.id===result.offer.id);
+            __qaProcessResponse(offer);
             GameState.today='2026-02-04';CLUB_AI.onDayAdvance(GameState.today);
             FM_INBOX.ensure();const m=GameState.inbox.find(m=>m.offerId===offer.id);
             view='inbox';render();
@@ -528,8 +561,8 @@ class ManagementScenarios(unittest.TestCase):
         self.assertFalse(self.page.evaluate('(id)=>!!GameState.offers.find(o=>o.id===id).awaitingUser', attempts['id']))
         self.assertEqual(self.page.evaluate('(id)=>player(id).clubId', target['id']), target['owner'])
         finished = self.page.evaluate("""(info)=>{
-            GameState.eventIndex++;CLUB_AI.processUserOffers();
             const o=GameState.offers.find(o=>o.id===info.id);
+            __qaProcessResponse(o);
             const cash=GameState.userClub.presupuesto_dolares;
             const again=MARKET_CONTRACTS.respondCounter(o.id,true);
             return {status:o.status,fee:o.fee,wage:o.wage,cash,again,after:GameState.userClub.presupuesto_dolares,club:player(o.playerId).clubId};
@@ -570,6 +603,7 @@ class ManagementScenarios(unittest.TestCase):
 
     def test_13_manual_selection_survives_advancing_the_calendar(self):
         self.career()
+        self.page.evaluate('__qaReachReady()')
         chosen = self.page.evaluate("""()=>{
             const t=GameState.tactics;
             const reserve=t.bench.map(player).find(p=>p.posicion!=='POR'&&t.xi.some(id=>player(id).posicion===p.posicion));
@@ -610,6 +644,8 @@ class ManagementScenarios(unittest.TestCase):
         result = self.page.evaluate("""()=>{
             let count=0;
             while(currentEvent()){
+                __qaReachReady();
+                if(!currentEvent())break;
                 const g=fixture(currentEvent());
                 WORLD_ENGINE.completeOne(g?{home:g.home===GameState.userClub.id?3:0,away:g.away===GameState.userClub.id?3:0}:null);
                 if(++count>1000)throw Error('Temporada sin final');

@@ -6,12 +6,22 @@ Simulador de dirección técnica con **310 clubes, 16 ligas y 9.220 jugadores re
 
 1. [Descargá el juego](https://github.com/LautaBil89/FM27/archive/refs/heads/main.zip), extraé el ZIP y abrí **index.html** con Chrome, Edge o Firefox.
 2. En **Nueva carrera**, elegí país, liga, club, nombre del DT y objetivo. Podés buscar un equipo directamente por nombre.
-3. Prepará la convocatoria en Tácticas y entrá al Centro de partido. Pausá para ajustar el planteo y realizar sustituciones.
-4. Revisá los informes, negociá fichajes, entrená y avanzá hasta completar la temporada.
+3. Usá **Continuar** para avanzar un turno: mañana, mediodía, tarde y noche. Revisá informes, negociá fichajes y prepará el equipo entre partidos.
+4. Cuando llegue el horario de inicio, entrá al Centro de partido. Pausá para ajustar el planteo y realizar sustituciones.
 
 **La ampliación se aplica a carreras nuevas.** Las partidas anteriores conservan sus equipos, calendarios, jugadores y condiciones. Exportá tu carrera antes de empezar otra. El guardado pertenece al navegador y a esa ubicación del archivo; Exportar e Importar permiten trasladarlo a otro dispositivo.
 
 También se puede servir en desarrollo con `python3 -m http.server 8000 --directory .`.
+
+## Avance diario
+
+Las carreras ampliadas tienen **cuatro turnos por día**: Mañana (08:00), Mediodía (12:00), Tarde (18:00) y Noche (21:00). Cada pulsación de Continuar avanza un turno; desde Noche pasa a la mañana del día siguiente. La fecha, hora y progreso diario aparecen en el encabezado, y el dashboard muestra la agenda y la actividad reciente del club.
+
+Las carreras nuevas comienzan con una semana de preparación. El entrenamiento y la familiaridad táctica se trabajan una vez al día, al mediodía. La condición, las lesiones, las edades, los vencimientos y la actividad de los clubes se actualizan al pasar al siguiente día. Los salarios y patrocinios siguen siendo semanales, y los pagos de cuotas conservan sus fechas: cuatro turnos no multiplican esas operaciones. Las ofertas y las contraofertas aceptadas reciben respuesta a partir del día siguiente, aunque no haya partido.
+
+Los partidos locales se juegan en el turno Tarde y los continentales en Noche. Las otras competiciones se simulan cuando llega su fecha y turno, incluso si tu equipo todavía no juega. Podés consultar el próximo rival y preparar la táctica antes, pero no iniciar el encuentro anticipadamente. Al llegar a tu partido, Continuar abre la previa y espera tu intervención. Después del informe permanecés en esa misma fecha y turno; el juego no salta al siguiente encuentro. Si tu club termina su calendario antes que otras competiciones, el mundo sigue avanzando hasta el cierre de temporada.
+
+Esta mejora se aplica también a las partidas ampliadas existentes: al importar o cargar una carrera sin reloj, conserva la fecha, los resultados, los jugadores y la economía. Si ya estabas en un día de partido, comienza en el turno del encuentro. El turno actual se guarda y se conserva al exportar e importar. Las carreras antiguas de 12 clubes mantienen su funcionamiento anterior.
 
 ## Ligas y clubes incluidos
 
@@ -129,10 +139,11 @@ python3 -m http.server 8000
 En otra terminal:
 
 ```bash
+python3 tests/test_daily_clock.py
 python3 tests/test_management.py
 python3 tests/test_world_game.py
 python3 tests/test_world_storage.py
 python3 tests/test_game.py
 ```
 
-`FM27_TEST_URL` permite seleccionar otro servidor y `FM27_CHROMIUM` otro ejecutable. Las pruebas de compatibilidad recuperan los HTML originales del historial Git; requieren la copia Git, no sólo el ZIP de distribución. Los escenarios comprueban carreras y planteles, partidos, copas, temporadas, ascensos, navegación, exportación/importación y guardados anteriores; también decisiones de la bandeja, instrucciones, planes, fichas, IA, cuotas, préstamos, reventa y reservas de fondos. El codec se prueba también con 10.000 jugadores, cambios económicos, partidos pausados y falta de espacio sin perder el guardado anterior.
+`FM27_TEST_URL` permite seleccionar otro servidor y `FM27_CHROMIUM` otro ejecutable. Las pruebas de compatibilidad recuperan los HTML originales del historial Git; requieren la copia Git, no sólo el ZIP de distribución. Los escenarios comprueban los cuatro turnos diarios, partidos a su hora, recuperación y salarios sin duplicación, respuestas entre partidos y migración del reloj; también carreras y planteles, partidos, copas, temporadas, ascensos, navegación, exportación/importación y guardados anteriores, decisiones de la bandeja, instrucciones, planes, fichas, IA, cuotas, préstamos, reventa y reservas de fondos. El codec se prueba también con 10.000 jugadores, cambios económicos, partidos pausados y falta de espacio sin perder el guardado anterior.

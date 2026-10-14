@@ -1,3 +1,83 @@
 .world-career-selectors{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:12px}.world-welcome .fm-welcome-form{min-width:0}.world-career-selectors select,.world-welcome .field select,.world-welcome .field input{width:100%;max-width:100%;min-width:0}.world-career-results{background:#171724;border:1px solid var(--fm-border);border-radius:6px;margin:-5px 0 15px;padding:5px;max-height:280px;overflow:auto}.world-career-results button{width:100%;display:flex;gap:10px;align-items:center;text-align:left;background:transparent;border:0}.world-career-results button span{flex:1;min-width:0}.world-career-results strong,.world-career-results small{display:block}.world-career-results small{font-size:10px;color:var(--fm-muted);margin-top:3px}.world-source-summary{background:#1c1c2d;border:1px solid #4c425e;border-radius:6px;padding:12px;margin-top:17px;font-size:11px}.world-source-summary strong{font-size:12px;color:#d8c5f3}.world-source-summary p{color:var(--fm-muted);margin-bottom:0}.world-tabs{overflow-x:auto;white-space:nowrap}.world-tabs button{flex:none}.world-inline-label{display:flex;align-items:center;gap:10px;font-size:11px;max-width:100%}.world-inline-label select{min-width:0;max-width:100%}.world-qualification{display:flex;flex-wrap:wrap;gap:8px;font-size:11px}.world-promote td:first-child{border-left:3px solid #77d8b6}.world-europe td:first-child{border-left:3px solid #87a4e5}.world-club-link{margin-left:5px;white-space:normal}.world-fixtures{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.world-fixture{display:grid;grid-template-columns:minmax(0,1fr) 48px minmax(0,1fr);align-items:center;gap:8px;padding:12px 9px;border-bottom:1px solid var(--fm-border);font-size:11px}.world-fixture>div{display:flex;gap:7px;align-items:center;min-width:0}.world-fixture>div:last-child{justify-content:flex-end;text-align:right}.world-fixture>strong{text-align:center;font-size:12px}.world-user-fixture{background:#332d45;border-radius:5px}.world-cup-header{display:flex;align-items:center;justify-content:space-between;gap:15px}.world-cup-header>div:first-child>.fm-inline-icon{float:left;margin:0 12px 5px 0;width:32px;height:32px;color:var(--gold)}.world-cup-header h2{font-size:20px;margin-bottom:4px}.world-cup-header p{font-size:11px;margin:0}.world-cup-champion{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.world-cup-champion .gold{font-size:9px;font-weight:800;letter-spacing:1px}.world-cup-groups{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.world-cup-groups .card{margin-bottom:0}.world-cup-groups{margin-bottom:16px}.world-cup-groups .fm-panel-title{flex-wrap:wrap;gap:5px}.world-cup-groups .fm-panel-title h2{font-size:13px}.world-cup-groups .fm-panel-title .small{font-size:9px}.world-cup-groups .fm-player-link{font-size:11px}.world-bracket{display:flex;gap:15px;overflow-x:auto;padding:3px 0 14px;align-items:stretch;scrollbar-color:#75628f #242031}.world-bracket-stage{flex:0 0 220px;min-width:220px}.world-bracket-stage h3{font-size:12px;border-bottom:2px solid #6a567f;padding:0 0 9px;margin:0 0 12px;color:#d2bddf}.world-cup-tie{margin-bottom:12px;background:#1c1d2d;border:1px solid #36354c;border-radius:5px;overflow:hidden}.world-cup-tie .fm-cup-game{border:0;margin:0;padding:8px}.world-cup-tie .fm-cup-team span{font-size:11px;min-width:0}.world-tie-legs{padding:0 10px 8px;display:flex;gap:8px;flex-wrap:wrap;font-size:9px;color:var(--fm-muted)}.world-round-pending{padding:14px 10px;background:#1c1d2d;border:1px dashed #50445f;border-radius:5px;color:var(--fm-muted);font-size:11px}.world-club-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:15px 0}.world-club-card{display:flex;align-items:center;gap:12px;min-width:0;text-align:left;padding:13px;background:#252537}.world-club-card>span{min-width:0;flex:1}.world-club-card strong,.world-club-card small{display:block}.world-club-card small{font-size:10px;color:var(--fm-muted);margin-top:4px}.world-club-card .fm-inline-icon{width:12px;flex:none}.world-club-profile{display:flex;align-items:center;gap:18px;padding:22px 0 7px}.world-club-profile h2{font-size:22px;margin-bottom:4px}.world-club-profile p{margin:0 0 10px;font-size:12px}.world-club-profile>div:nth-child(2){flex:1;min-width:0}.world-club-rank{display:grid;text-align:center;gap:3px;color:var(--fm-muted);font-size:11px}.world-club-rank strong{font-size:30px;color:var(--fm-lime)}.world-market-filters{flex-wrap:wrap}.world-market-filters>*{min-width:120px;flex:1;max-width:100%}.world-market-filters input#marketQuery{flex:2;min-width:180px}.world-market-filters label{flex:none;min-width:0}.world-money-stat{font-size:23px}.world-browse-filters{padding:0}.world-browse-filters input{flex:2;min-width:140px}.world-browse-filters select{flex:1;min-width:130px;max-width:100%}.world-welcome .fm-welcome-preview strong{font-size:27px}.world-welcome .fm-welcome-preview small{font-size:10px}.world-welcome .fm-welcome-story{min-width:0}
 @media(max-width:1250px){.world-club-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.world-cup-groups{grid-template-columns:1fr}}
 @media(max-width:700px){.world-career-selectors{grid-template-columns:1fr;gap:0}.world-fixtures,.world-club-grid{grid-template-columns:1fr}.world-cup-header{align-items:flex-start;flex-direction:column}.world-club-profile{gap:12px;flex-wrap:wrap}.world-club-profile>div:nth-child(2){flex-basis:calc(100% - 90px)}.world-club-rank{display:none}.world-inline-label{width:100%;flex-direction:column;align-items:flex-start}.world-inline-label select{width:100%}.world-browse-filters>*{width:100%;flex-basis:100%}.world-cup-groups .fm-panel-title{padding:12px}.world-cup-groups table{min-width:0;width:100%;table-layout:fixed}.world-cup-groups th:first-child{width:26px}.world-cup-groups th:nth-child(n+3){width:35px}.world-cup-groups td,.world-cup-groups th{padding:8px 5px}.world-cup-groups td:nth-child(2){white-space:normal}.world-cup-groups td:nth-child(2) .fm-player-link{max-width:calc(100% - 27px);vertical-align:middle;font-size:10px}.world-cup-groups td:nth-child(2) .fm-shield{width:16px;height:20px}.world-bracket-stage{flex-basis:205px;min-width:205px}.world-market-filters>*{min-width:0;flex-basis:calc(50% - 12px)}.world-market-filters input#marketQuery{flex-basis:100%;min-width:0}.world-welcome .fm-welcome-preview{gap:10px}.world-welcome .fm-welcome-preview strong{font-size:25px}.world-welcome .fm-welcome-preview small{font-size:9px}.world-source-summary{overflow-wrap:anywhere}.world-fixture{font-size:10px;padding:10px 0;gap:5px}.world-fixture .fm-shield{width:16px;height:20px}.world-welcome .fm-welcome-title{font-size:38px}.world-cup-champion{font-size:12px}}
+
+.world-header-time{display:block;font-variant-numeric:tabular-nums;margin:2px 0 5px}
+.world-header-time small{margin-left:5px;color:#d1b8ee;font-size:9px}
+.world-day-progress{list-style:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin:12px 0 16px;padding:0}
+.world-day-progress li{position:relative;padding:9px 10px 8px;border-top:3px solid #494358;background:#242232;border-radius:3px;color:#aaa2bc;min-width:0}
+.world-day-progress li span{display:block;font-size:11px;font-weight:700}
+.world-day-progress li small{display:block;margin-top:2px;font-size:10px;font-variant-numeric:tabular-nums;color:#8d849f}
+.world-day-progress li.complete{border-color:#89779f;color:#c7bdd5}
+.world-day-progress li.active{border-color:var(--fm-lime);background:#343340;color:#e4f0d5}
+.world-day-progress li.active small{color:#ccdcba}
+.world-day-progress-compact{gap:3px;margin:0 0 0 auto;width:112px}
+.world-day-progress-compact li{height:4px;border:0;padding:0;background:#53465f}
+.world-day-progress-compact li.complete{background:#ad96ce}
+.world-day-progress-compact li.active{background:var(--fm-lime);box-shadow:0 0 5px #b3d38a55}
+.world-day-progress-compact li span,.world-day-progress-compact li small{display:none}
+.world-continue-copy{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0}
+.world-continue-copy strong{font-size:11px}
+.world-continue-copy small{font-size:9px;font-weight:500;text-transform:none;letter-spacing:0;white-space:nowrap}
+.world-daily-agenda{background:linear-gradient(120deg,#282334,#1e2330);border-color:#51445f}
+.world-daily-agenda .fm-panel-title{margin-bottom:4px}
+.world-daily-agenda .fm-panel-title p{margin:4px 0 0}
+.world-daily-tasks{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.world-daily-task{display:flex;align-items:flex-start;gap:9px;text-align:left;background:#242332;padding:12px 10px;min-width:0;border-color:#3e374c}
+.world-daily-task>span{min-width:0;flex:1}
+.world-daily-task>.fm-inline-icon{color:#b39acb;width:16px;height:16px;margin-top:2px}
+.world-daily-task>.fm-inline-icon:last-child{width:10px;height:10px;margin-top:5px}
+.world-daily-task small{display:block;font-size:9px;color:#aa9cb9;margin-bottom:3px}
+.world-daily-task strong{display:block;font-size:11px;color:#eee6f6}
+.world-daily-task p{font-size:10px;line-height:1.5;color:var(--fm-muted);margin:5px 0 0}
+.world-daily-task.active{border-color:#a695bd;background:#332b41}
+.world-daily-task.active small{color:#d7c1ee}
+.world-daily-hint{color:#bbb0c9;font-size:11px;margin:15px 0 0}
+.world-daily-reports{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 18px;margin-top:16px;padding-top:12px;border-top:1px solid #4a3d58}
+.world-daily-reports article{min-width:0;padding-left:10px;border-left:2px solid #806893}
+.world-daily-reports time{display:block;font-size:9px;color:#aa9eb8}
+.world-daily-reports strong{display:block;font-size:11px;color:#daccdf;margin:3px 0}
+.world-daily-reports p{font-size:10px;line-height:1.5;margin:0;color:#aaa2b5}
+.world-next-match-actions{display:flex;align-items:flex-end;flex-direction:column;gap:6px;min-width:0}
+.world-next-match-actions>.small{text-align:right;line-height:1.5}
+.world-prematch .fm-panel-title{flex-wrap:wrap;margin-bottom:14px}
+.world-prematch h2{font-size:20px}
+.world-prematch-time{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;color:#c8b3de;font-size:11px;padding:10px 0;border-top:1px solid #44374f;border-bottom:1px solid #44374f}
+.world-prematch-time span:last-child{color:var(--fm-muted)}
+.world-prematch .fm-fixture-teams{padding:25px 0 15px}
+.world-prematch-status{background:#292534;border:1px solid #484053;border-radius:5px;padding:13px;margin:17px 0}
+.world-prematch-status>div{display:flex;gap:10px;align-items:flex-start}
+.world-prematch-status>div>.fm-inline-icon{margin-top:2px;color:#c2a5e3}
+.world-prematch-status strong{font-size:12px}
+.world-prematch-status p{font-size:11px;color:#b8abc9;margin:4px 0 0}
+.world-prematch-status>p{margin-top:10px;padding-left:26px;color:#dfcbea}
+.world-prematch-actions{display:flex;flex-wrap:wrap;gap:9px}
+.world-round-time{margin:0 0 10px;color:#bca6d6;font-size:11px}
+.world-round-time .badge{color:var(--fm-lime);background:#3b3d37;margin-right:5px}
+.world-calendar-today{margin:4px 0 0}
+@media(max-width:1250px){.world-daily-tasks{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){
+  .world-daily-agenda .fm-panel-title{align-items:flex-start;gap:8px;flex-wrap:wrap}
+  .world-daily-agenda .fm-panel-title .badge{font-size:8px}
+  .world-day-progress{gap:4px}
+  .world-day-progress li{padding:7px 5px}
+  .world-day-progress li span{font-size:10px}
+  .world-day-progress li small{font-size:9px}
+  .world-day-progress-compact li{padding:0}
+  .world-daily-tasks{gap:8px}
+  .world-daily-task{padding:10px 8px;gap:6px}
+  .world-daily-task>.fm-inline-icon{width:13px;height:13px}
+  .world-daily-task>.fm-inline-icon:last-child{display:none}
+  .world-daily-task strong{font-size:10px}
+  .world-daily-reports{grid-template-columns:1fr;gap:10px}
+  .world-next-match-actions{align-items:flex-start;width:100%;margin-top:8px}
+  .world-next-match-actions>.small{text-align:left}
+  .world-prematch-actions button{font-size:11px;flex:1 1 auto}
+  .world-prematch h2{font-size:17px}
+  .world-prematch-status>p{padding-left:0}
+  .world-continue-copy small{font-size:8px}
+  .fm-continue:has(.world-continue-copy){gap:8px;min-width:114px;padding:7px 9px}
+  .fm-date:has(.world-header-time){display:block;flex:none}
+  .fm-date:has(.world-header-time) strong{font-size:10px}
+  .world-day-progress-compact{width:84px}
+}

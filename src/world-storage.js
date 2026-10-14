@@ -158,6 +158,11 @@ const WORLD_STORAGE = (() => {
   function validateWorld(s, aliases = true) {
     if (!object(s) || s.version !== 3 || s.worldVersion !== 1 || !object(s.world) || !Array.isArray(s.world.clubs) || !Array.isArray(s.world.leagues) || !Array.isArray(s.players) || !Array.isArray(s.calendar) || !object(s.userClub) || !object(s.tactics) || !object(s.world.cups)) fail('estructura de carrera mundial incompatible');
     if (!string(s.manager, 100) || !integer(s.year, 2020, 2300) || !validDate(s.today) || !integer(s.eventIndex, 0, s.calendar.length) || !finite(s.userClub.presupuesto_dolares, -1e13) || !finite(s.userClub.presupuesto_pesos, -1e16, 1e16)) fail('datos de carrera no válidos');
+    if (own(s.world, 'clock')) {
+      const clock=s.world.clock;
+      if (!object(clock) || clock.version!==1 || !integer(clock.slot,0,3) || !integer(clock.ticks,0,1e9) || !validDate(clock.lastProcessedDay) || (clock.lastTrainingDate!==null&&!validDate(clock.lastTrainingDate)) || (clock.lastMatchNotice!==null&&!string(clock.lastMatchNotice,150)) || !Array.isArray(clock.recent) || clock.recent.length>32) fail('reloj de carrera no válido');
+      for (const entry of clock.recent) if (!object(entry) || !validDate(entry.date) || !integer(entry.slot,0,3) || !string(entry.title,200) || !string(entry.body,3000)) fail('actividad diaria no válida');
+    }
     if (['confianza_directiva', 'presion_hinchada', 'reputacion'].some(key => own(s.userClub, key) && !finite(s.userClub[key], 0, 100)) || (own(s.userClub, 'wageBudget') && !finite(s.userClub.wageBudget)) || (own(s.userClub, 'ticketPrice') && !finite(s.userClub.ticketPrice, 0, 10000))) fail('economía o directiva no válida');
     if (s.players.length > 40000 || s.world.clubs.length > 1200 || !s.world.clubs.length || s.world.leagues.length > 100 || !s.world.leagues.length || s.calendar.length > 12000) fail('tamaño de carrera no válido');
     const clubs = new Set(), leagues = new Map(), membership = new Set();

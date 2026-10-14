@@ -57,6 +57,14 @@ class WorldGameScenarios(unittest.TestCase):
         self.page.evaluate("""()=>{
             let seed=872341;
             Math.random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296};
+            window.__qaReachReady=()=>{
+                if(!window.WORLD_CLOCK||GameState?.version!==3)return;
+                let turns=0;
+                while(!GameState.finished&&!WORLD_CLOCK.ready()){
+                    WORLD_CLOCK.advance({silent:true});
+                    if(++turns>1600)throw Error('Daily calendar did not reach a playable fixture');
+                }
+            };
         }""")
 
     def tearDown(self):
@@ -87,6 +95,7 @@ class WorldGameScenarios(unittest.TestCase):
         self.assertGreater(len(self.page.locator('#content').inner_text()), 100)
 
     def play_match(self, minute=None):
+        self.page.evaluate('__qaReachReady()')
         self.page.evaluate('()=>{autoLineup();startMatch();clearInterval(timer);timer=null;}')
         self.assertTrue(self.page.evaluate('!!GameState.match'), self.page.locator('#toast').inner_text())
         return self.page.evaluate("""(minute)=>{
@@ -108,7 +117,7 @@ class WorldGameScenarios(unittest.TestCase):
               registeredForeign:foreigners(c.id),limit:WORLD_ENGINE.foreignLimit(c.id)})),
             references:WORLD_DATABASE.startingCups,
             cups:GameState.world.cups,
-            paredes:mine().find(p=>p.transfermarkt.playerId===166237)
+            paredes:mine().find(p=>p.transfermarkt.playerId===166237),today:GameState.today
         })""")
         counts = {l['id']: l['count'] for l in coverage['leagues']}
         self.assertEqual(counts['ARG1'], 30)
@@ -138,7 +147,7 @@ class WorldGameScenarios(unittest.TestCase):
         self.assertFalse(set(coverage['cups']['LIB']['participants']) & set(coverage['cups']['SUD']['participants']))
         self.assertIn('Paredes', coverage['paredes']['nombre'])
         birthday = date.fromisoformat(coverage['paredes']['fecha_nacimiento'])
-        today = date(2026, 1, 24)
+        today = date.fromisoformat(coverage['today'])
         expected_age = today.year - birthday.year - ((today.month, today.day) < (birthday.month, birthday.day))
         self.assertEqual(coverage['paredes']['edad'], expected_age)
 
@@ -148,6 +157,7 @@ class WorldGameScenarios(unittest.TestCase):
                 self.fresh_welcome()
                 career = self.career(league_id, None)
                 self.assertEqual(career['league'], league_id)
+                self.page.evaluate('__qaReachReady()')
                 local = self.page.evaluate("""()=>({
                     country:GameState.userClub.country,id:GameState.userClub.id,club:club(GameState.userClub.id),
                     domestic:GameState.players.find(p=>p.nationalities.includes(GameState.userClub.country)),
@@ -185,6 +195,8 @@ class WorldGameScenarios(unittest.TestCase):
         self.career()
         self.page.evaluate("""()=>{
             while(currentEvent() && currentEvent().date<'2026-06-01'){
+                __qaReachReady();
+                if(!currentEvent()||currentEvent().date>='2026-06-01')break;
                 const g=fixture(currentEvent());
                 WORLD_ENGINE.completeOne(g?{home:g.home===GameState.userClub.id?5:0,away:g.away===GameState.userClub.id?5:0}:null);
             }
@@ -206,7 +218,12 @@ class WorldGameScenarios(unittest.TestCase):
         self.assertEqual(set(t['home'] for t in playoffs), set(cups['LIB']['groupThirds']))
         self.assertEqual(set(t['away'] for t in playoffs), set(cups['SUD']['groupRunners']))
         self.page.evaluate("""()=>{
-            while(currentEvent() && !(currentEvent().type==='LIB' && currentEvent().stage==='R16' && currentEvent().leg===1))WORLD_ENGINE.completeOne();
+            while(currentEvent()){
+                __qaReachReady();
+                if(!currentEvent()||(currentEvent().type==='LIB' && currentEvent().stage==='R16' && currentEvent().leg===1))break;
+                const g=fixture(currentEvent());
+                WORLD_ENGINE.completeOne(g?{home:g.home===GameState.userClub.id?2:0,away:g.away===GameState.userClub.id?2:0}:null);
+            }
         }""")
         first = self.page.evaluate('fixture(currentEvent())')
         self.assertIsNotNone(first)
@@ -216,7 +233,12 @@ class WorldGameScenarios(unittest.TestCase):
         self.assertIsNone(tie['winner'])
         self.assertIsNone(tie['legs'][0]['result']['pen'])
         self.page.evaluate("""()=>{
-            while(currentEvent() && !(currentEvent().type==='LIB' && currentEvent().stage==='R16' && currentEvent().leg===2))WORLD_ENGINE.completeOne();
+            while(currentEvent()){
+                __qaReachReady();
+                if(!currentEvent()||(currentEvent().type==='LIB' && currentEvent().stage==='R16' && currentEvent().leg===2))break;
+                const g=fixture(currentEvent());
+                WORLD_ENGINE.completeOne(g?{home:g.home===GameState.userClub.id?2:0,away:g.away===GameState.userClub.id?2:0}:null);
+            }
         }""")
         check = self.page.evaluate("""()=>{
             const g=fixture(currentEvent()),userHome=g.home===GameState.userClub.id;
@@ -238,6 +260,8 @@ class WorldGameScenarios(unittest.TestCase):
         original = self.page.evaluate('({user:GameState.userClub.id,arg1:[...WORLD_ENGINE.league("ARG1").clubIds],arg2:[...WORLD_ENGINE.league("ARG2").clubIds]})')
         summary = self.page.evaluate("""()=>{
             let count=0;while(currentEvent()){
+                __qaReachReady();
+                if(!currentEvent())break;
                 const g=fixture(currentEvent());
                 WORLD_ENGINE.completeOne(g?{home:g.home===GameState.userClub.id?6:0,away:g.away===GameState.userClub.id?6:0}:null);
                 if(++count>1000)throw Error('Season did not terminate');
@@ -351,6 +375,7 @@ class WorldGameScenarios(unittest.TestCase):
         }""")
         before = self.page.evaluate('JSON.stringify(GameState)')
         self.page.goto(URL, wait_until='domcontentloaded')
+        self.seed()
         self.page.wait_for_selector('aside')
         self.assertEqual(self.page.evaluate('GameState.version'), 2)
         self.assertFalse(self.page.evaluate('!!GameState.worldVersion'))

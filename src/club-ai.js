@@ -241,8 +241,8 @@
     if(ai.lastMarketWeek!==currentWeek){ai.lastMarketWeek=currentWeek;if(open&&!GameState.finished)simulateMarket(day)}
     ai.lastDay=day;return true;
   }
-  function beforeNextSeason(){
-    if(!active())return;ensure();const nextDay=`${GameState.year+1}-01-24`;
+  function beforeNextSeason(nextDay=`${GameState.year+1}-01-24`){
+    if(!active())return;ensure();if(!validDay(nextDay))nextDay=`${GameState.year+1}-01-24`;
     window.MARKET_CONTRACTS?.returnLoans(nextDay);
     for(const c of getClubs())renewClub(c,true);
   }
