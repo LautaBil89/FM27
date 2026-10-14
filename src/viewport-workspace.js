@@ -100,7 +100,7 @@
     if(view==='dressing-room'&&window.FM_DRESSING_ROOM){content.innerHTML=FM_DRESSING_ROOM.render();document.querySelector('.fm-topbar h1').textContent='Vestuario'}
     else if(handlers[view])handlers[view](content);
     else if(['squad','training','scouting','finances'].includes(view))cardGroups(content,view);
-    menu(shell);
+    window.FM_DRESSING_ROOM?.ensure();menu(shell);window.FM_MATCH_REALISM?.decorate();
   }
   render=function(){const requested=view;if(active()&&view==='dressing-room')view='squad';try{original()}finally{view=requested}layout()};
   document.addEventListener('click',e=>{if(e.target.closest('[data-view],[data-action]'))ui.menu=false;if(e.target.closest('[data-inbox-open]'))ui.tabs['inbox-mobile']='reading'},true);

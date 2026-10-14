@@ -276,14 +276,14 @@
     GameState.userClub.wageBudget=Math.max(meta.wageBudget,Math.ceil(MANAGEMENT.wageBill()*1.15/1000)*1000);
     makeWorldCalendar();startPreseason();GameState.tactics.captain=mine().sort((a,b)=>b.edad-a.edad)[0]?.id||null;GameState.tactics.penaltyTaker=mine().sort((a,b)=>b.tiro-a.tiro)[0]?.id||null;
     window.CLUB_AI?.ensure();window.FM_TACTICS?.ensure();window.FM_PLAYER?.captureProgress();
-    autoLineup();news('Bienvenido al fútbol mundial',`${name} asume en ${meta.nombre}. ${GameState.world.leagues.length} ligas y ${GameState.world.clubs.length} clubes disputan la temporada en paralelo.`);
+    autoLineup();window.FM_DRESSING_ROOM?.ensure();news('Bienvenido al fútbol mundial',`${name} asume en ${meta.nombre}. ${GameState.world.leagues.length} ligas y ${GameState.world.clubs.length} clubes disputan la temporada en paralelo.`);
     MANAGEMENT.addMessage('Reglamento de carrera',GameState.world.rules,'sistema');
     MANAGEMENT.addMessage('Datos de jugadores',`Las ${GameState.players.length.toLocaleString('es-AR')} identidades provienen de Transfermarkt. Las fichas conservan su fuente, temporada y fecha de tasación cuando existe. Los planteles son selecciones históricas de participantes, con atributos, salarios y contratos simulados; no constituyen un registro oficial de inscripciones actuales. Los juveniles futuros sí son generados por las inferiores.`, 'sistema');
     saveGame(true);view='dashboard';render();return GameState;
   }
   newCareer=function(){if(typeof WORLD_DATABASE==='undefined')return legacy.newCareer();return createWorldCareer($('#manager')?.value,$('#club')?.value,$('#objective')?.value)};
   function recoverTo(nextDate) {
-    while(GameState.today<nextDate){const day=iso(+new Date(GameState.today)+DAY);for(const p of GameState.players){p.condicion_fisica=clamp(p.condicion_fisica+4);p.injury=Math.max(0,p.injury-1);if(p.fecha_nacimiento)p.edad=age(p.fecha_nacimiento,day)}GameState.today=day;window.CLUB_AI?.onDayAdvance(day);window.FM_PLAYER?.captureProgress();}
+    while(GameState.today<nextDate){const day=iso(+new Date(GameState.today)+DAY);for(const p of GameState.players){p.condicion_fisica=clamp(p.condicion_fisica+4);p.injury=Math.max(0,p.injury-1);if(p.fecha_nacimiento)p.edad=age(p.fecha_nacimiento,day)}GameState.today=day;window.CLUB_AI?.onDayAdvance(day);window.FM_DRESSING_ROOM?.onDayAdvance(day);window.FM_PLAYER?.captureProgress();}
   }
   function settleFinances(day) {
     const f=GameState.finance;f.lastFinancialDate??=day;const weeks=Math.floor((new Date(day)-new Date(f.lastFinancialDate))/(7*DAY));if(weeks<=0)return;
@@ -326,6 +326,7 @@
       for(const [side,id]of [[0,g.home],[1,g.away]]){const c=club(id);c.form??=[];c.form.push((side===0?r.home:r.away)>(side===0?r.away:r.home)?'G':r.home===r.away?'E':'P');c.form=c.form.slice(-5)}
     }
     if(m&&result)recordLiveMatch(m,result);
+    if(userGame)window.FM_DRESSING_ROOM?.onMatchResult(event,userGame,userGame.result);
     if(userGame)window.MARKET_CONTRACTS?.onMatchResult?.(event,userGame,userGame.result,beforeStats);
     for(const p of GameState.players)if(p.ban&&playing.has(p.clubId)&&(!p.banCompetition||p.banCompetition===event.type)&&!m?.newBans?.includes(p.id)&&!m?.red.includes(p.id))p.ban--;
     if(event.type!=='LPF'){if(event.phase==='groups'&&event.round===6)afterGroups(event.type);else if(event.phase==='knockout')settleTie(event.type,event.stage)}
