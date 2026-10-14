@@ -5,8 +5,8 @@ Simulador de dirección técnica con **310 clubes, 16 ligas y 9.220 jugadores re
 ## Jugar
 
 1. [Descargá el juego](https://github.com/LautaBil89/FM27/archive/refs/heads/main.zip), extraé el ZIP y abrí **index.html** con Chrome, Edge o Firefox.
-2. En **Nueva carrera**, elegí país, liga, club, nombre del DT y objetivo. Podés buscar un equipo directamente por nombre.
-3. Usá **Continuar** para avanzar un turno: mañana, mediodía, tarde y noche. Revisá informes, negociá fichajes y prepará el equipo entre partidos.
+2. En **Nueva carrera**, elegí país, liga, club, nombre del DT. La directiva fija el objetivo de cada club; en **Tu DT** elegís estilo y distribuís 60 puntos de atributos. Podés buscar un equipo directamente por nombre.
+3. Usá **Continuar** para avanzar automáticamente por mañana, mediodía, tarde y noche hasta una novedad o tu próximo partido. **Parar** detiene el avance. Revisá informes, negociá fichajes y prepará el equipo entre partidos.
 4. Cuando llegue el horario de inicio, entrá al Centro de partido. Pausá para ajustar el planteo y realizar sustituciones.
 
 Las partidas anteriores conservan sus equipos, calendarios, jugadores y condiciones. La nueva interfaz y la gestión se incorporan sin reiniciar. Los formatos deportivos por país se eligen al crear carrera; en una carrera anterior podés activarlos para la próxima temporada desde Competiciones, conservando la temporada actual. Exportá tu carrera antes de empezar otra. El guardado pertenece al navegador y a esa ubicación del archivo; Exportar e Importar permiten trasladarlo a otro dispositivo.
@@ -15,13 +15,25 @@ También se puede servir en desarrollo con `python3 -m http.server 8000 --direct
 
 ## Avance diario
 
-Las carreras ampliadas tienen **cuatro turnos por día**: Mañana (08:00), Mediodía (12:00), Tarde (18:00) y Noche (21:00). Cada pulsación de Continuar avanza un turno; desde Noche pasa a la mañana del día siguiente. La fecha, hora y progreso diario aparecen en el encabezado, y el dashboard muestra la agenda y la actividad reciente del club.
+Las carreras ampliadas tienen **cuatro turnos por día**: Mañana (08:00), Mediodía (12:00), Tarde (18:00) y Noche (21:00). **Continuar** procesa los turnos hasta recibir una novedad en la bandeja (incluidos informes, ofertas y altas médicas) o llegar al próximo partido. El botón cambia a **Parar** durante la simulación; también se pausa al abrir otra gestión o salir de la ventana. Desde Noche pasa a la mañana del día siguiente. La API interna `WORLD_CLOCK.advance()` sigue avanzando exactamente un turno. La fecha, hora y progreso diario aparecen en el encabezado, y el dashboard muestra la agenda y la actividad reciente del club.
 
 Las carreras nuevas comienzan con una semana de preparación. El entrenamiento y la familiaridad táctica se trabajan una vez al día, al mediodía. La condición, las lesiones, las edades, los vencimientos y la actividad de los clubes se actualizan al pasar al siguiente día. Los salarios y patrocinios siguen siendo semanales, y los pagos de cuotas conservan sus fechas: cuatro turnos no multiplican esas operaciones. Las ofertas y las contraofertas aceptadas reciben respuesta a partir del día siguiente, aunque no haya partido.
 
 Los partidos locales se juegan en el turno Tarde y los continentales en Noche. Las otras competiciones se simulan cuando llega su fecha y turno, incluso si tu equipo todavía no juega. Podés consultar el próximo rival y preparar la táctica antes, pero no iniciar el encuentro anticipadamente. Al llegar a tu partido, Continuar abre la previa y espera tu intervención. Después del informe permanecés en esa misma fecha y turno; el juego no salta al siguiente encuentro. Si tu club termina su calendario antes que otras competiciones, el mundo sigue avanzando hasta el cierre de temporada.
 
 Esta mejora se aplica también a las partidas ampliadas existentes: al importar o cargar una carrera sin reloj, conserva la fecha, los resultados, los jugadores y la economía. Si ya estabas en un día de partido, comienza en el turno del encuentro. El turno actual se guarda y se conserva al exportar e importar. Las carreras antiguas de 12 clubes mantienen su funcionamiento anterior.
+
+## DT, empleados y decisiones del club
+
+Cada club recibe objetivos de directiva según su nivel relativo en la liga: título, clasificación continental, ascenso, mitad superior o permanencia. Se muestran antes de empezar y se revisan al cambiar de temporada o club. No son datos oficiales de sus directivas: son expectativas de esta simulación.
+
+El DT tiene estilo preferido y seis atributos de 1 a 20, con un máximo de 60 puntos. Táctica acelera la adaptación al estilo; entrenamiento mejora el desarrollo juvenil; motivación y disciplina afectan la moral; negociación modifica las expectativas salariales; evaluación influye en los plazos de ojeo. Al comenzar quedan fijados. Las partidas anteriores pueden definirlos una vez desde **DT y empleados**, sin reiniciar.
+
+**DT y empleados** muestra ayudante, cinco ojeadores, atributos, conocimiento regional, encargos activos y salarios semanales. El personal es generado para la carrera. Cada ojeador ocupa una observación y sus características, región y el perfil del DT modifican su duración; los avances llegan a la bandeja. El coste de cada informe sigue siendo USD 1.500. Podés delegar el entrenamiento diario, un encargo de ojeo semanal con puesto/nacionalidad/edad/valor máximo y la revisión mensual de vencimientos. Los empleados preparan informes; el DT conserva la firma de contratos y transferencias.
+
+Desde la ficha del jugador o **Lista de préstamos**, ofrecé un futbolista para cesión. Los clubes pueden presentar ofertas de compra por jugadores no listados y propuestas de préstamo por los ofrecidos, con cargo, duración, salario y regreso registrados. Los contactos pueden llegar en distintos turnos y fuera de la ventana de pases; los fichajes iniciados por el DT conservan las reglas de mercado existentes. Esta versión conserva la simplificación de ejecutar las ofertas entrantes aceptadas en la fecha de decisión.
+
+Mercado y ojeo filtran por puesto exacto (DFC, LI, LD, MCD, MC, MP, EI, ED, DC o POR) y por nacionalidad, incluyendo dobles nacionalidades, además de sus filtros anteriores. La bandeja muestra remitente, estado actual, vencimiento cuando está registrado, próximo paso y condiciones reales de la operación. Distingue acuerdo con el club, contrato con el jugador y contraoferta.
 
 ## Ligas y clubes incluidos
 
@@ -204,6 +216,7 @@ python3 -m http.server 8000
 En otra terminal:
 
 ```bash
+python3 tests/test_management_office.py
 python3 tests/test_match_formats.py
 python3 tests/test_football_depth.py
 python3 tests/test_workspace_update.py

@@ -268,12 +268,13 @@
       const pending=GameState.offers.filter(o=>o.status==='pending').length;
       clockEntry('Cierre de jornada',`${pending} negociación${pending===1?' pendiente':'es pendientes'}. La bandeja de entrada reúne las novedades y decisiones del club.`);
     }
-    window.CLUB_AI?.processUserOffers();processDueEvents();indexState(true);autoLineup();window.FM_PLAYER?.captureProgress();
+    window.FM_OFFICE?.onTurn();window.CLUB_AI?.processUserOffers();processDueEvents();indexState(true);autoLineup();window.FM_PLAYER?.captureProgress();
     return finish(true);
   }
   function createWorldCareer(managerName,clubId,objective='Clasificar a Libertadores',options={}) {
     const name=String(managerName||'').trim(),reference=WORLD_DATABASE.clubs.find(c=>c.id===clubId);if(!name)return toast('Ingresá el nombre del DT');if(!reference)return toast('Elegí un club de la base de datos');
     clearInterval(timer);const meta=reference;
+    objective=window.FM_OFFICE?.objectiveFor(clubId)||objective;
     GameState={version:3,worldVersion:1,manager:name,year:2026,today:'2026-01-24',userClub:{...copy(meta),presupuesto_dolares:meta.budget,presupuesto_pesos:meta.budget*FX,cupos_extranjeros_usados:0,confianza_directiva:70,presion_hinchada:35,reputacion:meta.reputation,wageBudget:meta.wageBudget,ticketPrice:18,objective},world:{userLeagueId:meta.leagueId,leagues:copy(WORLD_DATABASE.leagues),clubs:copy(WORLD_DATABASE.clubs).map(c=>({...c,form:[],relegated:false})),cups:{},rules:'Temporadas anuales simplificadas: ida y vuelta en ligas de hasta 24 clubes; una vuelta en Argentina, con ascenso y descenso entre sus dos divisiones. Copas con cupos por tabla anual y sorteos simulados.'},league:[],continental:[],external:[],players:[],calendar:[],standings:null,annual:null,eventIndex:0,tactics:{formation:'4-3-3',style:'Gegenpress',xi:[],bench:[],mentality:'Equilibrada',tempo:50,width:50,line:50,pressing:50,roles:{},captain:null,penaltyTaker:null},news:[],match:null,finished:false,databaseSnapshot:'Transfermarkt · mundo ampliado · planteles seleccionados 2026 / 2025–26',dataSource:{name:'Transfermarkt',season:'2026 / 2025–26',retrievedAt:WORLD_DATABASE.metadata?.retrievedAt||new Date().toISOString().slice(0,10),eurToUsd:1.10,verifiedPlayers:WORLD_DATABASE.players.length,datedValues:WORLD_DATABASE.players.filter(p=>p.valuationDate&&p.marketValueEUR).length},nextMessageId:1,inbox:[],training:{focus:'Posesión',intensity:'Normal',lastReport:'El cuerpo técnico prepara la primera semana.',sessions:0},scouting:{shortlist:[],reports:{},budget:25000},finance:{ledger:[],seasonIncome:0,seasonExpense:0,openingBalance:meta.budget},offers:[],transferListed:[],history:[],lastMatch:null};
     window.GameState=GameState;GameState.players=WORLD_DATABASE.players.map(ref=>playerFromReference(ref));indexState(true);
     for(const c of GameState.world.clubs)registerSquad(c.id);
@@ -288,7 +289,7 @@
   }
   newCareer=function(){if(typeof WORLD_DATABASE==='undefined')return legacy.newCareer();return createWorldCareer($('#manager')?.value,$('#club')?.value,$('#objective')?.value,{competitionFormat:$('#careerCompetitionFormat')?.value||'realistic'})};
   function recoverTo(nextDate) {
-    while(GameState.today<nextDate){const day=iso(+new Date(GameState.today)+DAY);for(const p of GameState.players){p.condicion_fisica=clamp(p.condicion_fisica+4);p.injury=Math.max(0,p.injury-1);if(p.fecha_nacimiento)p.edad=age(p.fecha_nacimiento,day)}GameState.today=day;window.CLUB_AI?.onDayAdvance(day);window.FM_DRESSING_ROOM?.onDayAdvance(day);window.FM_DEPTH?.progress(day);window.FM_PLAYER?.captureProgress();}
+    while(GameState.today<nextDate){const day=iso(+new Date(GameState.today)+DAY);for(const p of GameState.players){p.condicion_fisica=clamp(p.condicion_fisica+4);p.injury=Math.max(0,p.injury-1);if(p.fecha_nacimiento)p.edad=age(p.fecha_nacimiento,day)}GameState.today=day;window.CLUB_AI?.onDayAdvance(day);window.FM_DRESSING_ROOM?.onDayAdvance(day);window.FM_DEPTH?.progress(day);window.FM_OFFICE?.onDay(day);window.FM_PLAYER?.captureProgress();}
   }
   function settleFinances(day) {
     const f=GameState.finance;f.lastFinancialDate??=day;const weeks=Math.floor((new Date(day)-new Date(f.lastFinancialDate))/(7*DAY));if(weeks<=0)return;

@@ -143,7 +143,8 @@ class OfferFormScenarios(unittest.TestCase):
         entered['bonus']=int(self.page.locator('#negotiation [name="bonus"]').input_value())
         self.submit()
         for step in range(4):
-            self.page.locator('[data-action="continue"]').first.click()
+            # Exercise exact response timing beneath the automatic Continue button.
+            self.page.evaluate('WORLD_CLOCK.advance()')
             self.assertEqual(self.page.evaluate('GameState.offers.find(o=>o.playerId===1068088).status'),'pending' if step<3 else 'accepted')
         result=self.page.evaluate('({offer:GameState.offers.find(o=>o.playerId===1068088),p:player(1068088),cash:GameState.userClub.presupuesto_dolares,fees:GameState.finance.ledger.filter(r=>r.category==="fichajes")})')
         self.assertEqual(result['p']['clubId'],'boca');self.assertEqual(result['p']['salario'],entered['wage'])

@@ -32,7 +32,8 @@
     const controls=[...form.children].filter(n=>n.matches('.field,.world-career-selectors,.world-career-results,.fm-selected-club'));
     const format=element('label','field');format.innerHTML=`Formato de competiciones<select id="careerCompetitionFormat"><option value="realistic" ${ui.competitionFormat==='realistic'?'selected':''}>Formatos por país · zonas, fases y playoffs</option><option value="classic" ${ui.competitionFormat==='classic'?'selected':''}>Calendario anual clásico</option></select>`;controls.push(format);
     const head=element('div','ws-welcome-heading');head.innerHTML='<strong>FM<span class="gold">27</span></strong><span>Nueva carrera</span>';
-    panels(form,[{id:'career',label:'Carrera',nodes:controls,cls:'ws-career-fields'},{id:'sources',label:'Datos y reglas',nodes:source,cls:'ws-reader'}],'welcome',[head]);form.append(footer);
+    const dt=element('div','office-creation');dt.innerHTML=window.FM_OFFICE?.creationHTML()||'';
+    panels(form,[{id:'career',label:'Carrera',nodes:controls,cls:'ws-career-fields'},{id:'manager',label:'Tu DT',nodes:[dt],cls:'ws-reader'},{id:'sources',label:'Datos y reglas',nodes:source,cls:'ws-reader'}],'welcome',[head]);form.append(footer);
   }
   function dashboard(content) {
     const intro=content.querySelector('.fm-page-intro'),metrics=content.querySelector('.fm-metrics'),daily=content.querySelector('.world-daily-agenda'),grid=content.querySelector('.fm-dashboard-grid');
@@ -95,6 +96,7 @@
   }
   function menu(shell) {
     const aside=shell.querySelector('aside'),nav=aside?.querySelector('nav');if(!nav)return;
+    if(window.FM_OFFICE){const b=element('button',view==='office'?'active':'');b.dataset.view='office';b.innerHTML='⚙ <span class="fm-nav-label">DT y empleados</span>';nav.append(b)}
     if(window.FM_DEPTH){const b=element('button',view==='career'?'active':'');b.dataset.view='career';b.innerHTML=`${FMUI.icon('trust')}<span class="fm-nav-label">Carrera y proyectos</span>`;nav.append(b)}
     if(window.FM_DRESSING_ROOM){const b=element('button',view==='dressing-room'?'active':'');b.dataset.view='dressing-room';b.innerHTML=`${FMUI.icon('users')}<span class="fm-nav-label">Vestuario</span>`;nav.append(b)}
     const button=element('button','ws-menu-toggle');button.dataset.wsMenu='toggle';button.setAttribute('aria-label','Abrir menú');button.innerHTML='☰';aside.prepend(button);
@@ -105,14 +107,15 @@
     if(!GameState)return welcome();
     const shell=document.querySelector('.shell'),content=document.querySelector('#content');if(!content)return;shell.dataset.workspaceView=view;
     const handlers={dashboard,market,tables:competitions,tactics,player:profile,inbox,match:liveMatch};
-    if(view==='career'&&window.FM_DEPTH){content.innerHTML=FM_DEPTH.career();document.querySelector('.fm-topbar h1').textContent='Carrera';cardGroups(content,'career')}
+    if(view==='office'&&window.FM_OFFICE){content.innerHTML=FM_OFFICE.page();document.querySelector('.fm-topbar h1').textContent='DT y empleados';cardGroups(content,'office')}
+    else if(view==='career'&&window.FM_DEPTH){content.innerHTML=FM_DEPTH.career();document.querySelector('.fm-topbar h1').textContent='Carrera';cardGroups(content,'career')}
     else if(view==='dressing-room'&&window.FM_DRESSING_ROOM){content.innerHTML=FM_DRESSING_ROOM.render();document.querySelector('.fm-topbar h1').textContent='Vestuario'}
     else if(handlers[view])handlers[view](content);
     else if(['squad','training','scouting','finances'].includes(view))cardGroups(content,view);
     if(['career','dressing-room'].includes(view)){for(const button of shell.querySelectorAll('aside nav [data-view]'))button.classList.remove('active');const crumb=shell.querySelector('.fm-breadcrumb');if(crumb)crumb.textContent=GameState.userClub.nombre+' / '+(view==='career'?'Carrera':'Vestuario')}
-    window.FM_DRESSING_ROOM?.ensure();menu(shell);window.FM_MATCH_REALISM?.decorate();window.FM_DEPTH?.decorate();window.FM_MATCH_CENTRE?.decorate();
+    window.FM_DRESSING_ROOM?.ensure();menu(shell);window.FM_MATCH_REALISM?.decorate();window.FM_DEPTH?.decorate();window.FM_MATCH_CENTRE?.decorate();window.FM_OFFICE?.decorate();
   }
-  render=function(){const requested=view;if(active()&&['dressing-room','career'].includes(view))view='squad';try{original()}finally{view=requested}layout()};
+  render=function(){const requested=view;if(active()&&['dressing-room','career','office'].includes(view))view='squad';try{original()}finally{view=requested}layout()};
   document.addEventListener('click',e=>{if(e.target.closest('[data-view],[data-action]'))ui.menu=false;if(e.target.closest('[data-inbox-open]'))ui.tabs['inbox-mobile']='reading'},true);
   document.addEventListener('click',e=>{const tab=e.target.closest('[data-ws-tab]');if(tab){ui.tabs[tab.dataset.wsKey]=tab.dataset.wsTab;render();return}const b=e.target.closest('[data-ws-menu]');if(b){ui.menu=b.dataset.wsMenu==='toggle'?!ui.menu:false;render()}});
   document.addEventListener('change',e=>{if(e.target.id==='careerCompetitionFormat')ui.competitionFormat=e.target.value});

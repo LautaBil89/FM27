@@ -90,7 +90,8 @@ class DailyClockScenarios(unittest.TestCase):
             return {count,clock:WORLD_CLOCK.info(),event:currentEvent(),next:WORLD_CLOCK.nextFixture()};
         }""")
 
-    def test_01_continue_runs_four_exact_periods_without_skipping_the_day(self):
+    def test_01_clock_runs_four_exact_periods_without_skipping_the_day(self):
+        # Continue now runs until news; test the underlying four-period API here.
         self.career()
         opening = self.page.evaluate("""()=>({today:GameState.today,slot:WORLD_CLOCK.info().slot,
             start:GameState.calendar[0].date,ticks:GameState.world.clock.ticks,
@@ -101,7 +102,7 @@ class DailyClockScenarios(unittest.TestCase):
         periods = [('Mañana', '08:00'), ('Mediodía', '12:00'), ('Tarde', '18:00'), ('Noche', '21:00')]
         self.assertEqual((self.clock()['label'], self.clock()['time']), periods[0])
         for step in range(1, 5):
-            self.page.locator('[data-action="continue"]').first.click()
+            self.page.evaluate('WORLD_CLOCK.advance()')
             current = self.clock()
             self.assertEqual(current['slot'], step % 4)
             self.assertEqual((current['label'], current['time']), periods[step % 4])
@@ -151,7 +152,7 @@ class DailyClockScenarios(unittest.TestCase):
         self.assertEqual(self.page.evaluate('GameState.standings[GameState.userClub.id].pj'), 0)
         self.assertIsNone(self.page.evaluate('fixture(currentEvent())?.result'))
         before = self.page.evaluate('({today:GameState.today,slot:WORLD_CLOCK.info().slot,played:GameState.standings[GameState.userClub.id].pj})')
-        self.page.locator('[data-action="continue"]').first.click()
+        self.page.evaluate('WORLD_CLOCK.advance()')
         self.assertEqual(self.page.evaluate('view'), 'match')
         self.assertEqual(self.page.evaluate('({today:GameState.today,slot:WORLD_CLOCK.info().slot,played:GameState.standings[GameState.userClub.id].pj})'), before)
 
@@ -237,11 +238,11 @@ class DailyClockScenarios(unittest.TestCase):
         self.assertEqual([finished['lastScore']['home'],finished['lastScore']['away']], finished['score'])
         self.assertIsNone(finished['match'])
         self.assertEqual(finished['future'], 0)
-        self.page.locator('[data-action="continue"]').first.click()
+        self.page.evaluate('WORLD_CLOCK.advance()')
         evening = self.clock()
         self.assertEqual(evening['date'], before['date'])
         self.assertEqual(evening['slot'], 3)
-        self.page.locator('[data-action="continue"]').first.click()
+        self.page.evaluate('WORLD_CLOCK.advance()')
         following = self.clock()
         self.assertEqual(following['date'], (date.fromisoformat(before['date'])+timedelta(days=1)).isoformat())
         self.assertEqual(following['slot'], 0)
@@ -262,7 +263,7 @@ class DailyClockScenarios(unittest.TestCase):
         self.page.evaluate('()=>{for(let n=0;n<5;n++)WORLD_CLOCK.advance({silent:true})}')
         self.page.evaluate('(raw)=>WORLD_STORAGE.importState(raw,{confirm:false})', backup)
         self.assertEqual(self.page.evaluate('({today:GameState.today,clock:structuredClone(GameState.world.clock),info:WORLD_CLOCK.info()})'), original)
-        self.page.locator('[data-action="continue"]').first.click()
+        self.page.evaluate('WORLD_CLOCK.advance()')
         self.assertEqual(self.clock()['slot'], 3)
         self.assertEqual(self.clock()['date'], original['today'])
 
@@ -303,7 +304,7 @@ class DailyClockScenarios(unittest.TestCase):
         self.assertEqual(clock['date'], before['today'])
         self.assertEqual(clock['slot'], 2)
         self.assertTrue(clock['ready'])
-        self.page.locator('[data-action="continue"]').first.click()
+        self.page.evaluate('WORLD_CLOCK.advance()')
         self.assertEqual(self.page.evaluate('view'), 'match')
         self.assertEqual(self.page.evaluate('GameState.today'), before['today'])
         self.assertIsNone(self.page.evaluate('fixture(currentEvent())?.result'))
@@ -311,7 +312,7 @@ class DailyClockScenarios(unittest.TestCase):
         # first daily continuation may settle that due expense and NPC rounds;
         # repeating Continue while the user match is due must be idempotent.
         continued = self.preserved_signature()
-        self.page.locator('[data-action="continue"]').first.click()
+        self.page.evaluate('WORLD_CLOCK.advance()')
         self.assertEqual(self.preserved_signature(), continued)
         self.page.evaluate('saveGame(true)')
         self.page.reload(wait_until='domcontentloaded')
@@ -331,7 +332,7 @@ class DailyClockScenarios(unittest.TestCase):
         self.assertEqual(self.preserved_signature(), before)
         self.assertTrue(self.page.evaluate('GameState.match.paused'))
         self.assertEqual(self.clock()['slot'], 2)
-        self.page.locator('[data-action="continue"]').first.click()
+        self.page.evaluate('WORLD_CLOCK.advance()')
         self.assertEqual(self.page.evaluate('view'), 'match')
         self.assertEqual(self.preserved_signature(), before)
         self.assertTrue(self.page.evaluate('GameState.match.paused'))

@@ -148,9 +148,9 @@ def embed(db):
     scripts = [ROOT / 'src' / name for name in
                ('world-engine.js', 'competition-formats.js', 'domestic-regulations.js', 'world-ui.js', 'world-storage.js',
                 'club-ai.js', 'market-contracts.js', 'player-profile.js',
-                'tactics-workbench.js', 'action-inbox.js', 'dressing-room.js', 'match-realism.js', 'negotiation-workspace.js', 'football-depth.js', 'match-centre.js', 'viewport-workspace.js')]
+                'tactics-workbench.js', 'action-inbox.js', 'dressing-room.js', 'match-realism.js', 'negotiation-workspace.js', 'football-depth.js', 'match-centre.js', 'management-office.js', 'viewport-workspace.js')]
     styles = [ROOT / 'src' / name for name in
-              ('world-ui.css', 'player-profile.css', 'tactics-workbench.css', 'action-inbox.css', 'dressing-room.css', 'match-realism.css', 'negotiation-workspace.css', 'viewport-workspace.css', 'football-depth.css', 'match-centre.css')]
+              ('world-ui.css', 'player-profile.css', 'tactics-workbench.css', 'action-inbox.css', 'dressing-room.css', 'match-realism.css', 'negotiation-workspace.css', 'viewport-workspace.css', 'football-depth.css', 'match-centre.css', 'management-office.css')]
     for path in scripts + styles:
         if not path.exists():
             raise FileNotFoundError('Implementation not ready: ' + str(path))
