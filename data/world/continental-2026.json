@@ -1,0 +1,580 @@
+{
+  "LIB": {
+    "season": 2026,
+    "sourceUrl": "https://www.transfermarkt.com.ar/copa-libertadores/gesamtspielplan/pokalwettbewerb/CLI/saison_id/2025",
+    "sourceTitle": "Copa Libertadores - Todos los grupos y jornadas | Transfermarkt",
+    "groups": [
+      {
+        "id": "A",
+        "teams": [
+          "flamengo",
+          "estudiantes",
+          "tm-10093",
+          "tm-28999"
+        ],
+        "participants": [
+          {
+            "id": "flamengo",
+            "tmId": 614,
+            "nombre": "CR Flamengo"
+          },
+          {
+            "id": "estudiantes",
+            "tmId": 288,
+            "nombre": "Club Estudiantes de La Plata"
+          },
+          {
+            "id": "tm-10093",
+            "tmId": 10093,
+            "nombre": "Independiente Medellín"
+          },
+          {
+            "id": "tm-28999",
+            "tmId": 28999,
+            "nombre": "Cusco FC"
+          }
+        ]
+      },
+      {
+        "id": "B",
+        "teams": [
+          "tm-11004",
+          "tm-10503",
+          "nacional",
+          "tm-6593"
+        ],
+        "participants": [
+          {
+            "id": "tm-11004",
+            "tmId": 11004,
+            "nombre": "Coquimbo Unido"
+          },
+          {
+            "id": "tm-10503",
+            "tmId": 10503,
+            "nombre": "Deportes Tolima"
+          },
+          {
+            "id": "nacional",
+            "tmId": 866,
+            "nombre": "Club Nacional"
+          },
+          {
+            "id": "tm-6593",
+            "tmId": 6593,
+            "nombre": "Universitario de Deportes"
+          }
+        ]
+      },
+      {
+        "id": "C",
+        "teams": [
+          "tm-12179",
+          "fluminense",
+          "tm-6878",
+          "tm-26468"
+        ],
+        "participants": [
+          {
+            "id": "tm-12179",
+            "tmId": 12179,
+            "nombre": "CS Independiente Rivadavia"
+          },
+          {
+            "id": "fluminense",
+            "tmId": 2462,
+            "nombre": "Fluminense Football Club"
+          },
+          {
+            "id": "tm-6878",
+            "tmId": 6878,
+            "nombre": "Club Bolívar"
+          },
+          {
+            "id": "tm-26468",
+            "tmId": 26468,
+            "nombre": "Deportivo La Guaira"
+          }
+        ]
+      },
+      {
+        "id": "D",
+        "teams": [
+          "tm-3277",
+          "cruzeiro",
+          "boca",
+          "tm-3523"
+        ],
+        "participants": [
+          {
+            "id": "tm-3277",
+            "tmId": 3277,
+            "nombre": "CD Universidad Católica"
+          },
+          {
+            "id": "cruzeiro",
+            "tmId": 609,
+            "nombre": "Cruzeiro Esporte Clube"
+          },
+          {
+            "id": "boca",
+            "tmId": 189,
+            "nombre": "CA Boca Juniors"
+          },
+          {
+            "id": "tm-3523",
+            "tmId": 3523,
+            "nombre": "Barcelona SC Guayaquil"
+          }
+        ]
+      },
+      {
+        "id": "E",
+        "teams": [
+          "corinthians",
+          "tm-928",
+          "tm-11648",
+          "penarol"
+        ],
+        "participants": [
+          {
+            "id": "corinthians",
+            "tmId": 199,
+            "nombre": "SC Corinthians"
+          },
+          {
+            "id": "tm-928",
+            "tmId": 928,
+            "nombre": "CA Platense"
+          },
+          {
+            "id": "tm-11648",
+            "tmId": 11648,
+            "nombre": "Independiente Santa Fe"
+          },
+          {
+            "id": "penarol",
+            "tmId": 861,
+            "nombre": "CA Peñarol"
+          }
+        ]
+      },
+      {
+        "id": "F",
+        "teams": [
+          "tm-1214",
+          "palmeiras",
+          "tm-1450",
+          "tm-11854"
+        ],
+        "participants": [
+          {
+            "id": "tm-1214",
+            "tmId": 1214,
+            "nombre": "Club Cerro Porteño"
+          },
+          {
+            "id": "palmeiras",
+            "tmId": 1023,
+            "nombre": "SE Palmeiras"
+          },
+          {
+            "id": "tm-1450",
+            "tmId": 1450,
+            "nombre": "Club Sporting Cristal"
+          },
+          {
+            "id": "tm-11854",
+            "tmId": 11854,
+            "nombre": "Junior de Barranquilla"
+          }
+        ]
+      },
+      {
+        "id": "G",
+        "teams": [
+          "tm-9855",
+          "tm-3876",
+          "lanus",
+          "tm-42208"
+        ],
+        "participants": [
+          {
+            "id": "tm-9855",
+            "tmId": 9855,
+            "nombre": "LDU Quito"
+          },
+          {
+            "id": "tm-3876",
+            "tmId": 3876,
+            "nombre": "Mirassol Futebol Clube (SP)"
+          },
+          {
+            "id": "lanus",
+            "tmId": 333,
+            "nombre": "CA Lanús"
+          },
+          {
+            "id": "tm-42208",
+            "tmId": 42208,
+            "nombre": "Club Always Ready"
+          }
+        ]
+      },
+      {
+        "id": "H",
+        "teams": [
+          "tm-19309",
+          "central",
+          "tm-43146",
+          "tm-9875"
+        ],
+        "participants": [
+          {
+            "id": "tm-19309",
+            "tmId": 19309,
+            "nombre": "Independiente del Valle"
+          },
+          {
+            "id": "central",
+            "tmId": 1418,
+            "nombre": "CA Rosario Central"
+          },
+          {
+            "id": "tm-43146",
+            "tmId": 43146,
+            "nombre": "Universidad Central de Venezuela"
+          },
+          {
+            "id": "tm-9875",
+            "tmId": 9875,
+            "nombre": "Club Libertad Asunción"
+          }
+        ]
+      }
+    ],
+    "teams": [
+      "flamengo",
+      "estudiantes",
+      "tm-10093",
+      "tm-28999",
+      "tm-11004",
+      "tm-10503",
+      "nacional",
+      "tm-6593",
+      "tm-12179",
+      "fluminense",
+      "tm-6878",
+      "tm-26468",
+      "tm-3277",
+      "cruzeiro",
+      "boca",
+      "tm-3523",
+      "corinthians",
+      "tm-928",
+      "tm-11648",
+      "penarol",
+      "tm-1214",
+      "palmeiras",
+      "tm-1450",
+      "tm-11854",
+      "tm-9855",
+      "tm-3876",
+      "lanus",
+      "tm-42208",
+      "tm-19309",
+      "central",
+      "tm-43146",
+      "tm-9875"
+    ]
+  },
+  "SUD": {
+    "season": 2026,
+    "sourceUrl": "https://www.transfermarkt.com.ar/copa-sudamericana/gesamtspielplan/pokalwettbewerb/CS/saison_id/2025",
+    "sourceTitle": "Copa Sudamericana - Todos los grupos y jornadas | Transfermarkt",
+    "groups": [
+      {
+        "id": "A",
+        "teams": [
+          "tm-17426",
+          "tigre",
+          "tm-2352",
+          "tm-17479"
+        ],
+        "participants": [
+          {
+            "id": "tm-17426",
+            "tmId": 17426,
+            "nombre": "CD Macará"
+          },
+          {
+            "id": "tigre",
+            "tmId": 11831,
+            "nombre": "CA Tigre"
+          },
+          {
+            "id": "tm-2352",
+            "tmId": 2352,
+            "nombre": "CD América de Cali"
+          },
+          {
+            "id": "tm-17479",
+            "tmId": 17479,
+            "nombre": "Alianza Atlético Sullana"
+          }
+        ]
+      },
+      {
+        "id": "B",
+        "teams": [
+          "atleticomineiro",
+          "tm-2729",
+          "tm-17428",
+          "tm-45193"
+        ],
+        "participants": [
+          {
+            "id": "atleticomineiro",
+            "tmId": 330,
+            "nombre": "Clube Atlético Mineiro"
+          },
+          {
+            "id": "tm-2729",
+            "tmId": 2729,
+            "nombre": "Club Cienciano"
+          },
+          {
+            "id": "tm-17428",
+            "tmId": 17428,
+            "nombre": "CA Juventud"
+          },
+          {
+            "id": "tm-45193",
+            "tmId": 45193,
+            "nombre": "Academia Puerto Cabello"
+          }
+        ]
+      },
+      {
+        "id": "C",
+        "teams": [
+          "saopaulo",
+          "tm-11470",
+          "tm-2350",
+          "tm-18074"
+        ],
+        "participants": [
+          {
+            "id": "saopaulo",
+            "tmId": 585,
+            "nombre": "São Paulo FC"
+          },
+          {
+            "id": "tm-11470",
+            "tmId": 11470,
+            "nombre": "CD O'Higgins"
+          },
+          {
+            "id": "tm-2350",
+            "tmId": 2350,
+            "nombre": "Millonarios FC"
+          },
+          {
+            "id": "tm-18074",
+            "tmId": 18074,
+            "nombre": "CA Boston River"
+          }
+        ]
+      },
+      {
+        "id": "D",
+        "teams": [
+          "tm-14545",
+          "santos",
+          "sanlorenzo",
+          "tm-8781"
+        ],
+        "participants": [
+          {
+            "id": "tm-14545",
+            "tmId": 14545,
+            "nombre": "Recoleta FC"
+          },
+          {
+            "id": "santos",
+            "tmId": 221,
+            "nombre": "Santos FC"
+          },
+          {
+            "id": "sanlorenzo",
+            "tmId": 1775,
+            "nombre": "CA San Lorenzo de Almagro"
+          },
+          {
+            "id": "tm-8781",
+            "tmId": 8781,
+            "nombre": "Deportivo Cuenca"
+          }
+        ]
+      },
+      {
+        "id": "E",
+        "teams": [
+          "tm-537",
+          "tm-531",
+          "racing",
+          "tm-30854"
+        ],
+        "participants": [
+          {
+            "id": "tm-537",
+            "tmId": 537,
+            "nombre": "Botafogo de Futebol e Regatas"
+          },
+          {
+            "id": "tm-531",
+            "tmId": 531,
+            "nombre": "Caracas FC"
+          },
+          {
+            "id": "racing",
+            "tmId": 1444,
+            "nombre": "Racing Club"
+          },
+          {
+            "id": "tm-30854",
+            "tmId": 30854,
+            "nombre": "Club Independiente Petrolero"
+          }
+        ]
+      },
+      {
+        "id": "F",
+        "teams": [
+          "tm-37535",
+          "tm-210",
+          "tm-19775",
+          "tm-6536"
+        ],
+        "participants": [
+          {
+            "id": "tm-37535",
+            "tmId": 37535,
+            "nombre": "Montevideo City Torque"
+          },
+          {
+            "id": "tm-210",
+            "tmId": 210,
+            "nombre": "Grêmio Foot-Ball Porto Alegrense"
+          },
+          {
+            "id": "tm-19775",
+            "tmId": 19775,
+            "nombre": "Club Deportivo Riestra"
+          },
+          {
+            "id": "tm-6536",
+            "tmId": 6536,
+            "nombre": "CD Palestino"
+          }
+        ]
+      },
+      {
+        "id": "G",
+        "teams": [
+          "tm-629",
+          "vasco",
+          "tm-6363",
+          "tm-25184"
+        ],
+        "participants": [
+          {
+            "id": "tm-629",
+            "tmId": 629,
+            "nombre": "Club Olimpia"
+          },
+          {
+            "id": "vasco",
+            "tmId": 978,
+            "nombre": "Clube de Regatas Vasco da Gama"
+          },
+          {
+            "id": "tm-6363",
+            "tmId": 6363,
+            "nombre": "Audax Italiano"
+          },
+          {
+            "id": "tm-25184",
+            "tmId": 25184,
+            "nombre": "CA Barracas Central"
+          }
+        ]
+      },
+      {
+        "id": "H",
+        "teams": [
+          "river",
+          "tm-8793",
+          "tm-14682",
+          "tm-8056"
+        ],
+        "participants": [
+          {
+            "id": "river",
+            "tmId": 209,
+            "nombre": "CA River Plate"
+          },
+          {
+            "id": "tm-8793",
+            "tmId": 8793,
+            "nombre": "Red Bull Bragantino"
+          },
+          {
+            "id": "tm-14682",
+            "tmId": 14682,
+            "nombre": "Carabobo FC"
+          },
+          {
+            "id": "tm-8056",
+            "tmId": 8056,
+            "nombre": "Club Blooming"
+          }
+        ]
+      }
+    ],
+    "teams": [
+      "tm-17426",
+      "tigre",
+      "tm-2352",
+      "tm-17479",
+      "atleticomineiro",
+      "tm-2729",
+      "tm-17428",
+      "tm-45193",
+      "saopaulo",
+      "tm-11470",
+      "tm-2350",
+      "tm-18074",
+      "tm-14545",
+      "santos",
+      "sanlorenzo",
+      "tm-8781",
+      "tm-537",
+      "tm-531",
+      "racing",
+      "tm-30854",
+      "tm-37535",
+      "tm-210",
+      "tm-19775",
+      "tm-6536",
+      "tm-629",
+      "vasco",
+      "tm-6363",
+      "tm-25184",
+      "river",
+      "tm-8793",
+      "tm-14682",
+      "tm-8056"
+    ]
+  }
+}

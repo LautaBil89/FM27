@@ -1,0 +1,208 @@
+#!/usr/bin/env python3
+"""Merge reviewed Transfermarkt snapshots and embed the complete world locally."""
+import argparse
+import collections
+import json
+import re
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+PARTS = ('argentina', 'south-america', 'europe')
+EXPECTED = {'ARG1': 30, 'ARG2': 36, 'GB1': 20, 'ES1': 20,
+            'IT1': 20, 'L1': 18, 'FR1': 18}
+SOUTH_AMERICA = {'ARG1', 'BRA1', 'URU1', 'CHI1', 'PAR1', 'BOL1',
+                 'ECU1', 'PER1', 'COL1', 'VEN1'}
+
+
+def preference(player):
+    # Season pages include outgoing loans/transfers. Prefer the later documented
+    # arrival, while preserving real alternatives for squads that need coverage.
+    return (player.get('joinedDate') or '', player.get('sourceSeason') or '',
+            player.get('contractEnd') or '', player.get('valuationDate') or '',
+            player.get('marketValueEUR') or 0)
+
+
+def merge():
+    parts = [json.loads((ROOT / 'data/world' / (name + '.json')).read_text())
+             for name in PARTS]
+    leagues = [league for part in parts for league in part['leagues']]
+    clubs = [club for part in parts for club in part['clubs']]
+    club_map = {club['id']: club for club in clubs}
+    if len(club_map) != len(clubs) or len({c['tmId'] for c in clubs}) != len(clubs):
+        raise ValueError('Repeated club identities across snapshots')
+    if len({league['id'] for league in leagues}) != len(leagues):
+        raise ValueError('Repeated league identities')
+    for league in leagues:
+        members = league['clubIds']
+        if len(members) != len(set(members)):
+            raise ValueError('Repeated members in ' + league['id'])
+        if len(members) != EXPECTED.get(league['id'], len(members)):
+            raise ValueError('Incomplete league ' + league['id'])
+        if league['id'] in SOUTH_AMERICA and len(members) < 10:
+            raise ValueError('Fewer than ten clubs in ' + league['id'])
+        for member in members:
+            if member not in club_map or club_map[member]['leagueId'] != league['id']:
+                raise ValueError('Inconsistent league membership: ' + member)
+    if SOUTH_AMERICA - {league['id'] for league in leagues}:
+        raise ValueError('A CONMEBOL country is missing')
+    candidates = collections.defaultdict(dict)
+    for part in parts:
+        for p in part['players'] + part.get('reserves', []):
+            if p['clubId'] not in club_map:
+                raise ValueError('Unknown club for ' + p['name'])
+            if p['position'] not in ('POR', 'DEF', 'MED', 'DEL'):
+                raise ValueError('Invalid position for ' + p['name'])
+            if not p.get('dateOfBirth') or not p.get('nationalities'):
+                raise ValueError('Missing biography for ' + p['name'])
+            if not re.search(r'/spieler/' + str(p['playerId']) + r'(?:$|[/?])', p['profileUrl']):
+                raise ValueError('Wrong profile identity for ' + p['name'])
+            old = candidates[p['clubId']].get(p['playerId'])
+            if old is None or preference(p) > preference(old):
+                candidates[p['clubId']][p['playerId']] = p
+    alternatives = collections.defaultdict(list)
+    for pool in candidates.values():
+        for p in pool.values():
+            alternatives[p['playerId']].append(p)
+    assigned = {pid: max(options, key=preference)
+                for pid, options in alternatives.items()}
+    reassigned = []
+
+    def roster(cid):
+        return [p for p in assigned.values() if p['clubId'] == cid]
+
+    # Resolve rare transfer overlaps without inventing players or cloning them.
+    # A player can only move from a source club with enough real alternatives.
+    for club in sorted(clubs, key=lambda c: len(candidates[c['id']])):
+        cid = club['id']
+        for position, minimum in [('POR', 2), ('DEF', 3), ('MED', 3), ('DEL', 2), (None, 18)]:
+            def need():
+                return len([p for p in roster(cid) if position is None or p['position'] == position]) < minimum
+            while need():
+                options = sorted(candidates[cid].values(), key=preference, reverse=True)
+                found = False
+                for p in options:
+                    current = assigned[p['playerId']]
+                    if current['clubId'] == cid or (position and p['position'] != position):
+                        continue
+                    donor = roster(current['clubId'])
+                    if len(donor) <= 18:
+                        continue
+                    floor = {'POR': 2, 'DEF': 3, 'MED': 3, 'DEL': 2}[current['position']]
+                    if sum(q['position'] == current['position'] for q in donor) <= floor:
+                        continue
+                    assigned[p['playerId']] = p
+                    reassigned.append({'playerId': p['playerId'], 'name': p['name'],
+                                       'from': current['clubId'], 'to': cid})
+                    found = True
+                    break
+                if not found:
+                    raise ValueError(f'Insufficient distinct real players at {club["nombre"]}: {position or "total"}')
+    selected = []
+    for club in clubs:
+        pool = sorted(roster(club['id']),
+                      key=lambda p: (p.get('marketValueEUR') or 0, preference(p)), reverse=True)
+        chosen = []
+        # Preserve a useful spread of positions even in large season rosters.
+        for pos, amount in [('POR', 3), ('DEF', 8), ('MED', 8), ('DEL', 5)]:
+            chosen.extend([p for p in pool if p['position'] == pos][:amount])
+        used = {p['playerId'] for p in chosen}
+        chosen.extend([p for p in pool if p['playerId'] not in used][:32 - len(chosen)])
+        if not 18 <= len(chosen) <= 32 or sum(p['position'] == 'POR' for p in chosen) < 2:
+            raise ValueError('Incomplete selected roster: ' + club['nombre'])
+        selected.extend(chosen)
+    assert len({p['playerId'] for p in selected}) == len(selected)
+    notes = [note for part in parts for note in part.get('notes', [])]
+    notes.append('Selected real season participants, with one club per Transfermarkt identity; not a live registration list.')
+    sources = [source for part in parts for source in part.get('sources', [])]
+    starting_cups = json.loads((ROOT / 'data/world/continental-2026.json').read_text())
+    cup_members = set()
+    for key, cup in starting_cups.items():
+        if len(cup['teams']) != 32 or len(cup['groups']) != 8:
+            raise ValueError('Incomplete continental field: ' + key)
+        for cid in cup['teams']:
+            if cid not in club_map:
+                raise ValueError('Missing continental participant: ' + cid)
+            if cid in cup_members:
+                raise ValueError('Club assigned to both continental cups: ' + cid)
+            cup_members.add(cid)
+        sources.append({'url': cup['sourceUrl'], 'title': cup['sourceTitle'],
+                        'sourceSeason': '2026', 'type': 'continental-group-membership'})
+    dated = sum(bool(p.get('valuationDate')) and p.get('marketValueEUR') is not None for p in selected)
+    db = {'schemaVersion': 1, 'leagues': leagues, 'clubs': clubs,
+          'players': selected, 'sources': sources, 'notes': notes,
+          'startingCups': starting_cups,
+          'metadata': {'name': 'Transfermarkt', 'season': '2026 / 2025–26',
+                       'southAmericaSeason': '2026', 'europeSeason': '2025/26',
+                       'clubs': len(clubs), 'leagues': len(leagues),
+                       'players': len(selected), 'datedValues': dated,
+                       'retrievedAt': max(p.get('retrievedAt', '') for p in selected),
+                       'eurToUsd': 1.10, 'selection': 'Verified season participants; unique curated playable identities',
+                       'crossClubOverlaps': sum(len(options) > 1 for options in alternatives.values()),
+                       'coverageReassignments': reassigned}}
+    output = ROOT / 'data/world-database.json'
+    output.write_text(json.dumps(db, ensure_ascii=False, indent=2) + '\n')
+    return db
+
+
+def embed(db):
+    paths = [ROOT / 'src' / name for name in
+             ('world-engine.js', 'world-ui.js', 'world-storage.js', 'world-ui.css')]
+    for path in paths:
+        if not path.exists():
+            raise FileNotFoundError('Implementation not ready: ' + str(path))
+    file = ROOT / 'index.html'
+    html = file.read_text()
+    html = re.sub(r'\n/\* WORLD_EXPANSION_START \*/.*?/\* WORLD_EXPANSION_END \*/\n', '', html, flags=re.S)
+    html = re.sub(r'\n/\* WORLD_CSS_START \*/.*?/\* WORLD_CSS_END \*/\n', '', html, flags=re.S)
+    # Narrow hooks keep legacy careers working and allow the larger universe to
+    # supply indexed lookups, country-specific registration and cup tie rules.
+    for binding in ('club', 'player', 'squad', 'foreigners'):
+        html = html.replace('const ' + binding + '=id=>', 'let ' + binding + '=id=>', 1)
+    if 'function foreignLimit(' not in html:
+        marker = 'const overall=p=>'
+        helpers = "function isForeign(p,id=GameState?.userClub.id){return GameState?.worldVersion&&window.WORLD_ENGINE?WORLD_ENGINE.isForeign(p,id):p.nacionalidad!=='Argentina'&&!p.registrationArgentina}\nfunction foreignLimit(id=GameState?.userClub.id){return GameState?.worldVersion&&window.WORLD_ENGINE?WORLD_ENGINE.foreignLimit(id):6}\n"
+        html = html.replace(marker, helpers + marker, 1)
+    for target in ('GameState.userClub.id', 'offer.toClub'):
+        old = "p.nacionalidad!=='Argentina'&&!p.registrationArgentina&&foreigners(" + target + ')>=6'
+        new = 'isForeign(p,' + target + ')&&foreigners(' + target + ')>=foreignLimit(' + target + ')'
+        html = html.replace(old, new)
+    html = html.replace("toast('El plantel ya tiene 6 extranjeros')", "toast('El plantel ya alcanzó el límite de extranjeros de su liga')")
+    html = html.replace("toast('Los seis cupos de extranjeros están ocupados')", "toast('Los cupos de extranjeros de esta liga están ocupados')")
+    old_match_quota = "ids.filter(id => player(id).nacionalidad !== 'Argentina' && !player(id).registrationArgentina && player(id).registered !== false).length > 6"
+    new_match_quota = 'ids.filter(id => isForeign(player(id),GameState.userClub.id) && player(id).registered !== false).length > foreignLimit(GameState.userClub.id)'
+    html = html.replace(old_match_quota, new_match_quota)
+    html = html.replace("toast('La convocatoria supera el límite de seis extranjeros.')", "toast('La convocatoria supera el límite de extranjeros de esta liga.')")
+    old_penalty = "if (currentEvent()?.type === 'LIB' && m.score[0] === m.score[1]) {"
+    new_penalty = "if (GameState?.worldVersion ? WORLD_ENGINE.needsPenalties(m) : currentEvent()?.type === 'LIB' && m.score[0] === m.score[1]) {"
+    html = html.replace(old_penalty, new_penalty)
+    html = html.replace("const threshold = competition === 'LIB' ? 3 : 5;", "const threshold = ['LIB','SUD'].includes(competition) ? 3 : 5;")
+    old_competition = "const competition = event => event ?"
+    new_competition = "const competition = event => GameState?.worldVersion && window.WORLD_ENGINE ? WORLD_ENGINE.competitionLabel(event) : event ?"
+    html = html.replace(old_competition, new_competition)
+    old_source = "const tmProfileSource = p => {\n    const source = p.transfermarkt;"
+    new_source = "const tmProfileSource = p => {\n    if(GameState?.worldVersion&&window.WORLD_UI?.profileSource)return WORLD_UI.profileSource(p);\n    const source = p.transfermarkt;"
+    html = html.replace(old_source, new_source)
+    old_meta = "const record = typeof CLUB_META !== 'undefined' ? CLUB_META[id] || {} : {};"
+    new_meta = "const record = {...(typeof CLUB_META !== 'undefined' ? CLUB_META[id] || {} : {}),...(GameState?.worldVersion?GameState.world.clubs.find(c=>c.id===id):{})};"
+    html = html.replace(old_meta, new_meta)
+    html = html.replace('title="Evaluación relativa al fútbol argentino"', 'title="Evaluación estimada del jugador"')
+    js = '\n'.join(path.read_text() for path in paths[:3])
+    database = json.dumps(db, ensure_ascii=False, separators=(',', ':')).replace('<', '\\u003c')
+    expansion = '\n/* WORLD_EXPANSION_START */\nconst WORLD_DATABASE = ' + database + ';\n' + js + '\n/* WORLD_EXPANSION_END */\n'
+    marker = 'restoreGame();if(GameState?.match)view="match";render();'
+    if html.count(marker) != 1:
+        raise ValueError('Ambiguous startup boundary')
+    html = html.replace(marker, expansion + marker)
+    css = '\n/* WORLD_CSS_START */\n' + paths[-1].read_text() + '\n/* WORLD_CSS_END */\n'
+    html = html.replace('</style>', css + '</style>', 1)
+    file.write_text(html)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--data-only', action='store_true')
+    args = parser.parse_args()
+    world = merge()
+    if not args.data_only:
+        embed(world)
+    print(f'World: {len(world["leagues"])} leagues, {len(world["clubs"])} clubs, {len(world["players"])} unique real players')

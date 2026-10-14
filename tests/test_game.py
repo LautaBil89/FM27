@@ -21,17 +21,20 @@ URL = os.environ.get('FM27_TEST_URL', 'http://127.0.0.1:8000/index.html')
 KEY = 'fm27-pasion-v1'
 REPO = Path(__file__).resolve().parents[1]
 LEGACY = None
+LEGACY_REAL = None
 ARTIFACTS = Path(os.environ.get('FM27_TEST_ARTIFACTS', str(Path(tempfile.gettempdir()) / 'fm27-test-artifacts')))
 
 
 class FM27Scenarios(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        global LEGACY
+        global LEGACY, LEGACY_REAL
         ARTIFACTS.mkdir(parents=True, exist_ok=True)
         cls.fixture_dir = tempfile.TemporaryDirectory(prefix='fm27-legacy-')
         LEGACY = Path(cls.fixture_dir.name) / 'index-v1.html'
         LEGACY.write_bytes(subprocess.check_output(['git','show','63a61de:index.html'],cwd=REPO))
+        LEGACY_REAL = Path(cls.fixture_dir.name) / 'index-v2-real.html'
+        LEGACY_REAL.write_bytes(subprocess.check_output(['git','show','69acd7b:index.html'],cwd=REPO))
         cls.pw = sync_playwright().start()
         executable = os.environ.get('FM27_CHROMIUM') or shutil.which('chromium') or shutil.which('google-chrome')
         launch_options = {'headless': True, 'args': ['--no-sandbox', '--disable-dev-shm-usage']}
@@ -81,11 +84,26 @@ class FM27Scenarios(unittest.TestCase):
         self.assertEqual(self.console_errors, [], 'Application console errors')
 
     def career(self, club_id='boca'):
+        # These scenarios cover preserved v2 careers. New world careers have
+        # their own fixtures and rules in test_world_game.py.
+        legacy_url=URL.rsplit('/',1)[0]+'/compat-v2.html'
+        self.page.route(legacy_url,lambda route: route.fulfill(status=200,content_type='text/html',body=LEGACY_REAL.read_text()))
+        self.page.goto(legacy_url,wait_until='domcontentloaded')
+        self.page.evaluate("""() => {
+          let seed=872341;
+          Math.random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296};
+        }""")
         self.page.locator('#manager').fill('DT de prueba')
         self.page.locator('#club').select_option(club_id)
         self.page.locator('#objective').select_option(label='Clasificar a Libertadores')
         self.page.locator('[data-action="new"]').click()
         self.page.wait_for_function('!!GameState && GameState.version===2')
+        self.page.goto(URL,wait_until='domcontentloaded')
+        self.page.wait_for_function('!!GameState && GameState.version===2')
+        self.page.evaluate("""() => {
+          let seed=872341;
+          Math.random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296};
+        }""")
         return self.state()
 
     def state(self):
