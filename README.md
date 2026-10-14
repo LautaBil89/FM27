@@ -9,7 +9,7 @@ Simulador de dirección técnica con **310 clubes, 16 ligas y 9.220 jugadores re
 3. Usá **Continuar** para avanzar un turno: mañana, mediodía, tarde y noche. Revisá informes, negociá fichajes y prepará el equipo entre partidos.
 4. Cuando llegue el horario de inicio, entrá al Centro de partido. Pausá para ajustar el planteo y realizar sustituciones.
 
-**La ampliación se aplica a carreras nuevas.** Las partidas anteriores conservan sus equipos, calendarios, jugadores y condiciones. Exportá tu carrera antes de empezar otra. El guardado pertenece al navegador y a esa ubicación del archivo; Exportar e Importar permiten trasladarlo a otro dispositivo.
+Las partidas anteriores conservan sus equipos, calendarios, jugadores y condiciones. La nueva interfaz y la gestión se incorporan sin reiniciar. Los formatos argentinos nuevos se eligen al crear carrera; en una carrera anterior podés activarlos para la próxima temporada desde Competiciones, conservando la temporada actual. Exportá tu carrera antes de empezar otra. El guardado pertenece al navegador y a esa ubicación del archivo; Exportar e Importar permiten trasladarlo a otro dispositivo.
 
 También se puede servir en desarrollo con `python3 -m http.server 8000 --directory .`.
 
@@ -46,7 +46,13 @@ Esta mejora se aplica también a las partidas ampliadas existentes: al importar 
 
 Son las primeras divisiones completas de los diez países de CONMEBOL, la segunda división argentina completa y las cinco grandes ligas europeas completas. Todos los clubes pueden dirigirse. Las tablas, partidos y estadísticas de las otras ligas se simulan en paralelo y pueden consultarse en Competiciones. El mercado permite filtrar por país, liga y club y muestra resultados paginados.
 
-Las ligas se juegan con un **calendario anual adaptado**: una vuelta en las dos divisiones argentinas y dos vueltas en las demás ligas. No reproduce los torneos zonales, Apertura/Clausura ni el calendario europeo agosto–mayo. Los dos últimos de Primera argentina intercambian categoría con los dos primeros de Primera Nacional al comenzar el año siguiente. Las ligas restantes conservan sus participantes: no se han incluido sus divisiones inferiores. Los objetivos disponibles reflejan esas reglas.
+Al crear carrera podés elegir **Formato argentino realista** (predeterminado) o **Calendario clásico**. En el formato nuevo:
+
+- LPF: Apertura y Clausura, cada uno con dos zonas de 15, 16 fechas regulares por club y eliminatorias de los ocho primeros de cada zona. La tabla anual suma las 32 fechas regulares; las eliminatorias deciden los campeones.
+- Primera Nacional: dos zonas de 18, 34 fechas por club, final entre ganadores de zona para el primer ascenso y reducido para el segundo. El perdedor de la final se incorpora al reducido.
+- Descienden dos clubes de LPF: el último anual y el peor promedio restante. Los promedios usan hasta tres temporadas efectivamente jugadas en la carrera; no se inventan puntos históricos. Los campeones tienen prioridad para la clasificación continental.
+
+Las zonas y fechas son una adaptación jugable, no una importación del fixture oficial. No se incluyen descensos de Nacional a una tercera categoría. El modo clásico mantiene una vuelta en ambas divisiones y dos ascensos/descensos por tabla. Las demás ligas conservan dos vueltas y calendario anual adaptado, sin reproducir agosto–mayo ni todas sus fases nacionales. Conservan participantes porque no se incluyen sus divisiones inferiores.
 
 ## Libertadores y Sudamericana
 
@@ -73,13 +79,23 @@ La bandeja tiene listado y panel de lectura, búsqueda y filtros de pendientes, 
 
 Los clubes rivales administran caja, presupuesto salarial, necesidades de posición y preferencias de juego. Analizan oportunidades en las ventanas del simulador, compiten por jugadores, compran, piden préstamos y renuevan a futbolistas importantes. Buscan mantener cobertura y respetar el máximo de 32 jugadores, cupos y reservas para retornos de préstamos. Los jugadores de tu equipo permanecen bajo tu control: la IA envía una oferta y la venta requiere tu decisión.
 
-El mercado ofrece compras o préstamos de seis/doce meses, reparto salarial, pagos al contado o en 3/6/12 cuotas mensuales, porcentajes de futura venta y cláusulas de rescisión. Las contraofertas necesitan aceptación y pueden retirarse antes del acuerdo. Los compromisos completos reservan presupuesto; las cuotas tienen vencimientos y se cobran o pagan efectivamente. La devolución de un préstamo restaura su club propietario y las condiciones que corresponden. El dueño y el prestatario pagan su parte del salario. Un jugador cedido no puede revenderse ni renovar su vínculo con el club prestatario.
+La negociación tiene **dos etapas**: primero se acuerdan con el club el precio, las cuotas, el porcentaje de futura venta o las condiciones del préstamo. Cuando el club acepta, se habilita **Negociar contrato** en Ofertas para presentar salario, duración, rol, cláusula y primas al jugador. Cada etapa recibe respuesta desde el día siguiente y puede generar una contraoferta. La aceptación del club reserva fondos, pero no transfiere al jugador ni cobra el pase; la firma completa la operación una sola vez. Los agentes libres negocian directamente sus condiciones personales.
+
+Se admiten pagos al contado o en 3/6/12 cuotas y préstamos de seis/doce meses con reparto salarial. En un préstamo se conserva el contrato y salario del propietario, se acuerda el rol con el jugador y se restaura su club al vencimiento. Las primas por aparición, gol y valla invicta se pagan por su participación real y se registran en finanzas. Un cedido no puede revenderse ni renovar con el prestatario. Las ofertas guardadas con el flujo anterior conservan su resolución compatible.
 
 La negociación muestra plazas del plantel, extranjeros inscritos, margen salarial y fondos disponibles. Si una oferta no puede enviarse, el motivo permanece visible dentro de la ventana, con acceso a Plantilla o Finanzas cuando corresponde. Algunos clubes comienzan con las 32 plazas ocupadas: deben concretar una salida antes de incorporar otro jugador. Los importes inválidos se explican en el mismo formulario y los salarios permiten valores enteros, sin exigir múltiplos de 100.
 
 El registro del mercado muestra las últimas operaciones y renovaciones de la IA, enlazadas a las fichas. Los historiales se limitan para mantener el guardado compacto. La IA y los contratos pertenecen a la simulación, no a un mercado real ni a fichajes posteriores verificados en Transfermarkt.
 
 Las partidas ampliadas anteriores a esta actualización conservan jugadores, resultados, contratos y economía al importar o continuar; los módulos nuevos se inicializan sin reiniciar la carrera.
+
+## Interfaz, vestuario y jugadas
+
+La interfaz ocupa la ventana: las pantallas se dividen en pestañas y paneles, con las acciones principales visibles. Las tablas, listados y lectores extensos tienen desplazamiento interno. En celular hay un menú desplegable y pestañas adaptadas; tácticas separa cancha, banco, equipo, jugador y planes. El diálogo de negociación mantiene el envío visible y separa condiciones de primas.
+
+**Vestuario** incorpora confianza, expectativas de minutos, charlas individuales y reuniones de grupo. Elogiar, exigir o apoyar tiene consecuencias según rendimiento y situación; las charlas y reuniones tienen límites de frecuencia. Podés prometer 180 minutos en 21 días: sólo cuentan minutos efectivamente disputados, y cumplir o incumplir modifica la relación. Los roles negociados influyen en las expectativas. Son relaciones simuladas, no datos personales de Transfermarkt.
+
+El partido muestra trayectorias de las ocasiones realmente generadas por el motor, con protagonista, resultado y xG. Podés usar presentación animada o estática; respeta pausa y movimiento reducido. La IA rival ajusta su planteo alrededor de los minutos 60 y 75 según el marcador. Esta representación no añade resultados ni estadísticas de pases ficticias.
 
 ## Gestión y partidos
 
@@ -141,6 +157,7 @@ python3 -m http.server 8000
 En otra terminal:
 
 ```bash
+python3 tests/test_workspace_update.py
 python3 tests/test_offer_form.py
 python3 tests/test_daily_clock.py
 python3 tests/test_management.py
@@ -150,3 +167,5 @@ python3 tests/test_game.py
 ```
 
 `FM27_TEST_URL` permite seleccionar otro servidor y `FM27_CHROMIUM` otro ejecutable. Las pruebas de compatibilidad recuperan los HTML originales del historial Git; requieren la copia Git, no sólo el ZIP de distribución. Los escenarios comprueban los cuatro turnos diarios, partidos a su hora, recuperación y salarios sin duplicación, respuestas entre partidos y migración del reloj; también carreras y planteles, partidos, copas, temporadas, ascensos, navegación, exportación/importación y guardados anteriores, decisiones de la bandeja, instrucciones, planes, fichas, IA, cuotas, préstamos, reventa y reservas de fondos. El codec se prueba también con 10.000 jugadores, cambios económicos, partidos pausados y falta de espacio sin perder el guardado anterior.
+
+La batería de paneles verifica escritorio y celular, controles visibles, ofertas en dos etapas, préstamos, primas sin duplicación, vestuario y temporadas completas con los nuevos formatos. Las regresiones del calendario anterior eligen explícitamente el modo clásico.

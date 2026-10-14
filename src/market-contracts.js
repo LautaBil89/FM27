@@ -166,7 +166,7 @@
     const offer=byId(id),form=typeof HTMLFormElement!=='undefined'&&raw instanceof HTMLFormElement?raw:null;
     const reject=reason=>{if(form)offerFeedback(form,reason);else toast(reason);return {ok:false,reason}};
     if(!offer||!pending(offer)||!offer.clubAccepted||!offer.awaitingPlayerTerms||locked())return reject('El acuerdo con el club no está disponible para negociar el contrato');
-    const fields=form?Object.fromEntries(new FormData(form).entries()):raw,p=player(offer.playerId),candidate=normalise({...offer,...fields,fee:offer.fee,fromClub:offer.fromClub,toClub:offer.toClub,stage:'player'});
+    const fields=form?Object.fromEntries(new FormData(form).entries()):raw,p=player(offer.playerId),candidate=normalise({...offer,...fields,fee:offer.fee,fromClub:offer.fromClub,toClub:offer.toClub,dealType:offer.dealType,installments:offer.installments,upfrontPercent:offer.upfrontPercent,sellOnPercent:offer.sellOnPercent,loanMonths:offer.loanMonths,wageShare:offer.wageShare,activateClause:offer.activateClause,stage:'player'});
     if(offer.dealType==='loan'){candidate.wage=p.salario;candidate.years=1;candidate.bonus=0;candidate.releaseClause=p.clausula_rescision}
     candidate.playingTime=fields.playingTime||'Rotación';candidate.appearanceBonus=Number(fields.appearanceBonus||0);candidate.goalBonus=Number(fields.goalBonus||0);candidate.cleanSheetBonus=Number(fields.cleanSheetBonus||0);
     if(!['Titular','Rotación','Proyecto'].includes(candidate.playingTime)||![candidate.appearanceBonus,candidate.goalBonus,candidate.cleanSheetBonus].every(n=>Number.isInteger(n)&&n>=0&&n<=100000))return reject('Revisá el papel en el plantel y las primas (entre 0 y USD 100.000)');
@@ -238,7 +238,7 @@
     const reason=termsReason(candidate,p)||statusReason(p,candidate.toClub,wage,candidate);
     if (reason) {toast(reason);return false}
     Object.assign(offer,candidate,{awaitingUser:false,counterAccepted:true,dueAt:GameState.eventIndex+1,responseDate:nextDay(GameState.today)});delete offer.counter;
-    message('Contraoferta aceptada',`${p.nombre}: confirmaste las condiciones. La firma se resolverá ${dailyClock()?`a partir del ${date(offer.responseDate)}`:'en la próxima jornada'}.`,offer);
+    message('Contraoferta aceptada',`${p.nombre}: confirmaste las condiciones. ${offer.stage==='club'?'El club confirmará el acuerdo para habilitar el contrato personal':'El jugador confirmará sus condiciones para completar la firma'} ${dailyClock()?`a partir del ${date(offer.responseDate)}`:'en la próxima jornada'}.`,offer);
     saveGame(true);render();return true;
   }
   function cancelOffer(id) {

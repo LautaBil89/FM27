@@ -99,6 +99,8 @@ class ManagementScenarios(unittest.TestCase):
         if club_id is None:
             club_id = self.page.locator('#club option').first.get_attribute('value')
         self.page.locator('#club').select_option(club_id)
+        if self.page.locator("#careerCompetitionFormat").count():
+            self.page.select_option("#careerCompetitionFormat", "classic")
         self.page.click('[data-action="new"]')
         self.page.wait_for_function('GameState?.version===3 && !!currentEvent()')
         self.assertTrue(self.page.evaluate('!!window.CLUB_AI && !!window.FM_PLAYER && !!window.FM_TACTICS && !!window.FM_INBOX'))
@@ -199,8 +201,10 @@ class ManagementScenarios(unittest.TestCase):
                 if(target>0)return {source,target,sourcePlayer:p.id,targetPlayer:all[target],all};
             }throw Error('Sin intercambio compatible');
         }""")
+        self.page.click('[data-ws-key="tactics"][data-ws-tab="bench"]')
         self.page.locator('[data-tw-slot="' + str(pair['source']) + '"]').focus()
         self.page.keyboard.press('Space')
+        self.page.click('[data-ws-key="tactics"][data-ws-tab="pitch"]')
         self.page.locator('[data-tw-slot="' + str(pair['target']) + '"]').focus()
         self.page.keyboard.press('Enter')
         swapped = self.page.evaluate('[...GameState.tactics.xi,...GameState.tactics.bench]')
@@ -208,10 +212,14 @@ class ManagementScenarios(unittest.TestCase):
         self.assertEqual(swapped[pair['source']], pair['targetPlayer'])
         self.assertEqual(set(swapped), set(pair['all']))
         self.assertEqual(len(set(swapped)), 18)
+        self.page.click('[data-ws-key="tactics"][data-ws-tab="player"]')
+        self.page.click('[data-ws-key="individual"][data-ws-tab="instructions"]')
         self.page.locator('[data-tw-instruction="passing"]').select_option('Cortos')
         self.page.locator('[data-tw-instruction="tackling"]').select_option('Fuerte')
+        self.page.click('[data-ws-key="tactics"][data-ws-tab="team"]')
         self.page.locator('[data-tw-team="style"]').select_option('Garra/Huevo')
         self.page.locator('#tw-pressing').evaluate("node=>{node.value='80';node.dispatchEvent(new Event('input',{bubbles:true}));node.dispatchEvent(new Event('change',{bubbles:true}))}")
+        self.page.click('[data-ws-key="tactics"][data-ws-tab="plans"]')
         self.page.locator('[data-tw-plan-name]').fill('Presión y pases cortos')
         self.page.locator('[data-tw-save]').click()
         saved = self.page.evaluate("""()=>({id:GameState.tactics.savedPlans[0].id,
@@ -401,12 +409,15 @@ class ManagementScenarios(unittest.TestCase):
         target = self.market_target()
         self.page.evaluate('(id)=>buy(id)', target['id'])
         self.page.locator('#negotiation [name="fee"]').fill('1000000')
-        self.page.locator('#negotiation [name="wage"]').fill('2000')
-        self.page.locator('#negotiation [name="bonus"]').fill('10000')
         self.page.locator('#negotiation [name="installments"]').select_option('3')
         self.page.locator('#negotiation [name="upfrontPercent"]').fill('25')
         self.page.locator('#negotiation [name="sellOnPercent"]').fill('20')
+        self.page.locator('#negotiation button[type="submit"]').click()
+        self.page.evaluate("""(id)=>{const o=GameState.offers.find(o=>o.playerId===id);__qaProcessResponse(o);if(o.counter){MARKET_CONTRACTS.respondCounter(o.id,true);__qaProcessResponse(o)}MARKET_CONTRACTS.openPlayerNegotiation(o.id)}""", target['id'])
+        self.page.locator('#negotiation [name="wage"]').fill('2000')
         self.page.locator('#negotiation [name="releaseClause"]').fill('3000000')
+        self.page.click('[data-nw-tab="bonuses"]')
+        self.page.locator('#negotiation [name="bonus"]').fill('10000')
         self.page.locator('#negotiation button[type="submit"]').click()
         self.assertFalse(self.page.locator('#details').is_visible())
         pending = self.page.evaluate("""(id)=>({
@@ -418,7 +429,7 @@ class ManagementScenarios(unittest.TestCase):
         self.assertEqual(pending['cash'], target['openingCash'])
         self.assertEqual(pending['available'], pending['cash']-1010000)
         self.assertEqual(pending['club'], target['owner'])
-        self.assertEqual(pending['offer']['responseDate'], '2026-01-29')
+        self.assertEqual(pending['offer']['responseDate'], '2026-01-30')
         self.page.evaluate('CLUB_AI.processUserOffers()')
         self.assertEqual(self.page.evaluate('(id)=>GameState.offers.find(o=>o.id===id).status', pending['offer']['id']), 'pending')
         accepted = self.page.evaluate("""(id)=>{
@@ -488,7 +499,8 @@ class ManagementScenarios(unittest.TestCase):
         result = self.page.evaluate("""(target)=>{
             const o=GameState.offers.find(o=>o.playerId===target.id);
             __qaProcessResponse(o);
-            if(o.awaitingUser){MARKET_CONTRACTS.respondCounter(o.id,true);__qaProcessResponse(o)}
+            if(o.counter){MARKET_CONTRACTS.respondCounter(o.id,true);__qaProcessResponse(o)}
+            if(o.awaitingPlayerTerms){MARKET_CONTRACTS.submitPlayerTerms(o.id,{playingTime:'Rotación'});__qaProcessResponse(o)}
             const p=player(target.id),loan=GameState.world.ai.contracts.loans.find(l=>l.playerId===p.id&&l.status==='active');
             return {status:o.status,share:loan?.wageShare,loan,player:p,acceptedDate:GameState.today,
                 ownPart:MARKET_CONTRACTS.loanWageFor(p,target.user),ownerPart:MARKET_CONTRACTS.loanWageFor(p,target.owner),
@@ -679,6 +691,8 @@ class ManagementScenarios(unittest.TestCase):
         self.seed()
         self.page.fill('#manager', 'DT continuidad')
         self.page.select_option('#club', 'boca')
+        if self.page.locator("#careerCompetitionFormat").count():
+            self.page.select_option("#careerCompetitionFormat", "classic")
         self.page.click('[data-action="new"]')
         self.page.wait_for_function('GameState?.worldVersion===1')
         self.complete_user_match()

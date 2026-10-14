@@ -26,6 +26,8 @@ window.FM_DRESSING_ROOM=(()=>{
     else if(kind==='criticize'){const fair=rating<=6.3;trust=fair?2:-5;morale=fair?-1:-3;text=fair?'Reconoce que tiene que mejorar y acepta la exigencia.':'Considera injusta la crítica y la relación se enfría.'}
     else if(kind==='support'){trust=p.injury||p.moral<50?4:1;morale=p.injury||p.moral<50?4:1;text=p.injury?'Valora que lo acompañes durante la recuperación.':'Agradece el respaldo y se siente parte del proyecto.'}
     else return false;
+    if(trust>0&&kind==='criticize'&&p.personalidad==='Profesional')trust++;
+    if(morale>0&&kind==='praise'&&p.personalidad==='Ambicioso'&&rating>=8)morale++;
     r.lastTalk=GameState.today;r.trust=clamp(r.trust+trust);p.moral=clamp(p.moral+morale);log(`${p.nombre}: ${text}`,p.id);return reply(text);
   }
   function promiseMinutes(id){

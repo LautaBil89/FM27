@@ -50,6 +50,8 @@ class OfferFormScenarios(unittest.TestCase):
         self.page.locator('#worldCareerCountry').select_option(label='Argentina')
         self.page.locator('#worldCareerLeague').select_option('ARG1')
         self.page.locator('#club').select_option('boca')
+        if self.page.locator("#careerCompetitionFormat").count():
+            self.page.select_option("#careerCompetitionFormat", "classic")
         self.page.click('[data-action="new"]')
         self.page.wait_for_function('GameState?.version===3')
 
@@ -98,6 +100,10 @@ class OfferFormScenarios(unittest.TestCase):
     def submit(self):
         self.page.locator('#negotiation button[type="submit"]').click()
 
+    def player_agreement(self):
+        self.page.evaluate("""()=>{for(let i=0;i<4;i++)WORLD_CLOCK.advance({silent:true});const o=GameState.offers.find(o=>o.playerId===1068088&&o.status==='pending');if(o.counter){MARKET_CONTRACTS.respondCounter(o.id,true);for(let i=0;i<4;i++)WORLD_CLOCK.advance({silent:true})}MARKET_CONTRACTS.openPlayerNegotiation(o.id)}""")
+        self.assertEqual(self.page.locator('#negotiation').get_attribute('data-stage'), 'player')
+
     def visible_error(self, pattern):
         feedback = self.page.locator('#negotiation [data-offer-feedback]')
         self.assertTrue(self.page.locator('#details').is_visible())
@@ -123,70 +129,40 @@ class OfferFormScenarios(unittest.TestCase):
         self.assertEqual(self.page.evaluate('mine().length'), 32)
 
     def test_02_valid_actual_form_persists_and_signs_after_four_turns(self):
-        self.assertEqual(self.vacancy()['count'], 31)
-        self.open_market_offer()
-        before = self.financial_snapshot()
-        entered = self.page.locator('#negotiation').evaluate("""form=>({
-            fee:Number(form.elements.fee.value),wage:Number(form.elements.wage.value),
-            bonus:Number(form.elements.bonus.value),releaseClause:Number(form.elements.releaseClause.value)
-        })""")
-        self.assertTrue(self.page.locator('#negotiation').evaluate('form=>form.checkValidity()'))
+        self.vacancy();self.open_market_offer()
+        before=self.financial_snapshot()
         self.submit()
-        self.assertFalse(self.page.locator('#details').is_visible())
-        pending = self.page.evaluate("""id=>({offer:GameState.offers.find(o=>o.playerId===id),
-            count:GameState.offers.filter(o=>o.playerId===id).length,
-            cash:GameState.userClub.presupuesto_dolares,owner:player(id).clubId,
-            reserved:CLUB_AI.reservation(GameState.userClub.id),clock:WORLD_CLOCK.info()})""", TARGET_ID)
-        self.assertEqual(pending['count'], 1)
-        self.assertEqual(pending['offer']['status'], 'pending')
-        self.assertEqual(pending['cash'], before['cash'])
-        self.assertEqual(pending['owner'], before['targetClub'])
-        self.assertEqual(pending['reserved'], entered['fee']+entered['bonus'])
-        self.page.reload(wait_until='domcontentloaded')
-        self.page.wait_for_selector('aside')
-        self.seed()
-        self.assertEqual(self.page.evaluate('(id)=>GameState.offers.find(o=>o.id===id)', pending['offer']['id']), pending['offer'])
+        pending=self.page.evaluate('GameState.offers.find(o=>o.playerId===1068088)')
+        self.assertEqual(pending['stage'],'club')
+        self.assertEqual(self.page.evaluate('GameState.userClub.presupuesto_dolares'),before['cash'])
+        self.page.reload(wait_until='domcontentloaded');self.page.wait_for_selector('aside')
+        self.assertEqual(self.page.evaluate('GameState.offers.find(o=>o.playerId===1068088)'),pending)
+        self.player_agreement()
+        entered=self.page.locator('#negotiation').evaluate('form=>({wage:Number(form.elements.wage.value),releaseClause:Number(form.elements.releaseClause.value)})')
+        self.page.click('[data-nw-tab="bonuses"]')
+        entered['bonus']=int(self.page.locator('#negotiation [name="bonus"]').input_value())
+        self.submit()
         for step in range(4):
             self.page.locator('[data-action="continue"]').first.click()
-            state = self.page.evaluate('(id)=>GameState.offers.find(o=>o.id===id).status', pending['offer']['id'])
-            self.assertEqual(state, 'pending' if step<3 else 'accepted')
-        signed = self.page.evaluate("""id=>({owner:player(id).clubId,count:mine().length,
-            offers:GameState.offers.filter(o=>o.playerId===id).length,
-            fees:GameState.finance.ledger.filter(r=>r.category==='fichajes'),
-            target:player(id),clock:WORLD_CLOCK.info()})""", TARGET_ID)
-        self.assertEqual(signed['owner'], 'boca')
-        self.assertEqual(signed['count'], 32)
-        self.assertEqual(signed['offers'], 1)
-        self.assertEqual(len(signed['fees']), 1)
-        self.assertEqual(signed['fees'][0]['amount'], -(entered['fee']+entered['bonus']))
-        self.assertEqual(signed['target']['salario'], entered['wage'])
-        self.assertNotEqual(signed['clock']['date'], pending['clock']['date'])
+            self.assertEqual(self.page.evaluate('GameState.offers.find(o=>o.playerId===1068088).status'),'pending' if step<3 else 'accepted')
+        result=self.page.evaluate('({offer:GameState.offers.find(o=>o.playerId===1068088),p:player(1068088),cash:GameState.userClub.presupuesto_dolares,fees:GameState.finance.ledger.filter(r=>r.category==="fichajes")})')
+        self.assertEqual(result['p']['clubId'],'boca');self.assertEqual(result['p']['salario'],entered['wage'])
+        self.assertEqual(result['p']['clausula_rescision'],entered['releaseClause'])
+        self.assertEqual(len(result['fees']),1);self.assertEqual(result['cash'],before['cash']-result['offer']['fee']-entered['bonus'])
 
     def test_03_insufficient_cash_preserves_terms_and_allows_corrected_resubmission(self):
-        self.vacancy()
-        cash = self.page.evaluate('GameState.userClub.presupuesto_dolares')
-        self.page.evaluate('GameState.userClub.presupuesto_dolares=0')
-        self.open_market_offer()
-        self.page.locator('#negotiation [name="fee"]').fill('15000')
-        self.page.locator('#negotiation [name="wage"]').fill('250')
-        self.page.locator('#negotiation [name="bonus"]').fill('700')
-        before = self.financial_snapshot()
-        self.submit()
-        self.visible_error('fondos')
-        self.assertEqual(self.financial_snapshot(), before)
-        for field, value in [('fee','15000'), ('wage','250'), ('bonus','700')]:
-            self.assertEqual(self.page.locator('#negotiation [name="'+field+'"]').input_value(), value)
+        self.vacancy();cash=self.page.evaluate('GameState.userClub.presupuesto_dolares')
+        self.page.evaluate('GameState.userClub.presupuesto_dolares=0');self.open_market_offer()
+        self.page.fill('#negotiation [name="fee"]','15000');before=self.financial_snapshot();self.submit()
+        self.visible_error('fondos');self.assertEqual(self.financial_snapshot(),before)
+        self.assertEqual(self.page.locator('#negotiation [name="fee"]').input_value(),'15000')
         self.assertTrue(self.page.locator('[data-contract-help="finances"]').is_visible())
-        self.page.evaluate('(cash)=>GameState.userClub.presupuesto_dolares=cash', cash)
-        self.submit()
+        self.page.evaluate('(cash)=>GameState.userClub.presupuesto_dolares=cash',cash);self.submit()
         self.assertFalse(self.page.locator('#details').is_visible())
-        offered = self.page.evaluate("""id=>({offers:GameState.offers.filter(o=>o.playerId===id),
-            cash:GameState.userClub.presupuesto_dolares})""", TARGET_ID)
-        self.assertEqual(len(offered['offers']), 1)
-        self.assertEqual(offered['offers'][0]['fee'], 15000)
-        self.assertEqual(offered['offers'][0]['wage'], 250)
-        self.assertEqual(offered['offers'][0]['bonus'], 700)
-        self.assertEqual(offered['cash'], cash)
+        offer=self.page.evaluate('GameState.offers.find(o=>o.playerId===1068088)')
+        self.assertEqual(offer['fee'],15000);self.assertEqual(offer['stage'],'club');self.assertEqual(offer['bonus'],0)
+        self.assertEqual(self.page.evaluate('MARKET_CONTRACTS.pendingWages()'),0)
+        self.assertEqual(self.page.evaluate('GameState.userClub.presupuesto_dolares'),cash)
 
     def test_04_foreign_registration_failure_is_visible_and_links_to_squad(self):
         fixture = self.vacancy()
@@ -209,54 +185,31 @@ class OfferFormScenarios(unittest.TestCase):
         self.assertFalse(self.page.locator('#details').is_visible())
 
     def test_05_native_invalid_amount_is_reported_inside_form_and_integer_wage_is_valid(self):
-        self.vacancy()
-        self.open_market_offer()
-        self.page.locator('#negotiation [name="wage"]').fill('150')
-        self.assertTrue(self.page.locator('#negotiation [name="wage"]').evaluate('field=>field.validity.valid'))
-        fee = self.page.locator('#negotiation [name="fee"]').input_value()
-        self.page.locator('#negotiation [name="fee"]').fill('-1')
-        before = self.financial_snapshot()
-        self.submit()
-        self.visible_error('importe del pase')
-        self.assertIn('mínimo', self.page.locator('[data-offer-error]').inner_text())
-        self.assertEqual(self.financial_snapshot(), before)
-        self.assertEqual(self.page.locator('#negotiation [name="fee"]').input_value(), '-1')
-        self.page.locator('#negotiation [name="fee"]').fill(fee)
-        self.submit()
-        self.assertFalse(self.page.locator('#details').is_visible())
-        self.assertEqual(self.page.evaluate('(id)=>GameState.offers.find(o=>o.playerId===id).wage', TARGET_ID), 150)
+        self.vacancy();self.open_market_offer();self.page.fill('#negotiation [name="fee"]','-1')
+        before=self.financial_snapshot();self.submit();self.visible_error('importe del pase')
+        self.assertIn('mínimo',self.page.locator('[data-offer-error]').inner_text());self.assertEqual(self.financial_snapshot(),before)
+        self.page.fill('#negotiation [name="fee"]','15000');self.submit();self.player_agreement()
+        self.page.fill('#negotiation [name="wage"]','150')
+        self.assertTrue(self.page.locator('#negotiation [name="wage"]').evaluate('e=>e.validity.valid'))
+        self.submit();self.assertFalse(self.page.locator('#details').is_visible())
+        self.assertEqual(self.page.evaluate('GameState.offers.find(o=>o.playerId===1068088).wage'),150)
 
     def test_06_loan_mode_ignores_disabled_stale_purchase_terms_and_sends_once(self):
-        self.vacancy()
-        self.open_market_offer()
+        self.vacancy();self.open_market_offer()
         self.assertTrue(self.page.locator('#negotiation [name="wageShare"]').is_disabled())
-        self.page.locator('#negotiation [name="wage"]').fill('150')
-        self.assertTrue(self.page.locator('#negotiation [name="wage"]').evaluate('field=>field.validity.valid'))
-        self.page.locator('#negotiation [name="bonus"]').fill('-10')
-        self.page.locator('#negotiation [name="releaseClause"]').fill('-1')
-        self.page.locator('#negotiation [name="dealType"]').select_option('loan')
-        for field in ['wage','bonus','releaseClause','years','sellOnPercent','installments']:
-            self.assertTrue(self.page.locator('#negotiation [name="'+field+'"]').is_disabled(), field)
-        self.assertFalse(self.page.locator('#negotiation [name="wage"]').is_visible())
-        self.assertFalse(self.page.locator('#negotiation [name="wageShare"]').is_disabled())
-        self.page.locator('#negotiation [name="loanMonths"]').select_option('6')
-        self.page.locator('#negotiation [name="wageShare"]').fill('50')
-        self.assertTrue(self.page.locator('#negotiation').evaluate('form=>form.checkValidity()'))
-        before = self.financial_snapshot()
-        self.submit()
-        self.assertFalse(self.page.locator('#details').is_visible())
-        pending = self.page.evaluate("""id=>({offers:GameState.offers.filter(o=>o.playerId===id),
-            cash:GameState.userClub.presupuesto_dolares,owner:player(id).clubId,
-            roster:mine().map(p=>p.id)})""", TARGET_ID)
-        self.assertEqual(len(pending['offers']), 1)
-        self.assertEqual(pending['offers'][0]['dealType'], 'loan')
-        self.assertEqual(pending['offers'][0]['loanMonths'], 6)
-        self.assertEqual(pending['offers'][0]['wageShare'], 50)
-        self.assertEqual(pending['offers'][0]['bonus'], 0)
-        self.assertGreater(pending['offers'][0]['fee'], 0)
-        self.assertEqual(pending['cash'], before['cash'])
-        self.assertEqual(pending['owner'], before['targetClub'])
-        self.assertEqual(pending['roster'], before['roster'])
+        self.page.select_option('#negotiation [name="installments"]','3')
+        self.page.fill('#negotiation [name="upfrontPercent"]','0');self.page.fill('#negotiation [name="sellOnPercent"]','-1')
+        self.page.select_option('#negotiation [name="dealType"]','loan')
+        for field in ['sellOnPercent','installments','upfrontPercent']:
+            self.assertTrue(self.page.locator('#negotiation [name="'+field+'"]').is_disabled())
+        self.page.select_option('#negotiation [name="loanMonths"]','6');self.page.fill('#negotiation [name="wageShare"]','50')
+        self.assertTrue(self.page.locator('#negotiation').evaluate('f=>f.checkValidity()'))
+        before=self.financial_snapshot();self.submit()
+        offer=self.page.evaluate('GameState.offers.find(o=>o.playerId===1068088)')
+        self.assertEqual(offer['dealType'],'loan');self.assertEqual(offer['stage'],'club');self.assertEqual(offer['wageShare'],50)
+        self.assertEqual(offer['loanMonths'],6);self.assertEqual(offer['bonus'],0)
+        self.assertEqual(self.page.evaluate('GameState.userClub.presupuesto_dolares'),before['cash'])
+        self.assertEqual(self.page.evaluate('player(1068088).clubId'),before['targetClub'])
 
 
 if __name__ == '__main__':

@@ -72,6 +72,8 @@ class DailyClockScenarios(unittest.TestCase):
         if club_id is None:
             club_id = self.page.locator('#club option').first.get_attribute('value')
         self.page.locator('#club').select_option(club_id)
+        if self.page.locator("#careerCompetitionFormat").count():
+            self.page.select_option("#careerCompetitionFormat", "classic")
         self.page.click('[data-action="new"]')
         self.page.wait_for_function('GameState?.version===3')
 

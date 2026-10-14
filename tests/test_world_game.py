@@ -81,6 +81,8 @@ class WorldGameScenarios(unittest.TestCase):
         if club_id is None:
             club_id = self.page.locator('#club option').first.get_attribute('value')
         self.page.locator('#club').select_option(club_id)
+        if self.page.locator('#careerCompetitionFormat').count():
+            self.page.select_option('#careerCompetitionFormat','classic')
         self.page.locator('[data-action="new"]').click()
         self.page.wait_for_function('GameState?.version===3 && !!currentEvent()')
         return self.page.evaluate('({club:GameState.userClub,league:GameState.world.userLeagueId})')
@@ -367,6 +369,8 @@ class WorldGameScenarios(unittest.TestCase):
         self.page.route('**/legacy-world-qa.html', lambda route: route.fulfill(content_type='text/html', body=self.legacy))
         self.page.goto(old_url, wait_until='domcontentloaded');self.seed()
         self.page.fill('#manager', 'DT carrera anterior');self.page.select_option('#club', 'boca')
+        if self.page.locator("#careerCompetitionFormat").count():
+            self.page.select_option("#careerCompetitionFormat", "classic")
         self.page.click('[data-action="new"]');self.page.wait_for_function('GameState?.version===2')
         self.play_match();self.page.evaluate('finishMatch()')
         self.page.evaluate("""()=>{
@@ -402,7 +406,8 @@ class WorldGameScenarios(unittest.TestCase):
         self.assertEqual(self.page.locator('.world-club-card').count(), 12)
         self.page.locator('.world-club-card').first.click()
         self.assertIn('españa', self.page.locator('.world-club-profile').inner_text().casefold())
-        self.page.locator('#content [data-player]').first.click()
+        self.page.click('[data-ws-key="tables"][data-ws-tab="1"]')
+        self.page.locator('#content [data-player]:visible').first.click()
         self.assertEqual(self.page.evaluate('view'),'player')
         self.assertTrue(self.page.locator('.fp-workspace').is_visible())
         self.page.locator('[data-fp-tab="sources"]').click()

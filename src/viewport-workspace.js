@@ -50,6 +50,9 @@
   }
   function competitions(content) {
     const fixed=[...content.children].filter(n=>n.matches('.fm-page-intro,.fm-tabbar'));
+    if(window.FM_COMPETITIONS&&!GameState.world.competitionFormatsVersion&&content.querySelector('#worldTableLeague')){
+      const next=element('div','ws-format-switch');next.innerHTML=`<span>${GameState.world.nextCompetitionFormat==='realistic'?'El próximo año se jugará con zonas, playoffs y promedios.':'Tu carrera conserva su calendario actual.'}</span><button data-arg-next-format>${GameState.world.nextCompetitionFormat==='realistic'?'Conservar formato clásico':'Activar nuevo formato el próximo año'}</button>`;fixed.push(next);
+    }
     if(window.FM_COMPETITIONS?.render&&GameState.world.competitionFormatsVersion&&content.querySelector('#worldTableLeague')&&['ARG1','ARG2'].includes(content.querySelector('#worldTableLeague').value)){
       const body=element('div','ws-competition-formats');body.innerHTML=FM_COMPETITIONS.render(content.querySelector('#worldTableLeague').value);
       const filters=content.querySelector('.fm-filters');if(filters)fixed.push(filters);content.replaceChildren(...fixed,body);return;

@@ -232,6 +232,9 @@ def embed(db):
     old_aggression = "const aggression = (t.style === 'Garra/Huevo' ? 1.25 : 1) * (calm ? .75 : 1);"
     new_aggression = "const aggression = (t.style === 'Garra/Huevo' ? 1.25 : 1) * (calm ? .75 : 1) * (GameState?.worldVersion&&window.FM_TACTICS?FM_TACTICS.teamMatchModifiers(foulSide===m.userSide?GameState.tactics:m.aiTactics).foulRisk:1);"
     html = html.replace(old_aggression, new_aggression)
+    html = html.replace('50 + (home.build - away.build) * .52 + 2.3 +', '50 + (home.build - away.build) * .52 + (m.neutral?0:2.3) +')
+    html = html.replace('clamp(1.35+delta,.35,2.7)', 'clamp((g.neutral?1.225:1.35)+delta,.35,2.7)')
+    html = html.replace('clamp(1.1-delta,.3,2.5)', 'clamp((g.neutral?1.225:1.1)-delta,.3,2.5)')
     js = '\n'.join(path.read_text() for path in scripts)
     database = json.dumps(db, ensure_ascii=False, separators=(',', ':')).replace('<', '\\u003c')
     expansion = '\n/* WORLD_EXPANSION_START */\nconst WORLD_DATABASE = ' + database + ';\n' + js + '\n/* WORLD_EXPANSION_END */\n'
