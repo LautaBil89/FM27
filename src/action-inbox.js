@@ -120,6 +120,7 @@ window.FM_INBOX = (() => {
       if(o.type==='buy'&&o.awaitingPlayerTerms)add('personal-contract','Negociar contrato',blocked,true);
     }
     if(p) {
+      if(window.FM_DEPTH?.ensure()?.reports?.[p.id]?.status==='active')add('scout-cancel','Cancelar observación · sin reintegro',blocked);
       add('profile','Ficha del jugador');
       if(owned(p)&&m.action==='contract'&&isPending(m))add('renew','Renovar contrato',blocked,true);
       if(!owned(p)) {
@@ -178,7 +179,7 @@ window.FM_INBOX = (() => {
     const sender=o?clubName(o.type==='sell'?o.toClub:o.fromClub):r?.staffName&&category(m)==='ojeo'?r.staffName:({ojeo:'Secretaría técnica',contratos:'Secretaría técnica',directiva:'Directiva del club',plantel:'Cuerpo técnico y servicios médicos',partidos:'Analista de rendimiento',mercado:'Departamento de fichajes',prensa:'Resumen de prensa',sistema:'Secretaría del club'})[category(m)]||'Secretaría del club';
     const deadline=o?.status==='pending'?(o.expiresAt||o.expiresDate):null;
     const next=o?.status==='pending'?(o.type==='sell'?'Evaluá las condiciones y aceptá o rechazá la propuesta.':o.awaitingPlayerTerms?'El pase está acordado. Abrí la negociación del contrato con el jugador.':o.awaitingUser&&o.counter?'Revisá la contraoferta del club.':'La contraparte está evaluando la propuesta; avanzá el tiempo para recibir respuesta.'):pending?'Revisá el informe y elegí una de las acciones disponibles.':'Mensaje informativo; no requiere una decisión pendiente.';
-    return `<section class="office-inbox-context"><p><b>De:</b> ${esc(sender)} · <b>${pending?'Requiere atención':'Información'}</b></p>${deadline?`<p><b>Vencimiento:</b> ${date(deadline)}</p>`:''}<p><b>Próximo paso:</b> ${esc(next)}</p>${r&&category(m)==='ojeo'?`<p>Observación: ${r.level}% · ${r.status==='active'?'en curso':'finalizada'}${r.duration?' · plazo '+r.duration+' días':''}.</p>`:''}</section>`;
+    return `<section class="office-inbox-context"><p><b>De:</b> ${esc(sender)} · <b>${pending?'Requiere atención':'Información'}</b></p>${deadline?`<p><b>Vencimiento:</b> ${date(deadline)}</p>`:''}<p><b>Próximo paso:</b> ${esc(next)}</p>${r&&category(m)==='ojeo'?`<p>Observación: ${r.level}% · ${r.status==='active'?'en curso':r.status==='cancelled'?'cancelada':'finalizada'}${r.duration?' · plazo '+r.duration+' días':''}${r.status==='active'&&r.dueDate?' · fecha prevista '+date(r.dueDate):''}.</p>`:''}</section>`;
   }
   function readPanel(m) {
     if(!m)return '<section class="fm-inbox-reader"><div class="fm-inbox-empty"><h3>Tu despacho, al día</h3><p>Seleccioná un mensaje para consultar el informe y tomar una decisión.</p></div></section>';
@@ -195,6 +196,7 @@ window.FM_INBOX = (() => {
     if(!active())return;ensure();const m=GameState.inbox.find(q=>q.id===Number(id));if(!m)return;
     const allowed=actionsFor(m).find(a=>a.id===action&&!a.disabled);if(!allowed)return toast('La situación cambió. Revisá el estado del mensaje.');
     const p=lookup(m.playerId);m.read=true;
+    if(action==='scout-cancel')return window.FM_OFFICE?.cancelObservation(p.id);
     if(action==='profile'){saveGame(true);return details(p.id);}
     if(action==='personal-contract')return MARKET_CONTRACTS.openPlayerNegotiation(m.offerId);
     if(action==='sale-accept'||action==='sale-reject'){window.CLUB_AI.respondToSaleOffer(m.offerId,action==='sale-accept');saveGame(true);return render();}

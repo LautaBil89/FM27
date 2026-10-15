@@ -79,3 +79,47 @@ class ManagementOffice(unittest.TestCase):
                 self.nav(v)
                 self.assertTrue(self.page.evaluate('document.documentElement.scrollHeight<=innerHeight+1'),(size,v))
                 self.assertTrue(self.page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),(size,v))
+    def test_09_busy_delegated_scout_waits_then_retries_after_cancellation(self):
+        self.career()
+        r=self.page.evaluate('''()=>{const p=GameState.players.find(p=>p.clubId!==GameState.userClub.id);FM_DEPTH.scout(p.id);const report=FM_DEPTH.ensure().reports[p.id],o=FM_OFFICE.office();report.level=40;o.scoutChoice=report.staffId;o.responsibilities.scouting='staff';GameState.today='2026-01-18';const cash=GameState.userClub.presupuesto_dolares;FM_OFFICE.onDay(GameState.today);const blocked={cash:cash-GameState.userClub.presupuesto_dolares,last:o.lastScouting,status:o.assignmentStatus,falseSuccess:GameState.inbox.some(m=>m.title==='Plan de ojeo delegado')};FM_OFFICE.cancelObservation(p.id);const cancelled={status:report.status,known:FM_DEPTH.knowledge(p).level,cash:cash-GameState.userClub.presupuesto_dolares};GameState.today='2026-01-19';FM_OFFICE.onDay(GameState.today);const active=Object.values(FM_DEPTH.ensure().reports).filter(r=>r.status==='active');return {blocked,cancelled,active:active.length,staff:active[0]?.staffId,chosen:o.scoutChoice,last:o.lastScouting,charged:cash-GameState.userClub.presupuesto_dolares}}''')
+        self.assertEqual(r['blocked']['cash'],0);self.assertIsNone(r['blocked']['last']);self.assertFalse(r['blocked']['falseSuccess']);self.assertIn('ocupados',r['blocked']['status'])
+        self.assertEqual(r['cancelled'],{'status':'cancelled','known':40,'cash':0});self.assertEqual(r['active'],1);self.assertEqual(r['staff'],r['chosen']);self.assertEqual(r['last'],'2026-01-19');self.assertEqual(r['charged'],1500)
+    def test_10_existing_manager_profile_changes_only_after_valid_confirmation(self):
+        self.career();self.page.evaluate('()=>{const s=FM_OFFICE.ensure();delete s.profileConfigured;delete s.profileDraft}');self.nav('office')
+        self.page.fill('[data-office-stat="tactica"]','20');self.page.locator('[data-office-stat="tactica"]').blur()
+        self.assertEqual(self.page.evaluate('FM_OFFICE.ensure().profile.stats.tactica'),10)
+        self.page.click('[data-office-profile-save]');self.assertFalse(self.page.evaluate('!!FM_OFFICE.ensure().profileConfigured'))
+        self.page.fill('[data-office-stat="entrenamiento"]','5');self.page.locator('[data-office-stat="entrenamiento"]').blur()
+        self.page.fill('[data-office-stat="motivacion"]','5');self.page.locator('[data-office-stat="motivacion"]').blur()
+        self.page.select_option('[data-office-style]','Tiki-Taka');self.page.click('[data-office-profile-save]')
+        self.assertEqual(self.page.evaluate('FM_OFFICE.ensure().profile.stats.tactica'),20);self.assertEqual(self.page.evaluate('GameState.tactics.style'),'Tiki-Taka')
+        self.assertTrue(self.page.locator('[data-office-stat="tactica"]').is_disabled())
+        self.page.reload(wait_until='domcontentloaded');self.assertEqual(self.page.evaluate('FM_OFFICE.ensure().profile.stats.tactica'),20)
+    def test_11_all_clubs_have_goals_and_champion_goal_uses_actual_titles(self):
+        self.career()
+        r=self.page.evaluate('''()=>{FM_OFFICE.ensure();const all=GameState.world.clubs.every(c=>c.objective&&c.objectiveSeason===GameState.year),id=GameState.userClub.id,others=GameState.world.clubs.filter(c=>c.leagueId==='ARG1'&&c.id!==id).map(c=>c.id),h={year:GameState.year,worldRankings:{ARG1:[id,...others]},sportingFormats:{champions:{APERTURA:others[0],CLAUSURA:others[1]},nacionalChampion:null,promoted:[],relegated:[]}},before=FM_OFFICE.reviewObjective(id,h);h.sportingFormats.champions.CLAUSURA=id;return {all,before,after:FM_OFFICE.reviewObjective(id,h)}}''')
+        self.assertTrue(r['all']);self.assertEqual(r['before']['position'],1);self.assertFalse(r['before']['met']);self.assertTrue(r['after']['met'])
+    def test_12_automatic_continue_announces_medical_clearance(self):
+        self.career()
+        self.page.evaluate('''()=>{const p=mine().find(p=>!GameState.tactics.xi.includes(p.id));p.injury=1;GameState.world.clock.slot=3;FM_OFFICE.start()}''')
+        self.page.wait_for_function('!FM_OFFICE.running.active',timeout=20000)
+        self.assertTrue(self.page.evaluate("GameState.inbox.some(m=>m.title==='Alta médica del plantel')"))
+    def test_13_inbox_cancels_assignment_and_shows_its_due_date(self):
+        self.career()
+        r=self.page.evaluate('''()=>{const p=GameState.players.find(p=>p.clubId!==GameState.userClub.id);FM_DEPTH.scout(p.id);const r=FM_DEPTH.ensure().reports[p.id],m=GameState.inbox.find(m=>m.playerId===p.id&&m.title==='Observación iniciada');GameState.world.inboxUI.selected=m.id;view='inbox';render();return {id:p.id,due:r.dueDate,body:document.querySelector('.fm-inbox-reader').innerText,cash:GameState.userClub.presupuesto_dolares}}''')
+        self.assertIn('fecha prevista',r['body']);self.page.click('[data-inbox-action="scout-cancel"]')
+        self.assertEqual(self.page.evaluate('(id)=>FM_DEPTH.ensure().reports[id].status',r['id']),'cancelled');self.assertEqual(self.page.evaluate('GameState.userClub.presupuesto_dolares'),r['cash'])
+        self.assertFalse(self.page.locator('[data-inbox-action="scout-cancel"]').count())
+    def test_14_staff_weekly_wages_are_not_duplicated_on_repeat_or_reload(self):
+        self.career()
+        r=self.page.evaluate('''()=>{const o=FM_OFFICE.office(),wages=o.staff.reduce((n,e)=>n+e.salary,0),cash=GameState.userClub.presupuesto_dolares;GameState.today='2026-01-24';FM_OFFICE.onDay(GameState.today);FM_OFFICE.onDay(GameState.today);saveGame(true);return {charged:cash-GameState.userClub.presupuesto_dolares,wages,cash:GameState.userClub.presupuesto_dolares,rows:GameState.finance.ledger.filter(r=>r.category==='empleados').length}}''')
+        self.assertEqual(r['charged'],r['wages']);self.assertEqual(r['rows'],1)
+        self.page.reload(wait_until='domcontentloaded');self.page.evaluate('FM_OFFICE.onDay(GameState.today)');self.assertEqual(self.page.evaluate('GameState.userClub.presupuesto_dolares'),r['cash'])
+    def test_15_manager_and_delegation_controls_are_visible_without_scrolling(self):
+        self.career();self.page.evaluate('delete FM_OFFICE.ensure().profileConfigured')
+        for size in [{'width':1280,'height':720},{'width':390,'height':844}]:
+            self.page.set_viewport_size(size);self.nav('office')
+            for label,selector in [('Identidad del entrenador','[data-office-profile-save]'),('Responsabilidades','[data-office-responsibility="contracts"]'),('Encargo de búsqueda delegado','[data-office-assignment="budget"]')]:
+                self.page.get_by_role('button',name=label,exact=True).click()
+                geometry=self.page.locator(selector).evaluate('e=>({top:e.getBoundingClientRect().top,bottom:e.getBoundingClientRect().bottom,height:innerHeight})')
+                self.assertGreaterEqual(geometry['top'],0,(size,label,geometry));self.assertLessEqual(geometry['bottom'],geometry['height'],(size,label,geometry))

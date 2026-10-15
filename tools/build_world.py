@@ -4,6 +4,7 @@ import argparse
 import collections
 import json
 import re
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -247,7 +248,19 @@ def embed(db):
     html = html.replace(marker, expansion + marker)
     css = '\n/* WORLD_CSS_START */\n' + '\n'.join(path.read_text() for path in styles) + '\n/* WORLD_CSS_END */\n'
     html = html.replace('</style>', css + '</style>', 1)
-    file.write_text(html)
+    # Readers must see either the previous complete game or the new one.
+    # Publishing in place can serve an empty/partial document during a rebuild.
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', dir=file.parent,
+                                         prefix='.fm27-build-', suffix='.html', delete=False) as output:
+            temporary = Path(output.name)
+            output.write(html)
+        temporary.chmod(file.stat().st_mode & 0o777)
+        temporary.replace(file)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
 
 
 if __name__ == '__main__':
