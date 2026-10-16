@@ -306,7 +306,7 @@
   }
   function respondToSaleOffer(id,accept){
     if(!active())return false;if(locked())return toast('Terminá el partido antes de negociar');const ai=ensure(),offer=GameState.offers.find(o=>o.id===id&&o.type==='sell');
-    if(!offer||offer.status!=='pending'||offer.awaitingRegistration)return false;const p=player(offer.playerId);
+    if(!offer||offer.status!=='pending'||offer.awaitingRegistration||offer.saleResponsePending)return false;const p=player(offer.playerId);
     if(!accept){offer.status='rejected';ai.cooldown[offer.playerId]=GameState.today;notify('Oferta rechazada',`Decidiste conservar a ${p?.nombre||'tu jugador'}.`,{playerId:offer.playerId,offerId:id,action:'sale'});saveGame(true);render();return true}
     if(!p||p.clubId!==userId())return toast('La propuesta ya no corresponde a tu plantel');
     const release=canRelease(p,userId());if(!release.ok)return toast(release.reason);
