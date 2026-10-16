@@ -123,3 +123,9 @@ class ManagementOffice(unittest.TestCase):
                 self.page.get_by_role('button',name=label,exact=True).click()
                 geometry=self.page.locator(selector).evaluate('e=>({top:e.getBoundingClientRect().top,bottom:e.getBoundingClientRect().bottom,height:innerHeight})')
                 self.assertGreaterEqual(geometry['top'],0,(size,label,geometry));self.assertLessEqual(geometry['bottom'],geometry['height'],(size,label,geometry))
+
+    def test_16_previous_season_review_uses_previous_league_and_agreed_objective(self):
+        self.career()
+        result=self.page.evaluate("""()=>{const c=GameState.world.clubs.find(c=>c.leagueId==='ARG2'&&c.objective==='Conseguir el ascenso'),id=c.id,rankings=Object.fromEntries(GameState.world.leagues.map(l=>[l.id,l.clubIds.slice()])),h={year:2026,worldRankings:rankings,sportingFormats:{champions:{APERTURA:'river',CLAUSURA:'boca'},promoted:[id],relegated:[],nacionalChampion:null}};GameState.year=2027;c.leagueId='ARG1';const before=FM_OFFICE.reviewObjective(id,h);GameState.world.depth.projects[id]={boardReview:before};FM_OFFICE.ensure();const after=FM_OFFICE.reviewObjective(id,h);return {before,after}}""")
+        for review in [result['before'],result['after']]:
+            self.assertEqual(review['leagueId'],'ARG2');self.assertEqual(review['objective'],'Conseguir el ascenso');self.assertTrue(review['met'])

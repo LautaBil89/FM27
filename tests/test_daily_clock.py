@@ -286,7 +286,15 @@ class DailyClockScenarios(unittest.TestCase):
             xi:[...GameState.tactics.xi],bench:[...GameState.tactics.bench],
             players:JSON.stringify(GameState.players.map(p=>({id:p.id,clubId:p.clubId,injury:p.injury,
                 condition:p.condicion_fisica,goals:p.goals,minutes:p.minutes,contract:p.contract,salary:p.salario}))),
-            finance:JSON.stringify(GameState.finance),ai:JSON.stringify(GameState.world.ai),
+            finance:JSON.stringify(GameState.finance),ai:JSON.stringify((()=>{
+                const ai=structuredClone(GameState.world.ai);
+                // New careers keep a registration queue; an empty migration
+                // queue has no financial or sporting effect. Actual records
+                // must still match exactly across loading and continuation.
+                if(Array.isArray(ai.contracts?.registrations)&&ai.contracts.registrations.length===0)
+                    delete ai.contracts.registrations;
+                return ai;
+            })()),
             match:GameState.match?{minute:GameState.match.minute,score:GameState.match.score,
                 lineups:GameState.match.lineups,substitutions:GameState.match.substitutions}:null})""")
 

@@ -35,6 +35,22 @@ Desde la ficha del jugador o **Lista de préstamos**, ofrecé un futbolista para
 
 Mercado y ojeo filtran por puesto exacto (DFC, LI, LD, MCD, MC, MP, EI, ED, DC o POR) y por nacionalidad, incluyendo dobles nacionalidades, además de sus filtros anteriores. La bandeja muestra remitente, estado actual, vencimiento cuando está registrado, próximo paso y condiciones reales de la operación. Distingue acuerdo con el club, contrato con el jugador y contraoferta.
 
+## Dirección técnica: partidos y proyecto
+
+El motor de los partidos del usuario construye secuencias de acciones y posesiones, con pases, conducciones, presión, recuperaciones y remates ligados a los jugadores en cancha. La posición de la pelota y los futbolistas sigue esas acciones. El origen de la ocasión, sus participantes y el resultado quedan registrados: pases, remates, xG y comentarios utilizan los mismos eventos. Las repeticiones recuperan jugadas registradas y pausan el reloj; las estadísticas se conservan al volver al directo.
+
+En **Tácticas** aparecen las pestañas **Fases** y **Pelota parada**. Podés definir salida, progresión, último tercio, bloque, orientación de la presión y reacción a pérdidas y recuperaciones. Las instrucciones individuales y las marcas sobre rivales concretos modifican las probabilidades y los espacios. Las rutinas a balón parado tienen especialistas, movimientos, coberturas y familiaridad propia. Priorizar esos ensayos consume tiempo de adaptación del plan general. Los rivales revisan las ocasiones, pérdidas, fatiga y marcador en momentos concretos para hacer ajustes limitados y explicables.
+
+El **Centro de partido** incorpora una cancha más amplia, trayectorias de las acciones, acceso a cambios y ajustes, lectura del ayudante, mapa de remates y repeticiones. Las jugadas conservan sus participantes y contexto; el control de reproducción permite inspeccionarlas sin avanzar el partido. El motor sigue siendo una simulación probabilística por secuencias: ninguna instrucción garantiza una victoria.
+
+En **Vestuario** podés revisar jerarquías, liderazgo, grupos de trabajo, adaptación, expectativas de minutos y rasgos simulados. Las conversaciones y promesas utilizan minutos y valoraciones efectivamente registrados. Las mentorías tienen referentes, capacidad limitada y seguimiento de 21 días; sus resultados influyen de forma acotada en confianza y desarrollo. Personalidades, liderazgo y relaciones pertenecen a esta carrera, no a la base histórica del jugador.
+
+**Entrenamiento** reúne microciclo, planes individuales, inferiores y empleados. El calendario determina cuándo preparar, recuperar o reducir carga; las decisiones individuales contemplan fatiga, riesgo, aprendizaje de posiciones, edad y potencial. Las inferiores reciben prospectos simulados por temporada y permiten promoverlos cuando hay presupuesto y plazas. La contratación de empleados tiene costes, salarios, límites y efectos sobre el trabajo. La delegación ejecuta tareas según los criterios elegidos; los costes del cuerpo técnico se liquidan una sola vez por semana.
+
+El **mercado** añade representantes con prioridades y plazos, propuesta deportiva y competencia entre proyectos. Los acuerdos firmados fuera del período de inscripción se incorporan al abrir la siguiente ventana: el jugador permanece en su club, y fondos, salario, plaza y cupos quedan comprometidos. La inscripción revalida la operación y evita cobrarla dos veces. Los períodos siguen la regla anual adaptada del simulador: enero–marzo y julio–agosto, común a las ligas incluidas. La reputación, actividad económica y planteos de los clubes evolucionan durante la carrera.
+
+En **Carrera y proyectos** hay puntos de recuperación e historial de decisiones. Las copias locales usan IndexedDB y conservan hasta seis estados; una recuperación valida la carrera antes de sustituirla. La falta de espacio o de IndexedDB no sustituye ni daña el guardado principal. **Exportar JSON** permite conservar una copia fuera del navegador y trasladar la carrera. El historial guarda los acuerdos y novedades con su fecha y evidencia, con un límite para evitar crecimiento indefinido.
+
 ## Ligas y clubes incluidos
 
 | País | Liga | Clubes | Planteles de referencia |
@@ -216,6 +232,14 @@ python3 -m http.server 8000
 En otra terminal:
 
 ```bash
+python3 tests/test_match_persistence.py
+python3 tests/test_match_simulation.py
+python3 tests/test_match_centre_depth.py
+python3 tests/test_tactical_plans.py
+python3 tests/test_development_centre.py
+python3 tests/test_dressing_room_depth.py
+python3 tests/test_football_world.py
+python3 tests/test_career_integrity.py
 python3 tests/test_management_office.py
 python3 tests/test_match_formats.py
 python3 tests/test_football_depth.py

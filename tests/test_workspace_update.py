@@ -158,9 +158,17 @@ class WorkspaceUpdate(unittest.TestCase):
 
     def test_09_real_key_plays_and_ai_adjustments_do_not_change_user_tactics(self):
         self.career()
-        result=self.page.evaluate('''()=>{while(!WORLD_CLOCK.ready())WORLD_CLOCK.advance({silent:true});autoLineup();startMatch();const m=GameState.match,user=JSON.stringify(GameState.tactics);m.paused=false;let calls=0;while(!m.done&&calls++<110){if(m.paused){m.paused=false;m.halfTime=false}tick()}m.paused=true;const key=m.keyPlays?.at(-1);return {minute:m.minute,plays:m.keyPlays?.length||0,key,shots:m.stats[0].shots+m.stats[1].shots,changes:m.aiAdjustments,userSame:user===JSON.stringify(GameState.tactics),allActual:(m.keyPlays||[]).every(k=>m.chances.some(c=>c.minute===k.minute&&c.playerId===k.playerId&&c.xg===k.xg))}}''')
-        self.assertGreater(result['plays'],0);self.assertLessEqual(result['plays'],12);self.assertTrue(result['allActual'])
-        self.assertTrue(result['userSame']);self.assertEqual(result['changes'],[60,75])
+        result=self.page.evaluate('''()=>{while(!WORLD_CLOCK.ready())WORLD_CLOCK.advance({silent:true});autoLineup();startMatch();const m=GameState.match,user=JSON.stringify(GameState.tactics);m.paused=false;let calls=0;while(!m.done&&calls++<110){if(m.paused){m.paused=false;m.halfTime=false}tick()}m.paused=true;const key=m.keyPlays?.at(-1);return {minute:m.minute,plays:m.keyPlays?.length||0,key,shots:m.stats[0].shots+m.stats[1].shots,changes:m.aiAdjustments,decisions:m.simulation?.aiDecisions||[],userSame:user===JSON.stringify(GameState.tactics),allActual:(m.keyPlays||[]).every(k=>m.chances.some(c=>c.minute===k.minute&&c.playerId===k.playerId&&c.xg===k.xg))}}''')
+        self.assertGreater(result['plays'],0);self.assertLessEqual(result['plays'],60);self.assertTrue(result['allActual'])
+        self.assertTrue(result['userSame']);self.assertEqual(result['changes'],[20,35,45,60,75])
+        self.assertEqual(len(result['changes']),len(set(result['changes'])))
+        decision_minutes=[decision['minute'] for decision in result['decisions']]
+        self.assertEqual(len(decision_minutes),len(set(decision_minutes)))
+        for decision in result['decisions']:
+            self.assertIn(decision['minute'],result['changes'])
+            self.assertTrue(decision['reason']);self.assertTrue(decision['evidence'])
+            for field in ['tempo','line','pressing','width']:
+                self.assertLessEqual(abs(decision['after'][field]-decision['before'][field]),12)
 
     def test_10_previous_world_save_keeps_played_calendar_and_money(self):
         old=subprocess.check_output(['git','show','5c8b7d5:index.html'],cwd=ROOT)

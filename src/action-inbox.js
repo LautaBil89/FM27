@@ -91,7 +91,7 @@ window.FM_INBOX = (() => {
   function isPending(m) {
     if(!active()||m.dismissed)return false;
     const p=lookup(m.playerId),o=m.offerId?offerFor(m):null;
-    if(m.offerId)return !!o&&o.status==='pending'&&(o.type!=='sell'||owned(p));
+    if(m.offerId)return !!o&&!o.awaitingRegistration&&o.status==='pending'&&(o.type!=='sell'||owned(p));
     if(m.action==='career')return m.date.slice(0,4)===String(GameState.year)&&!!GameState.world.depth?.jobs?.some(j=>j.status==='open');
     if(m.action==='contract')return owned(p)&&!p.loanId&&p.contract<=GameState.year+1&&(!Number.isInteger(m.contractAtCreation)||p.contract===m.contractAtCreation);
     if(m.action==='medical')return owned(p)&&(p.injury>0||p.condicion_fisica<65)&&p.trainingFocus!=='Recuperación';
@@ -102,7 +102,7 @@ window.FM_INBOX = (() => {
   }
   function status(m) {
     if(m.offerId) {
-      const o=offerFor(m);if(!o)return 'Oferta archivada';
+      const o=offerFor(m);if(!o)return 'Oferta archivada';if(o.awaitingRegistration)return 'Inscripción el '+date(o.registrationDate);
       return ({pending:o.type==='sell'||o.awaitingUser?'Tu decisión':'En negociación',accepted:'Acuerdo cerrado',rejected:'Oferta rechazada',expired:'Oferta vencida',cancelled:'Oferta retirada',canceled:'Oferta retirada'})[o.status]||'Negociación finalizada';
     }
     if(m.dismissed)return 'Revisado';
@@ -114,7 +114,7 @@ window.FM_INBOX = (() => {
   function actionsFor(m) {
     const result=[],p=lookup(m.playerId),o=m.offerId?offerFor(m):null,blocked=locked();
     const add=(id,label,disabled=false,primary=false)=>result.push({id,label,disabled,primary});
-    if(o?.status==='pending') {
+    if(o?.status==='pending'&&!o.awaitingRegistration) {
       if(o.type==='sell'&&owned(p)){add('sale-accept','Aceptar oferta',blocked,true);add('sale-reject','Rechazar oferta',blocked);}
       else if(o.type==='buy'){if(o.awaitingUser&&o.counter){add('counter-accept','Aceptar contraoferta',blocked,true);add('counter-reject','Rechazar contraoferta',blocked);}add('offer-cancel','Retirar oferta',blocked);}
       if(o.type==='buy'&&o.awaitingPlayerTerms)add('personal-contract','Negociar contrato',blocked,true);
@@ -153,7 +153,7 @@ window.FM_INBOX = (() => {
     const o=offerFor(m);if(!o)return '';
     const terms=o.awaitingUser&&o.counter?{...o,...o.counter}:o;
     const parts=[['Traspaso',money(terms.fee||0)],['Salario semanal',money(terms.wage||lookup(o.playerId)?.salario||0)]];
-    if(o.awaitingPlayerTerms)parts.unshift(['Etapa','Club de acuerdo · falta negociar con el jugador']);else if(o.awaitingUser&&o.counter)parts.unshift(['Etapa','Contraoferta del club pendiente']);else if(o.status==='pending')parts.unshift(['Etapa',o.type==='sell'?'Propuesta recibida · tu decisión':o.stage==='player'?'Representante evaluando contrato':'Club evaluando el pase']);
+    if(o.awaitingRegistration)parts.unshift(['Etapa','Acuerdo firmado · inscripción el '+date(o.registrationDate)]);else if(o.awaitingPlayerTerms)parts.unshift(['Etapa','Club de acuerdo · falta negociar con el jugador']);else if(o.awaitingUser&&o.counter)parts.unshift(['Etapa','Contraoferta del club pendiente']);else if(o.status==='pending')parts.unshift(['Etapa',o.type==='sell'?'Propuesta recibida · tu decisión':o.stage==='player'?'Representante evaluando contrato':'Club evaluando el pase']);
     if(terms.releaseClause)parts.push(['Cláusula de rescisión',money(terms.releaseClause)]);
     if(o.bonus)parts.push(['Prima',money(o.bonus)]);
     if(o.years)parts.push(['Duración',`${o.years} años`]);
@@ -178,7 +178,7 @@ window.FM_INBOX = (() => {
     const o=m.offerId?offerFor(m):null,p=lookup(m.playerId),pending=isPending(m),r=p&&window.FM_DEPTH?FM_DEPTH.ensure()?.reports?.[p.id]:null;
     const sender=o?clubName(o.type==='sell'?o.toClub:o.fromClub):r?.staffName&&category(m)==='ojeo'?r.staffName:({ojeo:'Secretaría técnica',contratos:'Secretaría técnica',directiva:'Directiva del club',plantel:'Cuerpo técnico y servicios médicos',partidos:'Analista de rendimiento',mercado:'Departamento de fichajes',prensa:'Resumen de prensa',sistema:'Secretaría del club'})[category(m)]||'Secretaría del club';
     const deadline=o?.status==='pending'?(o.expiresAt||o.expiresDate):null;
-    const next=o?.status==='pending'?(o.type==='sell'?'Evaluá las condiciones y aceptá o rechazá la propuesta.':o.awaitingPlayerTerms?'El pase está acordado. Abrí la negociación del contrato con el jugador.':o.awaitingUser&&o.counter?'Revisá la contraoferta del club.':'La contraparte está evaluando la propuesta; avanzá el tiempo para recibir respuesta.'):pending?'Revisá el informe y elegí una de las acciones disponibles.':'Mensaje informativo; no requiere una decisión pendiente.';
+    const next=o?.awaitingRegistration?'El acuerdo está firmado. El jugador permanece en su club hasta la fecha de inscripción; los fondos y la plaza quedan comprometidos.':o?.status==='pending'?(o.type==='sell'?'Evaluá las condiciones y aceptá o rechazá la propuesta.':o.awaitingPlayerTerms?'El pase está acordado. Abrí la negociación del contrato con el jugador.':o.awaitingUser&&o.counter?'Revisá la contraoferta del club.':'La contraparte está evaluando la propuesta; avanzá el tiempo para recibir respuesta.'):pending?'Revisá el informe y elegí una de las acciones disponibles.':'Mensaje informativo; no requiere una decisión pendiente.';
     return `<section class="office-inbox-context"><p><b>De:</b> ${esc(sender)} · <b>${pending?'Requiere atención':'Información'}</b></p>${deadline?`<p><b>Vencimiento:</b> ${date(deadline)}</p>`:''}<p><b>Próximo paso:</b> ${esc(next)}</p>${r&&category(m)==='ojeo'?`<p>Observación: ${r.level}% · ${r.status==='active'?'en curso':r.status==='cancelled'?'cancelada':'finalizada'}${r.duration?' · plazo '+r.duration+' días':''}${r.status==='active'&&r.dueDate?' · fecha prevista '+date(r.dueDate):''}.</p>`:''}</section>`;
   }
   function readPanel(m) {
