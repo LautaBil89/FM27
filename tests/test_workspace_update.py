@@ -38,6 +38,9 @@ class WorkspaceUpdate(unittest.TestCase):
     def career(self,mode='realistic',club='boca'):
         self.page.fill('#manager','DT paneles')
         self.page.select_option('#careerCompetitionFormat',mode)
+        # Keep calendar timing stable while these tests cover UI and transfers.
+        if self.page.locator('#careerCalendarMode').count():
+            self.page.select_option('#careerCalendarMode','annual')
         self.page.select_option('#club',club)
         self.page.click('[data-action="new"]')
         self.page.wait_for_selector('aside')

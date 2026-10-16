@@ -6,11 +6,11 @@ window.FM_DEVELOPMENT=(()=>{
   const workloads={Reducida:.55,Normal:1,Intensa:1.35};
   const active=()=>!!GameState?.worldVersion,hash=value=>{let h=2166136261;for(const c of String(value))h=Math.imul(h^c.charCodeAt(0),16777619)>>>0;return h};
   const iso=n=>new Date(n).toISOString().slice(0,10),days=(a,b)=>Math.round((Date.parse(a)-Date.parse(b))/DAY);
-  const own=p=>p?.clubId===GameState?.userClub.id,office=()=>FM_OFFICE.office(),cash=()=>CLUB_AI.availableBudget();
+  const own=p=>p?.clubId===GameState?.userClub.id,office=()=>FM_OFFICE.office(),cash=()=>window.FM_FINANCES?.operatingAvailable?.()??CLUB_AI.availableBudget();
   const announce=(title,body,type='plantel',extra={})=>FM_INBOX.push({title,body,type,...extra});
   function ensure(){
     if(!active())return null;
-    const state=GameState.world.development??={version:1,clubs:{}};state.clubs??={};
+    const state=GameState.world.development??={version:2,clubs:{},evolution:{players:{},lastWorldMonth:null,seasons:{}}};state.clubs??={};state.evolution??={players:{},lastWorldMonth:null,seasons:{}};state.evolution.players??={};state.evolution.seasons??={};
     const id=GameState.userClub.id;
     const s=state.clubs[id]??={plans:{},academy:[],intakeYear:0,academyLevel:1,academyPayDate:GameState.today,lastDay:GameState.today,trainingDate:null,history:[],recruitment:{},policy:{restBelow:70,highRiskRest:true,academyMinutes:30},delegation:{individual:'DT',academy:'DT'},reportMonth:null};
     s.plans??={};s.history??=[];s.academy??=[];s.recruitment??={};s.policy??={restBelow:70,highRiskRest:true,academyMinutes:30};s.delegation??={individual:'DT',academy:'DT'};
@@ -36,9 +36,66 @@ window.FM_DEVELOPMENT=(()=>{
     else {focus=style==='Tiki-Taka'?'Posesión':style==='Salida de Contragolpe'?'Defensa':'Físico';intensity=average>=88&&until>=4?'Alta':'Normal'}
     return {date:day,focus,intensity,phase,daysToMatch:until,nextId:next?.id||null};
   }
-  function risk(p){const q=playerPlan(p),fatigue=100-p.condicion_fisica,load=q?.weeklyLoad||0;return p.injury?'Lesionado':fatigue>=35||load>=8?'Alto':fatigue>=20||load>=6?'Medio':'Bajo'}
+  function risk(p){if(window.FM_MEDICINE)return FM_MEDICINE.risk(p).label;const q=playerPlan(p),fatigue=100-p.condicion_fisica,load=q?.weeklyLoad||0;return p.injury?'Lesionado':fatigue>=35||load>=8?'Alto':fatigue>=20||load>=6?'Medio':'Bajo'}
   function coachQuality(){return Math.max(40,...office().staff.filter(e=>['Ayudante','Preparador','Entrenador juvenil'].includes(e.role)).map(e=>e.ability))}
   function positionFamiliarity(p,position){if((p.learnedPositions||[]).includes(position))return 100;const q=own(p)?playerPlan(p):null;return q?.position===position?q.positionProgress:0}
+  function evolution(p){
+    const root=GameState.world.development??={version:2,clubs:{}},all=root.evolution??={players:{},lastWorldMonth:null,seasons:{}};
+    all.players??={};all.seasons??={};
+    return all.players[p.id]??={lastDay:GameState.today,ceiling:Math.max(overall(p),Number(p.potential)||overall(p)),ageProgress:{},backgroundProgress:{},phaseYear:0,phase:'Consolidación',rate:1,reviewYear:GameState.year,baseMinutes:Number(p.minutes)||0,changes:[],totalLostDays:0};
+  }
+  function exactAge(p,day=GameState.today){return p.fecha_nacimiento?Math.max(15,(Date.parse(day)-Date.parse(p.fecha_nacimiento))/(365.2425*DAY)):Number(p.edad)||25}
+  function phase(p,day=GameState.today){
+    const e=evolution(p),year=Number(day.slice(0,4));if(e.phaseYear!==year){
+      const seed=hash(p.id+':trajectory:'+year),roll=seed%100,young=exactAge(p,day)<=24;
+      e.phase=roll<17?'Meseta':roll>84&&young?'Despegue':roll>90?'Buen momento de desarrollo':'Consolidación';
+      e.rate=e.phase==='Meseta'?.25:e.phase==='Despegue'?1.55:e.phase==='Buen momento de desarrollo'?1.18:.78+(seed%39)/100;e.phaseYear=year;
+    }return e;
+  }
+  function minutesSupport(p,day=GameState.today){
+    const since=Math.max(35,days(day,day.slice(0,4)+'-01-01')),expected=Math.min(2200,since*6),actual=Math.max(0,Number(p.minutes)||0);
+    return Math.max(.55,Math.min(1.2,.55+actual/Math.max(250,expected)*.5));
+  }
+  function developmentRate(p,key,{count=1,intensity=1,coach=65,manager=10,day=GameState.today}={}){
+    const e=phase(p,day),years=exactAge(p,day),goalkeeper=p.posicion==='POR',ceiling=Math.min(99,e.ceiling),headroom=Math.max(0,ceiling-overall(p));
+    const physical=['ritmo','fisico'].includes(key),peak=goalkeeper?29:physical?23:25,maturity=Math.max(.12,Math.min(1.65,1.5-(years-18)*.073-(years>peak?(years-peak)*.07:0)));
+    const health=GameState.world.medicine?.players?.[p.id],injuryBrake=p.injury?.12:Math.max(.7,1-(health?.tissueFatigue||0)/180),morale=.75+Math.max(0,Number(p.moral)||0)/200;
+    const personality=window.FM_DRESSING_ROOM?.developmentModifier?.(p)||1,exposure=minutesSupport(p,day),headroomFactor=Math.min(1,headroom/5);
+    // Every factor describes the simulated career, never a biographical trait inferred from a real name.
+    return count*.043*intensity*maturity*(.75+coach/200)*(.8+manager/50)*headroomFactor*personality*e.rate*exposure*injuryBrake*morale;
+  }
+  function advanceBiology(p,day=GameState.today,background=false){
+    const e=phase(p,day),count=Math.min(400,Math.max(0,days(day,e.lastDay)));if(!count)return false;
+    const years=exactAge(p,day),goalkeeper=p.posicion==='POR',wide=(FM_PLAYER.naturalPositions(p)||[]).some(code=>['EI','ED','LI','LD'].includes(code));
+    const physicalThreshold=goalkeeper?34.5:wide?28.5:p.posicion==='DEF'?30.5:29.5,technicalThreshold=goalkeeper?36.5:33.5,medical=GameState.world.medicine?.players?.[p.id],lost=medical?.lostDays||0;
+    const biological=1+(hash(p.id+':aging')%41-20)/100,changes=[];
+    for(const key of core){
+      const physical=key==='ritmo'||key==='fisico',threshold=physical?physicalThreshold:technicalThreshold,decay=Math.max(0,years-threshold)*(.32+(key==='ritmo'?.12:0))*count/365.2425*biological;
+      e.ageProgress[key]=(e.ageProgress[key]||0)+decay;
+      while(e.ageProgress[key]>=1&&p[key]>1){p[key]=Math.max(1,p[key]-1);e.ageProgress[key]-=1;changes.push({key,delta:-1})}
+      if(background&&!p.injury){
+        const gain=developmentRate(p,key,{count,coach:club(p.clubId)?.rating||55,manager:10,day})/6;
+        e.backgroundProgress[key]=(e.backgroundProgress[key]||0)+gain;
+        if(e.backgroundProgress[key]>=1&&overall(p)<e.ceiling&&p[key]<99){p[key]=Math.min(99,p[key]+1);e.backgroundProgress[key]-=1;changes.push({key,delta:1})}
+        e.backgroundProgress[key]=Math.min(.999,e.backgroundProgress[key]);
+      }
+    }
+    // Long absences can alter a career's attainable ceiling. This is bounded and assessed once a year.
+    const year=Number(day.slice(0,4));if(e.reviewYear!==year){
+      const injuryDays=Math.max(0,lost-e.totalLostDays),drop=injuryDays>=140?Math.min(2,Math.floor(injuryDays/100)):0;
+      if(drop)e.ceiling=Math.max(overall(p),e.ceiling-drop);e.totalLostDays=lost;e.reviewYear=year;
+    }
+    if(changes.length){e.changes.push({date:day,changes});e.changes=e.changes.slice(-18)}e.lastDay=day;return true;
+  }
+  function potentialRange(p){return window.FM_DEPTH?.potentialRange?FM_DEPTH.potentialRange(p):'Sin evaluación observada'}
+  function seasonEnd(year=GameState.year,leagueId=null){
+    if(!active())return false;ensure();const e=GameState.world.development.evolution,key=leagueId?`${year}:${leagueId}`:String(year);if(e.seasons[key])return false;
+    const members=leagueId?new Set(GameState.world.leagues.find(l=>l.id===leagueId)?.clubIds||[]):null;
+    const players=members?GameState.players.filter(p=>members.has(p.clubId)):GameState.players;
+    for(const p of players)advanceBiology(p,GameState.today,!own(p));
+    const rows=players.filter(own).map(p=>({id:p.id,overall:overall(p),phase:phase(p).phase,minutes:Number(p.minutes)||0}));e.seasons[key]={date:GameState.today,leagueId,players:rows};
+    const keys=Object.keys(e.seasons).sort((a,b)=>(e.seasons[a].date||'').localeCompare(e.seasons[b].date||''));while(keys.length>Math.max(12,(GameState.world.leagues?.length||1)*3))delete e.seasons[keys.shift()];return true;
+  }
   function applyTraining(input=1){
     if(!active())return legacyTraining(input);
     const s=ensure();if(s.trainingDate===GameState.today)return false;
@@ -50,19 +107,18 @@ window.FM_DEVELOPMENT=(()=>{
       const q=playerPlan(p,s),since=Math.max(0,days(GameState.today,q.loadDate));q.weeklyLoad=Math.max(0,q.weeklyLoad-since*.85);q.loadDate=GameState.today;
       if(p.injury>0)continue;
       const forcedRest=p.condicion_fisica<s.policy.restBelow||(s.policy.highRiskRest&&risk(p)==='Alto')||(q.restUntil&&q.restUntil>=GameState.today),personal=p.trainingFocus&&p.trainingFocus!=='Equipo'?p.trainingFocus:t.focus;
-      if(personal==='Recuperación'||forcedRest){p.condicion_fisica=clamp(p.condicion_fisica+count*(forcedRest?3:2.5));q.weeklyLoad=Math.max(0,q.weeklyLoad-count*.5);rested++;continue}
+      if(personal==='Recuperación'||forcedRest){if(window.FM_MEDICINE)FM_MEDICINE.trainingLoad(p,0,{recovery:true});else p.condicion_fisica=clamp(p.condicion_fisica+count*(forcedRest?3:2.5));q.weeklyLoad=Math.max(0,q.weeklyLoad-count*.5);rested++;continue}
       const intensity=(t.intensity==='Alta'?1.35:t.intensity==='Baja'?.6:1)*(workloads[q.load]||1),key=focuses[personal]||'fisico';
-      const age=p.edad<=21?1.3:p.edad<=25?1.12:p.edad>=31?.5:1;
-      const ceiling=Math.min(99,Number(p.potential)||overall(p)),headroom=Math.max(0,ceiling-overall(p));
-      const personality=window.FM_DRESSING_ROOM?.developmentModifier?.(p)||1;
-      const gain=count*.035*intensity*age*(.75+coach/200)*(.8+manager/50)*Math.min(1,headroom/5)*personality;
+      const ceiling=Math.min(99,evolution(p).ceiling),headroom=Math.max(0,ceiling-overall(p));
+      const gain=developmentRate(p,key,{count,intensity,coach,manager});
       q.attributeProgress[key]=(q.attributeProgress[key]||0)+gain;
-      if(q.attributeProgress[key]>=1&&p[key]<ceiling&&headroom>0){p[key]=Math.min(ceiling,p[key]+1);q.attributeProgress[key]-=1;improvements++}
+      if(q.attributeProgress[key]>=1&&p[key]<99&&headroom>0){p[key]=Math.min(99,p[key]+1);q.attributeProgress[key]-=1;improvements++}
       else q.attributeProgress[key]=Math.min(.99,q.attributeProgress[key]);
       p.trainingProgress=clamp(q.attributeProgress[key],0,.999);q.weeklyLoad+=count*intensity;
-      if(intensity>1)p.condicion_fisica=clamp(p.condicion_fisica-count*.75*(intensity-1)*2);
+      if(window.FM_MEDICINE){const result=FM_MEDICINE.trainingLoad(p,count*intensity);if(result.injured)injuries++}
+      else if(intensity>1)p.condicion_fisica=clamp(p.condicion_fisica-count*.75*(intensity-1)*2);
       if(q.position!=='NONE'&&q.positionProgress<100){q.positionProgress=clamp(q.positionProgress+count*.55*(.7+coach/200)*(p.edad<=23?1.2:.8),0,100);if(q.positionProgress>=100){p.learnedPositions=[...new Set([...(p.learnedPositions||[]),q.position])];learned++;announce('Puesto aprendido',`${p.nombre} completó su adaptación a ${positions[q.position]}. Se incorpora como puesto aprendido en la carrera; los datos publicados de origen se conservan.`, 'plantel',{playerId:p.id,action:'tactics'})}}
-      if(intensity>1.3&&p.condicion_fisica<70&&Math.random()<count*.004){p.injury=3+hash(p.id+GameState.today)%6;injuries++;announce('Parte médico de entrenamiento',`${p.nombre}: sobrecarga tras una sesión de carga alta; ${p.injury} días de baja. La condición y la carga acumulada incidieron en el riesgo.`, 'medico',{playerId:p.id,action:'medical'})}
+      if(!window.FM_MEDICINE&&intensity>1.3&&p.condicion_fisica<70&&Math.random()<count*.004){p.injury=3+hash(p.id+GameState.today)%6;injuries++;announce('Parte médico de entrenamiento',`${p.nombre}: sobrecarga tras una sesión de carga alta; ${p.injury} días de baja. La condición y la carga acumulada incidieron en el riesgo.`, 'medico',{playerId:p.id,action:'medical'})}
     }
     t.sessions+=count;s.trainingDate=GameState.today;
     t.lastReport=`${count} día${count===1?'':'s'} de ${t.focus.toLowerCase()}, intensidad ${t.intensity.toLowerCase()}. ${improvements} mejoras de atributo; ${rested} jugadores con recuperación; ${learned} puestos aprendidos; ${injuries} sobrecargas.`;
@@ -128,7 +184,9 @@ window.FM_DEVELOPMENT=(()=>{
   function onDay(day){
     const s=ensure();if(!s||s.lastDay>=day)return;s.lastDay=day;
     if(office().responsibilities.training!=='DT'){const plan=schedule(day);Object.assign(GameState.training,{focus:plan.focus,intensity:plan.intensity})}
-    for(const p of mine()){const q=playerPlan(p,s),elapsed=Math.max(0,days(day,q.loadDate));q.weeklyLoad=Math.max(0,q.weeklyLoad-elapsed*.85);q.loadDate=day}
+    for(const p of mine()){const q=playerPlan(p,s),elapsed=Math.max(0,days(day,q.loadDate));q.weeklyLoad=Math.max(0,q.weeklyLoad-elapsed*.85);q.loadDate=day;advanceBiology(p,day)}
+    const evolutionState=GameState.world.development.evolution,worldMonth=day.slice(0,7);
+    if(evolutionState.lastWorldMonth!==worldMonth){for(const p of GameState.players)if(!own(p))advanceBiology(p,day,true);evolutionState.lastWorldMonth=worldMonth}
     if(s.delegation.individual!=='DT')for(const p of mine()){
       const q=playerPlan(p,s);q.load=p.condicion_fisica<s.policy.restBelow?'Reducida':p.edad<=23&&risk(p)==='Bajo'?'Normal':'Reducida';
       p.trainingFocus=p.condicion_fisica<s.policy.restBelow?'Recuperación':'Equipo';
@@ -136,13 +194,13 @@ window.FM_DEVELOPMENT=(()=>{
     for(const p of s.academy){
       if(p.promoted)continue;p.edad=GameState.year-p.birthYear;
       const staff=office().staff.filter(e=>e.role==='Entrenador juvenil'),quality=staff.length?Math.max(...staff.map(e=>e.ability)):55;
-      p.academyProgress=(p.academyProgress||0)+.018*(.8+s.academyLevel*.15)*(quality/70);
+      advanceBiology(p,day);p.academyProgress=(p.academyProgress||0)+.018*(.8+s.academyLevel*.15)*(quality/70)*phase(p,day).rate;
       if(p.academyProgress>=1&&overall(p)<p.potential){const key=core[hash(p.id+day)%core.length];if(p[key]<p.potential)p[key]++;p.academyProgress-=1}
     }
     const weeks=Math.max(0,Math.floor(days(day,s.academyPayDate)/7));
     if(weeks){const expense=s.academyLevel*250*weeks;MANAGEMENT.transaction(-expense,'Funcionamiento de las inferiores','cantera');s.academyPayDate=iso(Date.parse(s.academyPayDate)+weeks*7*DAY)}
     const month=day.slice(0,7);if(s.reportMonth!==month){s.reportMonth=month;
-      const progressed=mine().filter(p=>overall(p)>playerPlan(p,s).baseline),prospects=s.academy.filter(p=>!p.promoted).sort((a,b)=>b.potential-a.potential);
+      const progressed=mine().filter(p=>overall(p)>playerPlan(p,s).baseline),prospects=s.academy.filter(p=>!p.promoted).sort((a,b)=>(window.FM_SCOUT_NETWORK?FM_SCOUT_NETWORK.assessment(b,{kind:'potential'}).estimate:overall(b))-(window.FM_SCOUT_NETWORK?FM_SCOUT_NETWORK.assessment(a,{kind:'potential'}).estimate:overall(a)));
       announce('Informe mensual de desarrollo',`${progressed.length} jugadores mejoraron su calidad desde la llegada al centro. ${mine().filter(p=>risk(p)==='Alto').length} presentan carga alta. Inferiores: ${prospects.length} juveniles en formación${prospects[0]?'; observar a '+prospects[0].nombre:''}. Revisá progreso, minutos y carga antes de promover.`, 'plantel',{action:'tactics'});
       if(s.delegation.academy!=='DT'){
         const p=prospects.find(p=>p.edad>=18&&overall(p)>=Math.min(...mine().filter(m=>m.posicion===p.posicion).map(overall),99)-6&&promotionStatus(p).ok);
@@ -155,9 +213,9 @@ window.FM_DEVELOPMENT=(()=>{
     const s=ensure(),o=office(),plan=schedule(),next=fixtures()[0],health=mine().filter(p=>p.injury||risk(p)!=='Bajo');
     return `<div class="fm-section-head"><div><span class="small muted">CUERPO TÉCNICO</span><h2>Entrenamiento y desarrollo</h2></div><span class="badge">${GameState.training.sessions} sesiones · ${coachQuality()}/99 cuerpo técnico</span></div>
     <section class="card dev-microcycle"><h2>Microciclo</h2><div class="dev-summary"><strong>${esc(plan.phase)}</strong><span>${next?'Próximo partido: '+date(next.date):'Sin partido próximo'}</span><span>Riesgo alto: ${mine().filter(p=>risk(p)==='Alto').length}</span></div><div class="dev-controls"><label>Enfoque colectivo<select data-training="focus" ${locked()?'disabled':''}>${option(Object.keys(focuses),GameState.training.focus)}</select></label><label>Intensidad<select data-training="intensity" ${locked()?'disabled':''}>${option(['Baja','Normal','Alta'],GameState.training.intensity)}</select></label><label>Planificación<select data-office-responsibility="training"><option value="DT">DT</option><option value="staff" ${o.responsibilities.training!=='DT'?'selected':''}>Ayudante · según calendario</option></select></label></div><div class="scroll"><table><thead><tr><th>Fecha</th><th>Fase recomendada</th><th>Trabajo</th><th>Carga</th></tr></thead><tbody>${Array.from({length:7},(_,i)=>schedule(iso(Date.parse(GameState.today)+i*DAY))).map(r=>`<tr><td>${date(r.date)}</td><td>${esc(r.phase)}</td><td>${esc(r.focus)}</td><td>${r.intensity}</td></tr>`).join('')}</tbody></table></div><p class="dev-explanation">El ayudante baja la carga antes de competir y después de cada partido. Con control del DT, tus opciones se respetan; el umbral individual de descanso siempre protege al jugador.</p><div class="fm-callout">${esc(GameState.training.lastReport)}</div></section>
-    <section class="card dev-individual"><h2>Planes individuales</h2><div class="dev-controls"><label>Responsable<select data-dev-delegation="individual">${[['DT','DT'],['staff','Preparador · aplica descansos']].map(([v,l])=>`<option value="${v}" ${s.delegation.individual===v?'selected':''}>${l}</option>`).join('')}</select></label><label>Descanso bajo condición<input type="number" min="50" max="85" data-dev-policy="restBelow" value="${s.policy.restBelow}"></label><label><input type="checkbox" data-dev-policy="highRiskRest" ${s.policy.highRiskRest?'checked':''}> Recuperación con riesgo alto</label></div><div class="scroll"><table><thead><tr><th>Jugador</th><th>Condición / riesgo</th><th>Enfoque</th><th>Carga</th><th>Puesto a aprender</th><th>Progreso</th></tr></thead><tbody>${mine().map(p=>{const q=playerPlan(p,s);return `<tr><td><button data-player="${p.id}">${esc(p.nombre)}</button><small>${p.edad} años · ${overall(p)} / ${p.potential}</small></td><td>${Math.round(p.condicion_fisica)}%<small>${risk(p)} · carga ${q.weeklyLoad.toFixed(1)}</small></td><td><select data-individual="${p.id}" ${locked()?'disabled':''}>${option(['Equipo',...Object.keys(focuses)],p.trainingFocus||'Equipo')}</select></td><td><select data-dev-load="${p.id}" ${locked()?'disabled':''}>${option(Object.keys(workloads),q.load)}</select></td><td><select data-dev-position="${p.id}" ${locked()?'disabled':''}><option value="NONE">Sin reconversión</option>${Object.entries(positions).filter(([code])=>(p.posicion==='POR')===(code==='POR')).map(([code,label])=>`<option value="${code}" ${q.position===code?'selected':''}>${label}</option>`).join('')}</select></td><td>${Math.round(p.trainingProgress*100)}% atributo<small>${q.position==='NONE'?'Sin puesto nuevo':Math.round(q.positionProgress)+'% '+q.position}</small></td></tr>`}).join('')}</tbody></table></div><p class="dev-explanation">La edad, el potencial, el entrenador y la personalidad afectan el progreso. Aprender un puesto requiere meses de trabajo; no altera los datos históricos publicados.</p></section>
-    <section class="card dev-academy"><h2>Inferiores</h2><div class="dev-controls"><label>Inversión semanal<select data-dev-academy-level>${[1,2,3,4].map(level=>`<option value="${level}" ${s.academyLevel===level?'selected':''}>${money(level*250)} · nivel ${level}</option>`).join('')}</select></label><label>Promociones<select data-dev-delegation="academy"><option value="DT">Decide el DT</option><option value="staff" ${s.delegation.academy!=='DT'?'selected':''}>Coordinador · mayores de 18, a 6 puntos del relevo</option></select></label><span class="badge">Camada ${s.intakeYear} · identidades simuladas</span></div><div class="scroll"><table><thead><tr><th>Juvenil</th><th>Edad / puesto</th><th>Calidad / potencial</th><th>Salario semanal</th><th>Primer equipo</th></tr></thead><tbody>${s.academy.map(p=>{const check=promotionStatus(p);return `<tr><td>${esc(p.nombre)}<small>Generado en la carrera · no pertenece a la base real</small></td><td>${p.edad} · ${p.posicion}</td><td>${overall(p)} / ${p.potential}</td><td>${money(p.salario)}</td><td>${p.promoted?'<span class="green">Promovido</span>':`<button data-dev-promote="${p.id}" ${check.ok?'':'disabled'} title="${esc(check.reason||'Prima: '+money(p.salario*4))}">Promover · ${money(p.salario*4)}</button>${check.ok?'':`<small>${esc(check.reason)}</small>`}`}</td></tr>`}).join('')}</tbody></table></div><p class="dev-explanation">Cuatro ingresos por año. La inversión y los entrenadores juveniles afectan el desarrollo. Cada promoción respeta plazas, salarios, retornos de préstamos y caja. La delegación conserva esos límites.</p></section>
-    <section class="card dev-staff"><h2>Contratar empleados</h2><div class="dev-summary"><span>${o.staff.length}/${MAX_STAFF} empleados</span><span>${money(o.staff.reduce((n,e)=>n+e.salary,0))} / ${money(staffBudget())} por semana</span><span>${Math.min(8,o.staff.filter(e=>e.role==='Ojeador').length)} observaciones simultáneas</span></div><div class="scroll"><table><thead><tr><th>Empleado</th><th>Especialidad</th><th>Calidad / adaptación</th><th>Salario / prima</th><th>Situación</th></tr></thead><tbody>${o.staff.map(e=>`<tr><td>${esc(e.name)}</td><td>${esc(e.role)}</td><td>${e.ability} / ${e.adaptability}</td><td>${money(e.salary)} / ${money(e.salary*4)} rescisión</td><td><button data-dev-fire="${esc(e.id)}">Rescindir</button></td></tr>`).join('')}${candidates().filter(c=>c.status==='available').map(c=>`<tr class="dev-candidate"><td>${esc(c.name)}<small>Personal simulado · disponible</small></td><td>${esc(c.role)}</td><td>${c.ability} / ${c.adaptability}</td><td>${money(c.salary)} / ${money(c.signingFee)}</td><td><button data-dev-hire="${esc(c.id)}">Contratar</button></td></tr>`).join('')}</tbody></table></div><p class="dev-explanation">Ayudantes y preparadores mejoran las sesiones; entrenadores juveniles trabajan en inferiores; ojeadores observan candidatos. Las primas se pagan al firmar y los salarios en la liquidación semanal existente. Rescindir cuesta cuatro salarios y exige terminar observaciones activas.</p></section>`;
+    <section class="card dev-individual"><h2>Planes individuales</h2><div class="dev-controls"><label>Responsable<select data-dev-delegation="individual">${[['DT','DT'],['staff','Preparador · aplica descansos']].map(([v,l])=>`<option value="${v}" ${s.delegation.individual===v?'selected':''}>${l}</option>`).join('')}</select></label><label>Descanso bajo condición<input type="number" min="50" max="85" data-dev-policy="restBelow" value="${s.policy.restBelow}"></label><label><input type="checkbox" data-dev-policy="highRiskRest" ${s.policy.highRiskRest?'checked':''}> Recuperación con riesgo alto</label></div><div class="scroll"><table><thead><tr><th>Jugador</th><th>Condición / riesgo</th><th>Enfoque</th><th>Carga</th><th>Puesto a aprender</th><th>Progreso</th></tr></thead><tbody>${mine().map(p=>{const q=playerPlan(p,s);return `<tr><td><button data-player="${p.id}">${esc(p.nombre)}</button><small>${p.edad} años · ${overall(p)} / ${potentialRange(p)}</small></td><td>${Math.round(p.condicion_fisica)}%<small>${risk(p)} · carga ${q.weeklyLoad.toFixed(1)}${window.FM_MEDICINE?' · ritmo '+FM_MEDICINE.report(p).sharpness+'%':''}</small></td><td><select data-individual="${p.id}" ${locked()?'disabled':''}>${option(['Equipo',...Object.keys(focuses)],p.trainingFocus||'Equipo')}</select></td><td><select data-dev-load="${p.id}" ${locked()?'disabled':''}>${option(Object.keys(workloads),q.load)}</select></td><td><select data-dev-position="${p.id}" ${locked()?'disabled':''}><option value="NONE">Sin reconversión</option>${Object.entries(positions).filter(([code])=>(p.posicion==='POR')===(code==='POR')).map(([code,label])=>`<option value="${code}" ${q.position===code?'selected':''}>${label}</option>`).join('')}</select></td><td>${Math.round(p.trainingProgress*100)}% atributo<small>${esc(phase(p).phase)} · ${Math.round(minutesSupport(p)*100)}% apoyo por minutos</small><small>${q.position==='NONE'?'Sin puesto nuevo':Math.round(q.positionProgress)+'% '+q.position}</small></td></tr>`}).join('')}</tbody></table></div><p class="dev-explanation">El desarrollo tiene mesetas y despegues; depende de minutos, salud, entrenadores y entorno. El envejecimiento es gradual y distinto para arqueros, centrales y jugadores de banda. El potencial es una estimación del cuerpo técnico.</p></section>
+    <section class="card dev-academy"><h2>Inferiores</h2><div class="dev-controls"><label>Inversión semanal<select data-dev-academy-level>${[1,2,3,4].map(level=>`<option value="${level}" ${s.academyLevel===level?'selected':''}>${money(level*250)} · nivel ${level}</option>`).join('')}</select></label><label>Promociones<select data-dev-delegation="academy"><option value="DT">Decide el DT</option><option value="staff" ${s.delegation.academy!=='DT'?'selected':''}>Coordinador · mayores de 18, a 6 puntos del relevo</option></select></label><span class="badge">Camada ${s.intakeYear} · identidades simuladas</span></div><div class="scroll"><table><thead><tr><th>Juvenil</th><th>Edad / puesto</th><th>Calidad / potencial</th><th>Salario semanal</th><th>Primer equipo</th></tr></thead><tbody>${s.academy.map(p=>{const check=promotionStatus(p);return `<tr><td>${esc(p.nombre)}<small>Generado en la carrera · no pertenece a la base real</small></td><td>${p.edad} · ${p.posicion}</td><td>${overall(p)} / ${potentialRange(p)}</td><td>${money(p.salario)}</td><td>${p.promoted?'<span class="green">Promovido</span>':`<button data-dev-promote="${p.id}" ${check.ok?'':'disabled'} title="${esc(check.reason||'Prima: '+money(p.salario*4))}">Promover · ${money(p.salario*4)}</button>${check.ok?'':`<small>${esc(check.reason)}</small>`}`}</td></tr>`}).join('')}</tbody></table></div><p class="dev-explanation">Cuatro ingresos por año. La inversión y los entrenadores juveniles afectan el desarrollo. Cada promoción respeta plazas, salarios, retornos de préstamos y caja. La delegación conserva esos límites.</p></section>
+    <section class="card dev-staff"><h2>Contratar empleados</h2><div class="dev-summary"><span>${o.staff.length}/${MAX_STAFF} empleados</span><span>${money(o.staff.reduce((n,e)=>n+e.salary,0))} / ${money(staffBudget())} por semana</span><span>${Math.min(8,o.staff.filter(e=>e.role==='Ojeador').length)} observaciones simultáneas</span></div><div class="scroll"><table><thead><tr><th>Empleado</th><th>Especialidad</th><th>Calidad / adaptación</th><th>Salario / prima</th><th>Situación</th></tr></thead><tbody>${o.staff.map(e=>`<tr><td>${esc(e.name)}</td><td>${esc(e.role)}</td><td>${e.ability} / ${e.adaptability}</td><td>${money(e.salary)} / ${money(e.salary*4)} rescisión</td><td><button data-dev-fire="${esc(e.id)}">Rescindir</button></td></tr>`).join('')}${candidates().filter(c=>c.status==='available').map(c=>`<tr class="dev-candidate"><td>${esc(c.name)}<small>Personal simulado · disponible</small></td><td>${esc(c.role)}</td><td>${c.ability} / ${c.adaptability}</td><td>${money(c.salary)} / ${money(c.signingFee)}</td><td><button data-dev-hire="${esc(c.id)}">Contratar</button></td></tr>`).join('')}</tbody></table></div><p class="dev-explanation">Ayudantes y preparadores mejoran las sesiones; entrenadores juveniles trabajan en inferiores; ojeadores observan candidatos. Las primas se pagan al firmar y los salarios en la liquidación semanal existente. Rescindir cuesta cuatro salarios y exige terminar observaciones activas.</p></section>${window.FM_MEDICINE?.page()||''}`;
   }
   function decorate(){
     if(!active())return;ensure();
@@ -179,5 +237,5 @@ window.FM_DEVELOPMENT=(()=>{
     if(n.hasAttribute('data-dev-academy-level')){s.academyLevel=clamp(Math.round(Number(n.value)||1),1,4);changed=true}
     if(changed){saveGame(true);render()}
   });
-  return {ensure,playerPlan,fixtures,schedule,risk,coachQuality,positionFamiliarity,applyTraining,onDay,intake,promotionStatus,promote,candidates,staffBudget,hire,fire,page,decorate};
+  return {ensure,playerPlan,evolution,phase,developmentRate,advanceBiology,potentialRange,seasonEnd,fixtures,schedule,risk,coachQuality,positionFamiliarity,applyTraining,onDay,intake,promotionStatus,promote,candidates,staffBudget,hire,fire,page,decorate};
 })();

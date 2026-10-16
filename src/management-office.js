@@ -52,7 +52,7 @@ window.FM_OFFICE=(()=>{
   function delegatedScouting(day){
     const o=office();if(o.responsibilities.scouting==='DT'||o.lastScouting&&Date.parse(day)-Date.parse(o.lastScouting)<7*DAY)return false;
     const a=o.assignment,candidates=GameState.players.filter(p=>p.clubId!==GameState.userClub.id&&matches(p,a)&&p.edad<=a.age&&p.valor_mercado<=a.budget&&FM_DEPTH.knowledge(p).level<100&&FM_DEPTH.ensure().reports[p.id]?.status!=='active').sort((a,b)=>b.valor_mercado-a.valor_mercado||a.id-b.id);
-    const p=candidates[0];let blocked=!p?'No hay candidatos que cumplan el encargo. Ampliá puesto, nacionalidad, edad o valor máximo.':CLUB_AI.availableBudget()<1500?'No hay USD 1.500 disponibles para iniciar la observación.':!scoutPlan(p,{silent:true})?'El ojeador elegido o la red de ojeo están ocupados. Se reintentará al avanzar otro día.':'';
+    const p=candidates[0];let blocked=!p?'No hay candidatos que cumplan el encargo. Ampliá puesto, nacionalidad, edad o valor máximo.':(window.FM_FINANCES?.operatingAvailable?.()??CLUB_AI.availableBudget())<1500?'No hay USD 1.500 disponibles para iniciar la observación.':!scoutPlan(p,{silent:true})?'El ojeador elegido o la red de ojeo están ocupados. Se reintentará al avanzar otro día.':'';
     if(blocked){o.assignmentStatus=blocked;if(!o.lastScoutingWarning||Date.parse(day)-Date.parse(o.lastScoutingWarning)>=7*DAY){o.lastScoutingWarning=day;notify('Encargo de ojeo en espera',blocked+' No se realizó ningún cargo.','ojeo')}return false}
     if(!FM_DEPTH.scout(p.id))return false;
     o.lastScouting=day;o.assignmentStatus='Observación en curso: '+p.nombre;o.lastScoutingWarning=null;

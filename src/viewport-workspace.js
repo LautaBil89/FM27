@@ -1,6 +1,6 @@
 /* Viewport-sized workspaces: navigation stays fixed; long records scroll locally. */
 (() => {
-  const original=render, ui={tabs:{},menu:false,competitionFormat:'realistic'};
+  const original=render, ui={tabs:{},menu:false,competitionFormat:'realistic',calendarMode:'realistic'};
   const active=()=>!GameState||GameState.worldVersion===1;
   const element=(tag,cls)=>{const e=document.createElement(tag);e.className=cls;return e};
   const title=(node,fallback)=>node.querySelector?.('h2,h3')?.textContent||fallback;
@@ -30,7 +30,7 @@
     const start=form.querySelector('[data-action="new"]'),importer=form.querySelector('[data-action="import"]'),footer=element('div','ws-welcome-footer');footer.append(start,importer);
     const source=[...form.children].filter(n=>n.matches('.world-source-summary,.fm-welcome-disclosure'));
     const controls=[...form.children].filter(n=>n.matches('.field,.world-career-selectors,.world-career-results,.fm-selected-club'));
-    const format=element('label','field');format.innerHTML=`Formato de competiciones<select id="careerCompetitionFormat"><option value="realistic" ${ui.competitionFormat==='realistic'?'selected':''}>Formatos por país · zonas, fases y playoffs</option><option value="classic" ${ui.competitionFormat==='classic'?'selected':''}>Calendario anual clásico</option></select>`;controls.push(format);
+    const format=element('div','world-career-selectors');format.innerHTML=`<label class="field">Formato deportivo<select id="careerCompetitionFormat"><option value="realistic" ${ui.competitionFormat==='realistic'?'selected':''}>Fases y playoffs por país</option><option value="classic" ${ui.competitionFormat==='classic'?'selected':''}>Liga clásica</option></select></label><label class="field">Calendario<select id="careerCalendarMode"><option value="realistic" ${ui.calendarMode==='realistic'?'selected':''}>Temporadas por país</option><option value="annual" ${ui.calendarMode==='annual'?'selected':''}>Anual de legado</option></select></label>`;controls.push(format);
     const head=element('div','ws-welcome-heading');head.innerHTML='<strong>FM<span class="gold">27</span></strong><span>Nueva carrera</span>';
     const dt=element('div','office-creation');dt.innerHTML=window.FM_OFFICE?.creationHTML()||'';
     panels(form,[{id:'career',label:'Carrera',nodes:controls,cls:'ws-career-fields'},{id:'manager',label:'Tu DT',nodes:[dt],cls:'ws-reader'},{id:'sources',label:'Datos y reglas',nodes:source,cls:'ws-reader'}],'welcome',[head]);form.append(footer);
@@ -51,6 +51,8 @@
   }
   function competitions(content) {
     const fixed=[...content.children].filter(n=>n.matches('.fm-page-intro,.fm-tabbar'));
+    if(content.querySelector('.season-overview')){const body=content.querySelector('.season-overview');content.replaceChildren(...fixed,body);return}
+    const lower=content.querySelector('#worldTableLeague')?.value;if(lower&&window.FM_PYRAMIDS?.enabled()&&FM_PYRAMIDS.rules[lower]){const body=element('div','ws-competition-formats');body.innerHTML=FM_PYRAMIDS.render(lower);const filters=content.querySelector('.fm-filters');if(filters)fixed.push(filters);content.replaceChildren(...fixed,body);return}
     if(window.FM_REGULATIONS&&!FM_REGULATIONS.enabled()&&content.querySelector('#worldTableLeague')){const next=element('div','ws-format-switch');next.innerHTML=`<span>${GameState.world.nextRegulations?'Los nuevos reglamentos se aplicarán el próximo año.':'Tu temporada conserva su formato guardado.'}</span><button data-reg-next>${GameState.world.nextRegulations?'Mantener reglamentos actuales':'Activar formatos por país el próximo año'}</button>`;fixed.push(next)}
     if(window.FM_REGULATIONS?.enabled()&&content.querySelector('#worldTableLeague')&&FM_REGULATIONS.rules[content.querySelector('#worldTableLeague').value]){const body=element('div','ws-competition-formats');body.innerHTML=FM_REGULATIONS.render(content.querySelector('#worldTableLeague').value);const filters=content.querySelector('.fm-filters');if(filters)fixed.push(filters);content.replaceChildren(...fixed,body);return}
     if(window.FM_COMPETITIONS&&!window.FM_REGULATIONS&&!GameState.world.competitionFormatsVersion&&content.querySelector('#worldTableLeague')){
@@ -110,15 +112,16 @@
     if(view==='office'&&window.FM_OFFICE){content.innerHTML=FM_OFFICE.page();document.querySelector('.fm-topbar h1').textContent='DT y empleados';cardGroups(content,'office')}
     else if(view==='career'&&window.FM_DEPTH){content.innerHTML=FM_DEPTH.career()+(window.FM_INTEGRITY?.page()||'');document.querySelector('.fm-topbar h1').textContent='Carrera';cardGroups(content,'career')}
     else if(view==='dressing-room'&&window.FM_DRESSING_ROOM){content.innerHTML=FM_DRESSING_ROOM.render();document.querySelector('.fm-topbar h1').textContent='Vestuario'}
+    else if(view==='finances'&&window.FM_FINANCES){content.innerHTML=FM_FINANCES.render()}
     else if(view==='training'&&window.FM_DEVELOPMENT){content.innerHTML=FM_DEVELOPMENT.page();cardGroups(content,'training')}
     else if(handlers[view])handlers[view](content);
     else if(['squad','training','scouting','finances'].includes(view))cardGroups(content,view);
     if(['career','dressing-room'].includes(view)){for(const button of shell.querySelectorAll('aside nav [data-view]'))button.classList.remove('active');const crumb=shell.querySelector('.fm-breadcrumb');if(crumb)crumb.textContent=GameState.userClub.nombre+' / '+(view==='career'?'Carrera':'Vestuario')}
-    window.FM_DRESSING_ROOM?.ensure();menu(shell);window.FM_MATCH_REALISM?.decorate();window.FM_DEPTH?.decorate();window.FM_MATCH_CENTRE?.decorate();window.FM_OFFICE?.decorate();window.FM_DEVELOPMENT?.decorate();
+    window.FM_DRESSING_ROOM?.ensure();menu(shell);window.FM_MATCH_REALISM?.decorate();window.FM_DEPTH?.decorate();window.FM_MATCH_CENTRE?.decorate();window.FM_OFFICE?.decorate();window.FM_DEVELOPMENT?.decorate();window.FM_REGISTRATION?.decorate();
   }
   render=function(){const requested=view;if(active()&&view==='match'&&!ui.menu&&!document.querySelector('.ws-menu:not([hidden])')&&window.FM_MATCH_CENTRE?.refresh())return;if(active()&&['dressing-room','career','office'].includes(view))view='squad';try{original()}finally{view=requested}layout()};
   document.addEventListener('click',e=>{if(e.target.closest('[data-view],[data-action]'))ui.menu=false;if(e.target.closest('[data-inbox-open]'))ui.tabs['inbox-mobile']='reading'},true);
   document.addEventListener('click',e=>{const tab=e.target.closest('[data-ws-tab]');if(tab){ui.tabs[tab.dataset.wsKey]=tab.dataset.wsTab;render();return}const b=e.target.closest('[data-ws-menu]');if(b){ui.menu=b.dataset.wsMenu==='toggle'?!ui.menu:false;render()}});
-  document.addEventListener('change',e=>{if(e.target.id==='careerCompetitionFormat')ui.competitionFormat=e.target.value});
+  document.addEventListener('change',e=>{if(e.target.id==='careerCompetitionFormat')ui.competitionFormat=e.target.value;if(e.target.id==='careerCalendarMode')ui.calendarMode=e.target.value});
   window.FM_WORKSPACE={layout,ui,panels,redraw:()=>render()};
 })();

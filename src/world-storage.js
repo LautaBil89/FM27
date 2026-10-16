@@ -1,6 +1,6 @@
 /* Compact local saves; exported backups retain the complete, hydrated career. */
 const WORLD_STORAGE = (() => {
-  const FORMAT = 'FM27-COMPACT', CODEC_VERSION = 1, MAX_IMPORT_BYTES = 50 * 1024 * 1024;
+  const FORMAT = 'FM27-COMPACT', COMPRESSED_FORMAT = 'FM27-COMPACT-LZ', CODEC_VERSION = 1, MAX_IMPORT_BYTES = 50 * 1024 * 1024;
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
   const forbidden = new Set(['__proto__', 'prototype', 'constructor']);
   const missing = Symbol('absent');
@@ -203,7 +203,12 @@ const WORLD_STORAGE = (() => {
       const used = new Set();
       for (const g of e.games) {
         if (!object(g) || !clubs.has(g.home) || !clubs.has(g.away) || g.home === g.away || used.has(g.home) || used.has(g.away)) fail('partido del calendario no válido');
-        if (e.type === 'LPF' && (!leagues.get(e.leagueId).clubIds.includes(g.home) || !leagues.get(e.leagueId).clubIds.includes(g.away))) fail('partido de otra liga');
+        if(e.type==='LPF'){
+          const lower=leagues.get(e.leagueId),upper=leagues.get(e.interdivisionUpper);
+          const domestic=lower.clubIds.includes(g.home)&&lower.clubIds.includes(g.away);
+          const promotion=e.pyramid===true&&e.phase==='knockout'&&e.pyramidPhase==='PROMOCION'&&lower.tier===2&&upper?.tier===1&&upper.country===lower.country&&lower.upperLeagueId===upper.id&&((upper.clubIds.includes(g.home)&&lower.clubIds.includes(g.away))||(lower.clubIds.includes(g.home)&&upper.clubIds.includes(g.away)));
+          if(!domestic&&!promotion)fail('partido de otra liga');
+        }
         used.add(g.home); used.add(g.away); result(g.result, g.home, g.away, clubs);
       }
     }
@@ -250,6 +255,13 @@ const WORLD_STORAGE = (() => {
 
   function decode(raw) {
     safeJSON(raw);
+    if(raw?.format===COMPRESSED_FORMAT){
+      if(raw.codecVersion!==1||typeof raw.data!=='string'||raw.data.length>MAX_IMPORT_BYTES||typeof LZString==='undefined')fail('copia comprimida incompatible');
+      const unpacked=LZString.decompressFromUTF16(raw.data,MAX_IMPORT_BYTES);
+      if(typeof unpacked!=='string'||!unpacked||bytes(unpacked)>MAX_IMPORT_BYTES)fail('copia comprimida dañada o demasiado grande');
+      raw=JSON.parse(unpacked);safeJSON(raw);
+      if(raw?.format!==FORMAT)fail('contenido comprimido incompatible');
+    }
     let state;
     if (raw?.format === FORMAT) {
       if (raw.codecVersion !== CODEC_VERSION || raw.version !== 3 || raw.worldVersion !== 1 || !object(raw.state) || !object(raw.state.world)) fail('versión de guardado compacto incompatible');
@@ -282,7 +294,12 @@ const WORLD_STORAGE = (() => {
   function serialize(s) {
     const payload = s.version === 3 ? encode(s) : s;
     if (s.version !== 3) MANAGEMENT.validateImported(s);
-    return JSON.stringify(payload);
+    const serialized=JSON.stringify(payload);
+    if(s.version===3&&serialized.length*2>3800000&&typeof LZString!=='undefined'){
+      const compressed=JSON.stringify({format:COMPRESSED_FORMAT,codecVersion:1,data:LZString.compressToUTF16(serialized)});
+      if(compressed.length<serialized.length)return compressed;
+    }
+    return serialized;
   }
   function save(silent = false) {
     if (!GameState) return false;

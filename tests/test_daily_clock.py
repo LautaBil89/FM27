@@ -74,6 +74,8 @@ class DailyClockScenarios(unittest.TestCase):
         self.page.locator('#club').select_option(club_id)
         if self.page.locator("#careerCompetitionFormat").count():
             self.page.select_option("#careerCompetitionFormat", "classic")
+        if self.page.locator('#careerCalendarMode').count():
+            self.page.select_option('#careerCalendarMode','annual')
         self.page.click('[data-action="new"]')
         self.page.wait_for_function('GameState?.version===3')
 
@@ -140,13 +142,21 @@ class DailyClockScenarios(unittest.TestCase):
             userPlayed:GameState.standings[GameState.userClub.id].pj,
             futurePlayed:GameState.calendar.filter(e=>e.done&&e.date>GameState.today).length,
             otherLeagues:GameState.world.leagues.filter(l=>l.id!==GameState.world.userLeagueId)
-                .map(l=>Object.values(l.standings).reduce((sum,r)=>sum+r.pj,0)),
+                .map(l=>({id:l.id,played:GameState.calendar.filter(e=>e.leagueId===l.id&&e.done).flatMap(e=>e.games).filter(g=>g.result).length,
+                    due:GameState.calendar.some(e=>e.leagueId===l.id&&e.games.length&&
+                        (e.date<GameState.today||e.date===GameState.today&&WORLD_CLOCK.eventSlot(e)<=WORLD_CLOCK.info().slot))})),
             userResult:fixture(currentEvent())?.result})""")
         self.assertTrue(due['clock']['ready'])
         self.assertGreater(due['played'], 0)
         self.assertEqual(due['userPlayed'], 0)
         self.assertEqual(due['futurePlayed'], 0)
-        self.assertTrue(all(n>0 for n in due['otherLeagues']))
+        # Added lower divisions retain their own opening dates, even in the
+        # annual career. Only rounds whose scheduled period arrived may play.
+        for league in due['otherLeagues']:
+            if league['due']:
+                self.assertGreater(league['played'],0,league['id'])
+            else:
+                self.assertEqual(league['played'],0,league['id'])
         self.assertIsNone(due['userResult'])
         self.page.evaluate('WORLD_ENGINE.completeOne()')
         self.assertEqual(self.page.evaluate('GameState.standings[GameState.userClub.id].pj'), 0)
@@ -170,7 +180,14 @@ class DailyClockScenarios(unittest.TestCase):
         self.assertEqual(within_day, {'injury':10,'condition':50,'sessions':original['sessions']+1,'ledger':original['ledger']})
         self.page.evaluate('WORLD_CLOCK.advance({silent:true})')
         next_day = self.page.evaluate('(id)=>({injury:player(id).injury,condition:player(id).condicion_fisica,sessions:GameState.training.sessions})', original['id'])
-        self.assertEqual(next_day, {'injury':9,'condition':54,'sessions':original['sessions']+1})
+        self.assertEqual(next_day['injury'],9)
+        self.assertEqual(next_day['sessions'],original['sessions']+1)
+        # Recovery now depends on age and accumulated physical load. It still
+        # happens once per day, and repeated processing of that day is inert.
+        self.assertGreater(next_day['condition'],within_day['condition'])
+        if self.page.evaluate('!!window.FM_MEDICINE'):
+            same_day=self.page.evaluate('(id)=>{FM_MEDICINE.onDay(GameState.today);return {injury:player(id).injury,condition:player(id).condicion_fisica,sessions:GameState.training.sessions}}',original['id'])
+            self.assertEqual(same_day,next_day)
         week = self.page.evaluate("""(id)=>{
             for(let n=0;n<24;n++)WORLD_CLOCK.advance({silent:true});
             return {injury:player(id).injury,sessions:GameState.training.sessions,clock:WORLD_CLOCK.info(),
@@ -195,7 +212,8 @@ class DailyClockScenarios(unittest.TestCase):
             const p=GameState.players.filter(p=>p.clubId&&p.clubId!==user&&!WORLD_ENGINE.isForeign(p,user)&&
                 p.posicion==='MED'&&CLUB_AI.canRelease(p,p.clubId).ok).sort((a,b)=>a.valor_mercado-b.valor_mercado)[0];
             if(!p)throw Error('Sin objetivo negociable');
-            p.valor_mercado=100000;p.salario=1000;p.contract=2028;p.clausula_rescision=100000;
+            // This fixture explicitly models a bilateral clause agreed in the career.
+            p.valor_mercado=100000;p.salario=1000;p.contract=2028;p.contractEnd='2028-12-31';p.clausula_rescision=100000;p.releaseClauseBilateral=true;
             const result=CLUB_AI.submitOffer({playerId:p.id,dealType:'permanent',activateClause:true,
                 fee:100000,wage:2000,years:3,bonus:0,releaseClause:300000});
             if(!result.ok)throw Error(result.reason);
@@ -293,6 +311,9 @@ class DailyClockScenarios(unittest.TestCase):
                 // must still match exactly across loading and continuation.
                 if(Array.isArray(ai.contracts?.registrations)&&ai.contracts.registrations.length===0)
                     delete ai.contracts.registrations;
+                if(Array.isArray(ai.contracts?.terminations)&&ai.contracts.terminations.length===0)delete ai.contracts.terminations;
+                if(Array.isArray(ai.contracts?.consentRequests)&&ai.contracts.consentRequests.length===0)delete ai.contracts.consentRequests;
+                if(ai.contracts?.lastContractDay===null)delete ai.contracts.lastContractDay;
                 return ai;
             })()),
             match:GameState.match?{minute:GameState.match.minute,score:GameState.match.score,
@@ -367,7 +388,7 @@ class DailyClockScenarios(unittest.TestCase):
             saveGame(true);
             return {turns,matches,dates,today:GameState.today,clock:WORLD_CLOCK.info(),history:GameState.history[0],
                 leagues:GameState.world.leagues.map(l=>({id:l.id,size:l.clubIds.length,format:l.format,table:l.standings})),
-                allDone:GameState.calendar.every(e=>e.done&&e.games.every(g=>!!g.result)),
+                countedGames:GameState.calendar.filter(e=>e.pyramid&&e.annual).flatMap(e=>e.games.map(g=>({...g,leagueId:e.leagueId}))),pyramids:FM_PYRAMIDS.summary(),allDone:GameState.calendar.every(e=>e.done&&e.games.every(g=>!!g.result)),
                 cups:Object.fromEntries(Object.entries(GameState.world.cups).map(([id,c])=>[id,c.winner])),
                 save:WORLD_STORAGE.inspect(GameState)};
         }""")
@@ -379,21 +400,38 @@ class DailyClockScenarios(unittest.TestCase):
         self.assertTrue(all(season['cups'].values()))
         for league in season['leagues']:
             with self.subTest(league=league['id']):
+                if league['id'] in season['pyramids']:
+                    for cid,row in league['table'].items():
+                        self.assertEqual(row['pj'],sum(g['leagueId']==league['id'] and cid in (g['home'],g['away']) for g in season['countedGames']))
+                    self.assertTrue(season['pyramids'][league['id']]['ready'])
+                    continue
                 rounds=(league['size']-1)*(2 if league['format']=='double' else 1)
                 self.assertTrue(all(r['pj']==rounds for r in league['table'].values()))
                 self.assertEqual(sum(r['gf'] for r in league['table'].values()), sum(r['gc'] for r in league['table'].values()))
         self.assertLess(season['save']['localStorageBytes'], 5*1024*1024)
         self.page.evaluate('nextSeason()')
-        new = self.page.evaluate('({year:GameState.year,date:GameState.today,first:GameState.calendar[0].date,clock:WORLD_CLOCK.info(),played:GameState.calendar.filter(e=>e.done).length,league:GameState.world.userLeagueId})')
+        new = self.page.evaluate('({year:GameState.year,date:GameState.today,first:GameState.calendar[0].date,ownFirst:WORLD_CLOCK.nextFixture()?.date,clock:WORLD_CLOCK.info(),played:GameState.calendar.filter(e=>e.done).length,league:GameState.world.userLeagueId})')
         self.assertEqual(new['year'], 2027)
         self.assertEqual(new['league'], 'ARG1')
-        self.assertEqual(date.fromisoformat(new['date']), date.fromisoformat(new['first'])-timedelta(days=7))
+        # Other countries can open earlier; the promoted club gets its own preparation week.
+        self.assertEqual(date.fromisoformat(new['date']), date.fromisoformat(new['ownFirst'])-timedelta(days=7))
         self.assertEqual(new['clock']['slot'], 0)
         self.assertEqual(new['played'], 0)
         self.page.reload(wait_until='domcontentloaded')
         self.assertEqual(self.page.evaluate('GameState.today'), new['date'])
         self.assertEqual(self.clock()['slot'], 0)
 
+
+    def test_10_new_annual_preparation_tracks_own_league_when_other_countries_start_earlier(self):
+        self.career(None,'ARG2')
+        result=self.page.evaluate("""()=>{let n=0;while(true){const e=GameState.calendar.find(e=>!e.done);if(!e)break;if(++n>1800)throw Error('Season stalled');GameState.today=e.date;WORLD_CLOCK.ensure().slot=3;const g=fixture(e);if(!WORLD_ENGINE.completeOne(g?{home:g.home===GameState.userClub.id?2:0,away:g.away===GameState.userClub.id?2:0}:null,e))throw Error('Event refused '+e.id)}nextSeason();WORLD_STORAGE.validate(GameState);return {year:GameState.year,league:GameState.world.userLeagueId,today:GameState.today,own:WORLD_CLOCK.nextFixture().date,first:GameState.calendar[0].date,slot:WORLD_CLOCK.info().slot,played:GameState.calendar.filter(e=>e.done).length}}""")
+        self.assertEqual(result['year'],2027)
+        self.assertEqual(date.fromisoformat(result['today']),date.fromisoformat(result['own'])-timedelta(days=7))
+        self.assertLess(result['first'],result['own'])
+        self.assertEqual((result['league'],result['slot'],result['played']),('ARG1',0,0))
+        self.page.reload(wait_until='domcontentloaded');self.page.wait_for_selector('aside')
+        self.assertEqual(self.page.evaluate('GameState.today'),result['today'])
+        self.assertEqual(self.clock()['slot'],0)
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

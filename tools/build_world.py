@@ -145,13 +145,38 @@ def merge():
     return db
 
 
+def expanded_catalog(base):
+    supplement = json.loads((ROOT / 'data/world/pyramids.json').read_text())
+    merged = {**base}
+    for kind, key in [('leagues', 'id'), ('clubs', 'id'), ('players', 'playerId')]:
+        merged[kind] = base[kind] + supplement[kind]
+        if len({item[key] for item in merged[kind]}) != len(merged[kind]):
+            raise ValueError('Repeated supplemental ' + kind)
+    members = {c['id']: c for c in merged['clubs']}
+    for league in merged['leagues']:
+        if len(league['clubIds']) != len(set(league['clubIds'])):
+            raise ValueError('Repeated supplemental members: ' + league['id'])
+        if any(cid not in members or members[cid]['leagueId'] != league['id'] for cid in league['clubIds']):
+            raise ValueError('Inconsistent supplemental membership: ' + league['id'])
+    if any(p['clubId'] not in members for p in merged['players']):
+        raise ValueError('Unknown supplemental player club')
+    merged['sources'] = base['sources'] + supplement.get('sources', [])
+    merged['notes'] = base['notes'] + supplement.get('notes', [])
+    merged['metadata'] = {**base['metadata'],
+        'baseCounts': {kind: len(base[kind]) for kind in ('leagues', 'clubs', 'players')},
+        'supplementCounts': {kind: len(supplement[kind]) for kind in ('leagues', 'clubs', 'players')},
+        **{kind: len(merged[kind]) for kind in ('leagues', 'clubs', 'players')},
+        'selection': 'Historical verified identities; supplemental gaps use separately labelled fictional reserves in careers'}
+    return merged
+
+
 def embed(db):
     scripts = [ROOT / 'src' / name for name in
-               ('world-engine.js', 'competition-formats.js', 'domestic-regulations.js', 'world-ui.js', 'world-storage.js',
-                'club-ai.js', 'market-contracts.js', 'player-profile.js',
-                'tactics-workbench.js', 'match-simulation.js', 'action-inbox.js', 'dressing-room.js', 'match-realism.js', 'negotiation-workspace.js', 'football-depth.js', 'match-centre.js', 'management-office.js', 'development-centre.js', 'career-integrity.js', 'viewport-workspace.js')]
+               ('world-engine.js', 'competition-formats.js', 'domestic-regulations.js', 'football-pyramid.js', 'season-calendar.js', 'world-ui.js', 'vendor/lz-string.js', 'world-storage.js',
+                'club-ai.js', 'registration-rules.js', 'market-contracts.js', 'player-profile.js',
+                'tactics-workbench.js', 'match-simulation.js', 'match-calibration.js', 'action-inbox.js', 'dressing-room.js', 'match-realism.js', 'negotiation-workspace.js', 'football-depth.js', 'match-centre.js', 'management-office.js', 'scouting-network.js', 'sports-medicine.js', 'development-centre.js', 'club-finances.js', 'career-integrity.js', 'viewport-workspace.js')]
     styles = [ROOT / 'src' / name for name in
-              ('world-ui.css', 'player-profile.css', 'tactics-workbench.css', 'action-inbox.css', 'dressing-room.css', 'match-realism.css', 'negotiation-workspace.css', 'viewport-workspace.css', 'football-depth.css', 'match-centre.css', 'management-office.css', 'development-centre.css', 'career-integrity.css')]
+              ('world-ui.css', 'player-profile.css', 'tactics-workbench.css', 'action-inbox.css', 'dressing-room.css', 'match-realism.css', 'negotiation-workspace.css', 'viewport-workspace.css', 'football-depth.css', 'match-centre.css', 'management-office.css', 'development-centre.css', 'career-integrity.css', 'football-pyramid.css', 'season-calendar.css', 'registration-rules.css', 'sports-medicine.css', 'club-finances.css', 'scouting-network.css')]
     for path in scripts + styles:
         if not path.exists():
             raise FileNotFoundError('Implementation not ready: ' + str(path))
@@ -240,8 +265,10 @@ def embed(db):
     html = html.replace('function scoutingView(){const list=', 'function scoutingView(){if(GameState?.worldVersion&&window.FM_DEPTH)return FM_DEPTH.scouting();const list=')
     html = html.replace('if (m.minute >= 90 + m.addedTime) {\n      m.done = true;', 'if (m.minute >= 90 + m.addedTime) {\n      if(window.FM_REGULATIONS?.extend(m)){if(m.minute%5===0)saveGame(true);if(view==="match")render();return;}\n      m.done = true;')
     js = '\n'.join(path.read_text() for path in scripts)
+    db = expanded_catalog(db)
     database = json.dumps(db, ensure_ascii=False, separators=(',', ':')).replace('<', '\\u003c')
-    expansion = '\n/* WORLD_EXPANSION_START */\nconst WORLD_DATABASE = ' + database + ';\n' + js + '\n/* WORLD_EXPANSION_END */\n'
+    benchmarks = json.dumps(json.loads((ROOT / 'data/world/match-benchmarks.json').read_text()), ensure_ascii=False, separators=(',', ':')).replace('<', '\\u003c')
+    expansion = '\n/* WORLD_EXPANSION_START */\nconst WORLD_DATABASE = ' + database + ';\nconst WORLD_MATCH_BENCHMARKS = ' + benchmarks + ';\n' + js + '\n/* WORLD_EXPANSION_END */\n'
     marker = 'restoreGame();if(GameState?.match)view="match";render();'
     if html.count(marker) != 1:
         raise ValueError('Ambiguous startup boundary')
@@ -270,4 +297,5 @@ if __name__ == '__main__':
     world = merge()
     if not args.data_only:
         embed(world)
-    print(f'World: {len(world["leagues"])} leagues, {len(world["clubs"])} clubs, {len(world["players"])} unique real players')
+    catalog = world if args.data_only else expanded_catalog(world)
+    print(f'World: {len(catalog["leagues"])} competitions, {len(catalog["clubs"])} clubs, {len(catalog["players"])} unique real identities')

@@ -83,6 +83,10 @@ class WorldGameScenarios(unittest.TestCase):
         self.page.locator('#club').select_option(club_id)
         if self.page.locator('#careerCompetitionFormat').count():
             self.page.select_option('#careerCompetitionFormat','classic')
+        # These baseline scenarios exercise the original annual calendar.
+        # Real national season boundaries have dedicated calendar scenarios.
+        if self.page.locator('#careerCalendarMode').count():
+            self.page.select_option('#careerCalendarMode','annual')
         self.page.locator('[data-action="new"]').click()
         self.page.wait_for_function('GameState?.version===3 && !!currentEvent()')
         return self.page.evaluate('({club:GameState.userClub,league:GameState.world.userLeagueId})')
@@ -112,25 +116,34 @@ class WorldGameScenarios(unittest.TestCase):
         self.career()
         coverage = self.page.evaluate("""()=>({
             leagues:GameState.world.leagues.map(l=>({id:l.id,country:l.country,count:l.clubIds.length,confederation:l.confederation})),
-            players:GameState.players.length,real:GameState.players.every(p=>p.realIdentity && p.transfermarkt?.playerId && p.fecha_nacimiento),
-            unique:new Set(GameState.players.map(p=>p.transfermarkt.playerId)).size,
+            players:GameState.players.length,real:GameState.players.filter(p=>p.realIdentity).every(p=>p.transfermarkt?.playerId && p.fecha_nacimiento),
+            unique:new Set(GameState.players.map(p=>p.id)).size,
+            realCount:GameState.players.filter(p=>p.realIdentity).length,
+            realUnique:new Set(GameState.players.filter(p=>p.realIdentity).map(p=>p.transfermarkt?.playerId)).size,
+            sourceCounts:WORLD_DATABASE.metadata.baseCounts,
+            fictional:GameState.players.filter(p=>!p.realIdentity).map(p=>({name:p.nombre,source:p.identitySource,synthetic:p.synthetic,transfermarkt:p.transfermarkt})),
             squads:GameState.world.clubs.map(c=>({id:c.id,name:c.nombre,total:squad(c.id).length,
               positions:Object.fromEntries(['POR','DEF','MED','DEL'].map(pos=>[pos,squad(c.id).filter(p=>p.posicion===pos).length])),
               registeredForeign:foreigners(c.id),limit:WORLD_ENGINE.foreignLimit(c.id)})),
             references:WORLD_DATABASE.startingCups,
             cups:GameState.world.cups,
-            paredes:mine().find(p=>p.transfermarkt.playerId===166237),today:GameState.today
+            paredes:mine().find(p=>p.transfermarkt?.playerId===166237),today:GameState.today
         })""")
         counts = {l['id']: l['count'] for l in coverage['leagues']}
         self.assertEqual(counts['ARG1'], 30)
         self.assertEqual(counts['ARG2'], 36)
         self.assertEqual({k: counts[k] for k in ['GB1', 'ES1', 'IT1', 'L1', 'FR1']},
                          {'GB1': 20, 'ES1': 20, 'IT1': 20, 'L1': 18, 'FR1': 18})
-        south_america = [l for l in coverage['leagues'] if l['confederation']=='CONMEBOL' and l['id']!='ARG2']
+        south_america = [l for l in coverage['leagues'] if l['confederation']=='CONMEBOL' and l['id'] in ['ARG1','BRA1','URU1','CHI1','PAR1','BOL1','ECU1','PER1','COL1','VEN1']]
         self.assertEqual(len(south_america), 10)
         self.assertTrue(all(l['count'] >= 10 for l in south_america))
         self.assertTrue(coverage['real'])
         self.assertEqual(coverage['players'], coverage['unique'])
+        self.assertEqual(coverage['sourceCounts'], {'leagues':16,'clubs':310,'players':9220})
+        self.assertGreaterEqual(coverage['realCount'],9220)
+        self.assertEqual(coverage['realCount'],coverage['realUnique'])
+        self.assertTrue(coverage['fictional'])
+        self.assertTrue(all(p['synthetic'] and 'ficticia' in p['source'] and not p.get('transfermarkt') for p in coverage['fictional']))
         for team in coverage['squads']:
             with self.subTest(club=team['name']):
                 self.assertGreaterEqual(team['total'], 18)
@@ -165,14 +178,15 @@ class WorldGameScenarios(unittest.TestCase):
                     domestic:GameState.players.find(p=>p.nationalities.includes(GameState.userClub.country)),
                     argentine:GameState.players.find(p=>p.nationalities.length===1 && p.nationalities[0]==='Argentina'),
                     foreigners:foreigners(GameState.userClub.id),limit:WORLD_ENGINE.foreignLimit(),
-                    quota:mine().filter(p=>p.registered!==false&&!p.nationalities.includes(GameState.userClub.country)).length,
+                    quota:mine().filter(p=>p.registered!==false&&WORLD_ENGINE.isForeign(p)).length,
+                    registration:FM_REGISTRATION.profile(),
                     label:WORLD_ENGINE.competitionLabel(currentEvent())
                 })""")
                 self.assertIn(self.page.evaluate('WORLD_ENGINE.userLeague().name'), local['label'])
                 self.assertFalse(self.page.evaluate('(p)=>WORLD_ENGINE.isForeign(p)', local['domestic']))
                 if league_id != 'ARG2':
                     self.assertTrue(self.page.evaluate('(p)=>WORLD_ENGINE.isForeign(p)', local['argentine']))
-                    self.assertEqual(local['limit'], 99)
+                    self.assertEqual(local['limit'],local['registration']['foreignSquad'])
                     self.assertEqual(local['foreigners'], local['quota'])
                 opponent = self.page.evaluate("""()=>{
                     const g=fixture(currentEvent()),id=g.home===GameState.userClub.id?g.away:g.home;
@@ -270,8 +284,8 @@ class WorldGameScenarios(unittest.TestCase):
             }
             return {finished:GameState.finished,history:GameState.history[0],
                 leagues:GameState.world.leagues.map(l=>({id:l.id,clubs:l.clubIds,format:l.format,table:l.standings})),
-                events:GameState.calendar.map(e=>({id:e.id,type:e.type,leagueId:e.leagueId,phase:e.phase,done:e.done,games:e.games})),
-                cups:GameState.world.cups,scorers:GameState.players.filter(p=>p.goals>0).length,
+                events:GameState.calendar.map(e=>({id:e.id,type:e.type,leagueId:e.leagueId,phase:e.phase,pyramid:e.pyramid,annual:e.annual,done:e.done,games:e.games})),
+                pyramids:FM_PYRAMIDS.summary(),cups:GameState.world.cups,scorers:GameState.players.filter(p=>p.goals>0).length,
                 finite:GameState.players.every(p=>Number.isFinite(p.condicion_fisica)&&p.condicion_fisica>=0&&p.condicion_fisica<=100)};
         }""")
         self.assertTrue(summary['finished'])
@@ -280,6 +294,15 @@ class WorldGameScenarios(unittest.TestCase):
         self.assertEqual(summary['history']['position'], 1)
         for league in summary['leagues']:
             with self.subTest(league=league['id']):
+                if league['id'] in summary['pyramids']:
+                    # Lower divisions can have groups, non-annual cups and playoffs.
+                    # Reconcile their table with the actual fixtures counted in it.
+                    counted=[g for e in summary['events'] if e.get('leagueId')==league['id'] and e.get('annual') for g in e['games']]
+                    for cid,row in league['table'].items():
+                        self.assertEqual(row['pj'],sum(cid in (g['home'],g['away']) for g in counted))
+                    self.assertEqual(sum(r['gf'] for r in league['table'].values()),sum(r['gc'] for r in league['table'].values()))
+                    self.assertTrue(summary['pyramids'][league['id']]['ready'])
+                    continue
                 expected = (len(league['clubs'])-1) * (2 if league['format']=='double' else 1)
                 self.assertTrue(all(row['pj']==expected for row in league['table'].values()))
                 self.assertEqual(sum(row['gf'] for row in league['table'].values()), sum(row['gc'] for row in league['table'].values()))
@@ -346,7 +369,7 @@ class WorldGameScenarios(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix='fm27-world-export-') as directory:
             path = Path(directory) / 'career.json';download.save_as(str(path));exported = json.loads(path.read_text())
         self.assertEqual(exported['format'], 'FM27')
-        self.assertEqual(len(exported['state']['players']), 9220)
+        self.assertEqual(len(exported['state']['players']),len(json.loads(before)['players']))
         self.page.reload(wait_until='domcontentloaded')
         self.assertEqual(json.loads(self.page.evaluate('JSON.stringify(GameState)')), json.loads(before))
         self.assertTrue(self.page.evaluate('GameState.match.paused'))

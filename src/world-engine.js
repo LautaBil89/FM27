@@ -1,6 +1,6 @@
-/* Annual career universe. Real identities, simulated sporting and financial progression. */
+/* Persistent career universe with optional independent country seasons. Real identities, simulated sporting and financial progression. */
 (() => {
-  const legacy = {newCareer, fixture, completeEvent, advance, finishMatch, nextSeason, seasonReport, autoLineup, startMatch, available, aiXI,club,player,squad,foreigners};
+  const legacy = {newCareer, currentEvent, fixture, completeEvent, advance, finishMatch, nextSeason, seasonReport, autoLineup, startMatch, available, aiXI,club,player,squad,foreigners};
   const DAY = 86400000;
   const isWorld = () => GameState?.worldVersion === 1;
   const copy = value => structuredClone(value);
@@ -24,13 +24,13 @@
   const league = id => (isWorld()?GameState.world.leagues:WORLD_DATABASE.leagues).find(l=>l.id===id);
   const userLeague = () => isWorld()?league(GameState.world.userLeagueId):null;
   function countryOfClub(id){return club(id)?.country||'Argentina'}
-  function isForeign(p,clubId=GameState?.userClub.id){if(!p)return false;const country=countryOfClub(clubId),nationalities=p.nationalities||p.transfermarkt?.nationalities||[p.nacionalidad];return !nationalities.includes(country)&&!(country==='Argentina'&&p.registrationArgentina)}
-  function foreignLimit(clubId=GameState?.userClub.id){if(!isWorld())return 6;const limit=league(club(clubId)?.leagueId)?.foreignLimit;return Number.isFinite(limit)&&limit>=0?limit:99}
+  function isForeign(p,clubId=GameState?.userClub.id){if(!p)return false;if(window.FM_REGISTRATION?.isForeign)return FM_REGISTRATION.isForeign(p,clubId);const country=countryOfClub(clubId),nationalities=p.nationalities||p.transfermarkt?.nationalities||[p.nacionalidad];return !nationalities.includes(country)&&!(country==='Argentina'&&p.registrationArgentina)}
+  function foreignLimit(clubId=GameState?.userClub.id){if(!isWorld())return 6;const registration=window.FM_REGISTRATION?.profile?.(clubId);if(Number.isFinite(registration?.foreignSquad))return registration.foreignSquad;const limit=league(club(clubId)?.leagueId)?.foreignLimit;return Number.isFinite(limit)&&limit>=0?limit:99}
   foreigners=id=>isWorld()?squad(id).filter(p=>p.registered!==false&&isForeign(p,id)).length:legacy.foreigners(id);
   function qualificationSlots(l=userLeague()) {
     if(!l)return{lib:4,sud:4,relegation:2,promotion:0,champions:0,europa:0,conference:0};
     const relegation=window.FM_REGULATIONS?.enabled()?FM_REGULATIONS.rules[l.id]?.relegation|| (l.id==='ARG1'?2:0):l.id==='ARG1'?2:0;
-    if(l.tier===2)return{lib:0,sud:0,relegation:0,promotion:2,champions:0,europa:0,conference:0};
+    if(l.tier===2)return{lib:0,sud:0,relegation:0,promotion:window.FM_PYRAMIDS?.rules[l.id]?.promotions||2,champions:0,europa:0,conference:0};
     if(l.confederation==='UEFA')return{lib:0,sud:0,relegation,promotion:0,champions:4,europa:2,conference:1};
     const references=WORLD_DATABASE.startingCups;
     const count=type=>references?.[type]?.teams?.filter(id=>WORLD_DATABASE.clubs.find(c=>c.id===id)?.country===l.country).length;
@@ -40,9 +40,10 @@
     const nationalities=copy(ref.nationalities||[]),country=nationalities[0]||'Argentina';
     Object.assign(p,{nombre:ref.name,realIdentity:true,fecha_nacimiento:ref.dateOfBirth,birthYear:Number(ref.dateOfBirth.slice(0,4)),posicion:ref.position,positionDetail:ref.positionDetail,nacionalidad:country,nationalities,foot:ref.foot||'Sin dato publicado',heightCm:ref.heightCm,shirtNumber:ref.shirtNumber||ref.playerId%25+1,registrationArgentina:nationalities.includes('Argentina'),argentineCitizen:country!=='Argentina'&&nationalities.includes('Argentina')});
     p.transfermarkt={playerId:ref.playerId,publishedName:ref.name,profileUrl:ref.profileUrl,sourceUrl:ref.sourceUrl,marketValueEUR:ref.marketValueEUR,valuationDate:ref.valuationDate,valuationCutoff:null,retrievedAt:ref.retrievedAt,season:ref.sourceSeason,dateOfBirth:ref.dateOfBirth,positionDetail:ref.positionDetail,nationalities:copy(nationalities),foot:ref.foot,heightCm:ref.heightCm,shirtNumber:ref.shirtNumber,sourceType:ref.sourceType,valuationSourceUrl:ref.valuationSourceUrl||ref.sourceUrl,valuationSourceType:ref.valuationSourceType||ref.sourceType,contractEnd:ref.contractEnd,valuationStatus:Number.isFinite(ref.marketValueEUR)?(ref.valuationDate?'published_dated':'published_undated'):'not_published'};
+    if(ref.realIdentity===false||ref.synthetic){p.realIdentity=false;p.synthetic=true;p.marketValueOrigin='Reserva simulada para completar el plantel; identidad ficticia';delete p.transfermarkt;p.nombre=ref.name.includes('(reserva simulada)')?ref.name:ref.name+' (reserva simulada)'}
     return p;
   }
-  function playerFromReference(ref,team=null,id=ref.playerId) {
+  function playerFromReference(ref,team=null,id=ref.playerId,careerStart=GameState?.today||'2026-01-17') {
     const c=team||WORLD_DATABASE.clubs.find(c=>c.id===ref.clubId),year=2026;
     const seeded=salt=>{let n=(id*2654435761+salt*7919)>>>0;return n%17-8};
     const value=Number.isFinite(ref.marketValueEUR)&&ref.marketValueEUR>0?Math.round(ref.marketValueEUR*1.1):null;
@@ -50,6 +51,7 @@
     const rating=clamp(valueRating??((c?.rating||65)-5+seeded(8)*.6),40,94);
     const p={id,clubId:ref.clubId,edad:years,ritmo:clamp(rating+seeded(1),25,99),tiro:clamp(rating+seeded(2),25,99),pase:clamp(rating+seeded(3),25,99),regate:clamp(rating+seeded(4),25,99),defensa:clamp(rating+seeded(5),25,99),fisico:clamp(rating+seeded(6),25,99),condicion_fisica:100,moral:70,estado_forma:6.5,injury:0,ban:0,contract:year+2,goals:0,assists:0,minutes:0,appearances:0,seasonYellow:0,yellowSeason:0,redSeason:0,yellowCards:{LPF:0,LIB:0,SUD:0},form:[],registered:true,trainingFocus:'Equipo',trainingProgress:0,moraleHistory:[],personalidad:['Profesional','Ambicioso','Reservado','Líder'][id%4]};
     hydratePlayerIdentity(p,ref);
+    const validReference=typeof ref.contractEnd==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(ref.contractEnd)&&Number.isFinite(Date.parse(ref.contractEnd))&&iso(Date.parse(ref.contractEnd))===ref.contractEnd&&ref.contractEnd>=careerStart,cross=['Inglaterra','España','Italia','Alemania','Francia'].includes(c?.country);p.contractEnd=validReference?ref.contractEnd:`${Number(careerStart.slice(0,4))+2}-${cross?'06-30':'12-31'}`;p.contract=Number(p.contractEnd.slice(0,4));p.contractDateSource=validReference?'published-reference':'career-estimate';p.contractSignedDate=careerStart;
     if(p.posicion==='POR'){p.defensa=rating;p.fisico=rating;p.pase=clamp(rating-6,1,99);p.tiro=25;p.regate=35}
     else if(p.posicion==='DEF'){p.defensa=clamp(rating+3,1,99);p.tiro=clamp(rating-24,1,99)}
     else if(p.posicion==='MED'){p.pase=clamp(rating+3,1,99);p.defensa=clamp(rating-10,1,99)}
@@ -109,23 +111,27 @@
     return{LIB,SUD};
   }
   const knockoutDates = (year,type) => type==='LIB'?{R16:[[8,4],[8,11]],QF:[[9,8],[9,15]],SF:[[10,6],[10,13]],FINAL:[[11,21]]}:{PLAYOFF:[[7,7],[7,14]],R16:[[8,5],[8,12]],QF:[[9,9],[9,16]],SF:[[10,7],[10,14]],FINAL:[[11,22]]};
+  function makeContinentalCalendar(year,previous=null){const events=[],w=GameState.world;
+    const starting=year===2026&&!previous&&WORLD_DATABASE.startingCups;
+    const eligible=starting?{LIB:copy(starting.LIB.teams),SUD:copy(starting.SUD.teams)}:qualifiedTeams(previous);w.cups={};
+    const realistic=window.FM_SEASONS?.active(),groupDays=realistic?[[4,7],[4,14],[4,28],[5,5],[5,19],[5,26]]:[[3,10],[3,24],[4,7],[4,21],[5,5],[5,19]];
+    for(const type of ['LIB','SUD']){
+      const groups=starting?copy(starting[type].groups).map(g=>({id:g.id,teams:g.teams})):countryDraw(eligible[type],year+(type==='LIB'?11:37));
+      const cup={id:type,year,name:type==='LIB'?'Copa Libertadores':'Copa Sudamericana',participants:eligible[type],groups,groupTables:Object.fromEntries(groups.map(g=>[g.id,blankTable(g.teams)])),rounds:[],stages:[],winner:null,groupDone:false,sourceUrl:starting?.[type]?.sourceUrl||null,realStartingGroups:!!starting,sourceFormat:'32 clubes; 8 grupos; ida y vuelta; cruces de ida y vuelta y final única. Grupos iniciales reales 2026; cupos siguientes por tabla anual simulada.'};
+      w.cups[type]=cup;const groupSchedules=groups.map(g=>({id:g.id,rounds:roundRobin(g.teams,true)}));
+      for(let r=0;r<6;r++){const [month,day]=groupDays[r],id=`${year}-${type}-G-${r+1}`,games=groupSchedules.flatMap(g=>g.rounds[r].map(game=>({...game,group:g.id})));events.push({id,date:continentalDate(year,month,day,type),type,phase:'groups',stage:null,round:r+1,games,done:false});cup.rounds.push(id)}
+      const datesByStage=knockoutDates(year,type);if(realistic){if(type==='SUD')datesByStage.PLAYOFF=[[7,21],[7,28]];datesByStage.SF=[[10,20],[10,27]]}for(const [stage,dates]of Object.entries(datesByStage))dates.forEach(([m,d],i)=>events.push({id:`${year}-${type}-${stage}-${i+1}`,date:continentalDate(year,m,d,type,stage==='FINAL'),type,phase:'knockout',stage,leg:i+1,round:i+1,games:[],done:false}));
+    }
+    return events;
+  }
   function makeWorldCalendar(previous=null) {
     const year=GameState.year,events=[],w=GameState.world;
     const start=Date.UTC(year,0,24),saturday=new Date(start);while(saturday.getUTCDay()!==6)saturday.setUTCDate(saturday.getUTCDate()+1);
     for(const l of w.leagues){l.standings=blankTable(l.clubIds);l.format=l.clubIds.length>24||l.doubleRound===false?'single':'double';l.rounds=[];const rounds=roundRobin(l.clubIds,l.format==='double');for(let r=0;r<rounds.length;r++){const id=`${year}-${l.id}-${r+1}`;events.push({id,date:iso(+saturday+r*7*DAY),type:'LPF',leagueId:l.id,round:r+1,games:rounds[r],done:false});l.rounds.push(id)}}
-    const starting=year===2026&&!previous&&WORLD_DATABASE.startingCups;
-    const eligible=starting?{LIB:copy(starting.LIB.teams),SUD:copy(starting.SUD.teams)}:qualifiedTeams(previous);w.cups={};
-    const groupDays=[[3,10],[3,24],[4,7],[4,21],[5,5],[5,19]];
-    for(const type of ['LIB','SUD']){
-      const groups=starting?copy(starting[type].groups).map(g=>({id:g.id,teams:g.teams})):countryDraw(eligible[type],year+(type==='LIB'?11:37));
-      const cup={id:type,name:type==='LIB'?'Copa Libertadores':'Copa Sudamericana',participants:eligible[type],groups,groupTables:Object.fromEntries(groups.map(g=>[g.id,blankTable(g.teams)])),rounds:[],stages:[],winner:null,groupDone:false,sourceUrl:starting?.[type]?.sourceUrl||null,realStartingGroups:!!starting,sourceFormat:'32 clubes; 8 grupos; ida y vuelta; cruces de ida y vuelta y final única. Grupos iniciales reales 2026; cupos siguientes por tabla anual simulada.'};
-      w.cups[type]=cup;const groupSchedules=groups.map(g=>({id:g.id,rounds:roundRobin(g.teams,true)}));
-      for(let r=0;r<6;r++){const [month,day]=groupDays[r],id=`${year}-${type}-G-${r+1}`,games=groupSchedules.flatMap(g=>g.rounds[r].map(game=>({...game,group:g.id})));events.push({id,date:continentalDate(year,month,day,type),type,phase:'groups',stage:null,round:r+1,games,done:false});cup.rounds.push(id)}
-      for(const [stage,dates]of Object.entries(knockoutDates(year,type)))dates.forEach(([m,d],i)=>events.push({id:`${year}-${type}-${stage}-${i+1}`,date:continentalDate(year,m,d,type,stage==='FINAL'),type,phase:'knockout',stage,leg:i+1,round:i+1,games:[],done:false}));
-    }
-    const calendar=window.FM_COMPETITIONS?.buildCalendar(events)||events;
+    events.push(...makeContinentalCalendar(year,previous));
+    let calendar=window.FM_COMPETITIONS?.buildCalendar(events)||events;calendar=window.FM_SEASONS?.reshape(calendar,{initial:true})||calendar;
     GameState.calendar=calendar.sort((a,b)=>a.date.localeCompare(b.date)||eventSlot(a)-eventSlot(b)||a.id.localeCompare(b.id));
-    GameState.eventIndex=0;GameState.today=GameState.calendar[0].date;hydrateWorldState();
+    GameState.eventIndex=0;GameState.today=window.FM_SEASONS?.careerStart()||GameState.calendar[0].date;hydrateWorldState();
   }
   function eventGames(event){return event?.games||[]}
   fixture=e=>isWorld()?eventGames(e).find(g=>g.home===GameState.userClub.id||g.away===GameState.userClub.id)||null:legacy.fixture(e);
@@ -139,8 +145,8 @@
     const names={PLAYOFF:'Playoff de acceso',R16:'Octavos de final',QF:'Cuartos de final',SF:'Semifinales',FINAL:'Final'};
     const stage={key,name:names[key],ties:[]},legs=key==='FINAL'?1:2;
     pairs.forEach(([home,away],i)=>{
-      const tie={id:`${GameState.year}-${type}-${key}-T${i+1}`,home,away,legs:[],aggregate:null,winner:null};
-      for(let leg=1;leg<=legs;leg++){const e=GameState.calendar.find(e=>e.id===`${GameState.year}-${type}-${key}-${leg}`);const game={home:leg===1?home:away,away:leg===1?away:home,tieId:tie.id,eventId:e.id,result:null};tie.legs.push(game);e.games.push(game)}stage.ties.push(tie);
+      const year=cup.year??GameState.year,tie={id:`${year}-${type}-${key}-T${i+1}`,home,away,legs:[],aggregate:null,winner:null};
+      for(let leg=1;leg<=legs;leg++){const e=GameState.calendar.find(e=>e.id===`${year}-${type}-${key}-${leg}`);const game={home:leg===1?home:away,away:leg===1?away:home,tieId:tie.id,eventId:e.id,result:null};tie.legs.push(game);e.games.push(game)}stage.ties.push(tie);
     });cup.stages.push(stage);
   }
   function seededCross(first,second,seed,avoidCountries=true,avoidGroups=null) {
@@ -153,9 +159,9 @@
   }
   function afterGroups(type) {
     const cup=GameState.world.cups[type];cup.groupDone=true;cup.groupWinners=cup.groups.map(g=>sortedRows(cup.groupTables[g.id])[0].id);cup.groupRunners=cup.groups.map(g=>sortedRows(cup.groupTables[g.id])[1].id);cup.groupThirds=cup.groups.map(g=>sortedRows(cup.groupTables[g.id])[2].id);
-    if(type==='LIB'){const groupOf=id=>cup.groups.find(g=>g.teams.includes(id))?.id;buildStage('LIB','R16',seededCross(cup.groupWinners,cup.groupRunners,GameState.year+151,true,groupOf))}
+    if(type==='LIB'){const groupOf=id=>cup.groups.find(g=>g.teams.includes(id))?.id;buildStage('LIB','R16',seededCross(cup.groupWinners,cup.groupRunners,(cup.year??GameState.year)+151,true,groupOf))}
     const lib=GameState.world.cups.LIB,sud=GameState.world.cups.SUD;
-    if(lib.groupDone&&sud.groupDone)buildStage('SUD','PLAYOFF',seededCross(sud.groupRunners,lib.groupThirds,GameState.year+191,true));
+    if(lib.groupDone&&sud.groupDone)buildStage('SUD','PLAYOFF',seededCross(sud.groupRunners,lib.groupThirds,(sud.year??GameState.year)+191,true));
   }
   function currentTie(m=GameState.match){const e=currentEvent(),g=fixture(e);if(!isWorld()||!g?.tieId)return null;return GameState.world.cups[e.type].stages.find(s=>s.key===e.stage)?.ties.find(t=>t.id===g.tieId)||null}
   function aggregateFor(tie,currentGame=null,result=null) {
@@ -174,22 +180,22 @@
     if(!stage.ties.length||stage.ties.some(t=>!t.winner))return;
     const winners=stage.ties.map(t=>t.winner);
     if(stageKey==='FINAL'){cup.winner=winners[0];if(cup.winner===GameState.userClub.id){MANAGEMENT.transaction(type==='LIB'?5000000:2500000,`Campeón de ${cup.name}`,'premios');GameState.userClub.reputacion=clamp(GameState.userClub.reputacion+(type==='LIB'?10:6))}news(`Campeón de ${cup.name}`,`${club(cup.winner).nombre} levanta el trofeo continental.`)}
-    else if(stageKey==='PLAYOFF')buildStage(type,'R16',seededCross(cup.groupWinners,winners,GameState.year+223,true));
+    else if(stageKey==='PLAYOFF')buildStage(type,'R16',seededCross(cup.groupWinners,winners,(cup.year??GameState.year)+223,true));
     else{const next={R16:'QF',QF:'SF',SF:'FINAL'}[stageKey];buildStage(type,next,Array.from({length:winners.length/2},(_,i)=>[winners[i*2],winners[i*2+1]]))}
   }
   function registerSquad(id) {const foreign=squad(id).filter(p=>isForeign(p,id)).sort((a,b)=>overall(b)-overall(a));for(const p of squad(id))p.registered=true;for(const p of foreign.slice(typeof registrationLimit==='function'?registrationLimit(id):foreignLimit(id)))p.registered=false}
   let processingEvent=null;
-  available=p=>isWorld()?!!p&&p.registered!==false&&p.injury===0&&(p.ban===0||(p.banCompetition&&p.banCompetition!==(processingEvent||(p.clubId===GameState.userClub.id?nextUserEvent():currentEvent()))?.type)):legacy.available(p);
+  available=p=>isWorld()?!!p&&p.registered!==false&&p.injury===0&&(!window.FM_REGISTRATION?.eligible||FM_REGISTRATION.eligible(p,p.clubId,processingEvent||(p.clubId===GameState.userClub.id?nextUserEvent():currentEvent()))!==false)&&(p.ban===0||(p.banCompetition&&p.banCompetition!==(processingEvent||(p.clubId===GameState.userClub.id?nextUserEvent():currentEvent()))?.type)):legacy.available(p);
   aiXI=function(id){
     if(!isWorld())return legacy.aiXI(id);
     const pool=squad(id).filter(available).sort((a,b)=>overall(b)*b.condicion_fisica-overall(a)*a.condicion_fisica),ids=[];
     for(const pos of FORMATIONS['4-3-3']){
-      const candidate=pool.find(p=>p.posicion===pos&&!ids.includes(p.id))||pool.find(p=>!ids.includes(p.id)&&p.posicion!=='POR');
+      const cap=window.FM_REGISTRATION?.profile(id)?.foreignMatch??99,allowed=p=>!ids.includes(p.id)&&(!isForeign(p,id)||ids.filter(pid=>isForeign(player(pid),id)).length<cap);const candidate=pool.find(p=>p.posicion===pos&&allowed(p))||pool.find(p=>p.posicion!=='POR'&&allowed(p));
       if(candidate)ids.push(candidate.id);
     }
     return ids;
   };
-  autoLineup=function(){if(!isWorld())return legacy.autoLineup();indexState(true);if(window.FM_TACTICS?.validateLineup().valid)return;legacy.autoLineup()};
+  autoLineup=function(){if(!isWorld())return legacy.autoLineup();if(GameState.match&&!GameState.match.done)return;indexState(true);if(window.FM_TACTICS){if(FM_TACTICS.validateLineup().valid)return;if(FM_TACTICS.autoSelect())return}legacy.autoLineup()};
   function basicDefaults(s) {
     s.nextMessageId??=1;s.inbox??=[];s.external??=[];s.training??={focus:'Posesión',intensity:'Normal',lastReport:'El cuerpo técnico prepara la primera semana.',sessions:0};s.scouting??={shortlist:[],reports:{},budget:25000};s.finance??={ledger:[],seasonIncome:0,seasonExpense:0,openingBalance:s.userClub.presupuesto_dolares};s.offers??=[];s.transferListed??=[];s.history??=[];s.lastMatch??=null;
     s.userClub.ticketPrice??=18;s.userClub.wageBudget??=300000;s.tactics.roles??={};
@@ -200,6 +206,7 @@
     if(!state?.worldVersion)return null;
     return state.calendar.find(e=>!e.done&&e.games.some(g=>g.home===state.userClub.id||g.away===state.userClub.id))||null;
   }
+  currentEvent=function(){return isWorld()?(nextUserEvent()||GameState.calendar.find(e=>!e.done)||null):legacy.currentEvent()};
   function ensureClock(state=GameState) {
     if(!state?.worldVersion)return null;
     if(!state.world.clock){
@@ -213,10 +220,11 @@
     return iso(+saturday-7*DAY);
   }
   function startPreseason() {
-    GameState.today=seasonStartDay(GameState.year);
+    GameState.today=window.FM_SEASONS?.careerStart()||seasonStartDay(GameState.year);
     GameState.world.clock={version:1,slot:0,ticks:0,lastTrainingDate:null,lastProcessedDay:GameState.today,lastMatchNotice:null,recent:[]};
     GameState.finance.lastFinancialDate=GameState.today;
     for(const p of GameState.players)if(p.fecha_nacimiento)p.edad=age(p.fecha_nacimiento,GameState.today);
+    if(window.FM_SEASONS?.active()){FM_SEASONS.warmStart();clockEntry('Comienza la preparación',`El calendario de tu país define la pretemporada. Las otras ligas ya tienen los resultados correspondientes a esta fecha. Cada día tiene cuatro turnos.`);return}
     clockEntry('Comienza la preparación',`Tenés una semana para preparar el plantel antes del inicio de la temporada. Cada día tiene cuatro turnos.`);
   }
   function eventDue(event) {return !!event&&!event.done&&(event.date<GameState.today||event.date===GameState.today&&ensureClock().slot>=eventSlot(event));}
@@ -236,6 +244,7 @@
       const event=GameState.calendar[i];if(event.date>GameState.today)break;
       if(eventDue(event)&&!fixture(event)&&completeOne(null,event))processed++;
     }
+    window.FM_SEASONS?.checkCompletion();
     if(processed)clockEntry('Resultados del día',`Se disputaron ${processed} fechas de otras ligas y copas. Podés revisar sus resultados en Competiciones.`);
     const event=nextUserEvent(),clock=ensureClock();
     if(matchReady(event)&&clock.lastMatchNotice!==event.id){
@@ -276,22 +285,24 @@
     clearInterval(timer);const meta=reference;
     objective=window.FM_OFFICE?.objectiveFor(clubId)||objective;
     GameState={version:3,worldVersion:1,manager:name,year:2026,today:'2026-01-24',userClub:{...copy(meta),presupuesto_dolares:meta.budget,presupuesto_pesos:meta.budget*FX,cupos_extranjeros_usados:0,confianza_directiva:70,presion_hinchada:35,reputacion:meta.reputation,wageBudget:meta.wageBudget,ticketPrice:18,objective},world:{userLeagueId:meta.leagueId,leagues:copy(WORLD_DATABASE.leagues),clubs:copy(WORLD_DATABASE.clubs).map(c=>({...c,form:[],relegated:false})),cups:{},rules:'Temporadas anuales simplificadas: ida y vuelta en ligas de hasta 24 clubes; una vuelta en Argentina, con ascenso y descenso entre sus dos divisiones. Copas con cupos por tabla anual y sorteos simulados.'},league:[],continental:[],external:[],players:[],calendar:[],standings:null,annual:null,eventIndex:0,tactics:{formation:'4-3-3',style:'Gegenpress',xi:[],bench:[],mentality:'Equilibrada',tempo:50,width:50,line:50,pressing:50,roles:{},captain:null,penaltyTaker:null},news:[],match:null,finished:false,databaseSnapshot:'Transfermarkt · mundo ampliado · planteles seleccionados 2026 / 2025–26',dataSource:{name:'Transfermarkt',season:'2026 / 2025–26',retrievedAt:WORLD_DATABASE.metadata?.retrievedAt||new Date().toISOString().slice(0,10),eurToUsd:1.10,verifiedPlayers:WORLD_DATABASE.players.length,datedValues:WORLD_DATABASE.players.filter(p=>p.valuationDate&&p.marketValueEUR).length},nextMessageId:1,inbox:[],training:{focus:'Posesión',intensity:'Normal',lastReport:'El cuerpo técnico prepara la primera semana.',sessions:0},scouting:{shortlist:[],reports:{},budget:25000},finance:{ledger:[],seasonIncome:0,seasonExpense:0,openingBalance:meta.budget},offers:[],transferListed:[],history:[],lastMatch:null};
-    window.GameState=GameState;GameState.players=WORLD_DATABASE.players.map(ref=>playerFromReference(ref));indexState(true);
+    window.GameState=GameState;GameState.today=options.calendarMode==='realistic'&&window.FM_SEASONS?FM_SEASONS.definition(meta.leagueId,GameState.year).preseason:seasonStartDay(GameState.year);GameState.players=WORLD_DATABASE.players.map(ref=>playerFromReference(ref));indexState(true);
     for(const c of GameState.world.clubs)registerSquad(c.id);
     GameState.userClub.wageBudget=Math.max(meta.wageBudget,Math.ceil(MANAGEMENT.wageBill()*1.15/1000)*1000);
-    if(options.competitionFormat!=='classic')window.FM_COMPETITIONS?.initializeNewCareer();
-    makeWorldCalendar();startPreseason();GameState.tactics.captain=mine().sort((a,b)=>b.edad-a.edad)[0]?.id||null;GameState.tactics.penaltyTaker=mine().sort((a,b)=>b.tiro-a.tiro)[0]?.id||null;
+    if(options.competitionFormat!=='classic')window.FM_COMPETITIONS?.initializeNewCareer();else window.FM_PYRAMIDS?.initialize();
+    window.FM_SEASONS?.initialize(options);
+    window.CLUB_AI?.ensure();window.FM_FINANCES?.ensure();makeWorldCalendar();startPreseason();GameState.tactics.captain=mine().sort((a,b)=>b.edad-a.edad)[0]?.id||null;GameState.tactics.penaltyTaker=mine().sort((a,b)=>b.tiro-a.tiro)[0]?.id||null;
     window.CLUB_AI?.ensure();window.FM_TACTICS?.ensure();window.FM_PLAYER?.captureProgress();
     autoLineup();window.FM_DRESSING_ROOM?.ensure();news('Bienvenido al fútbol mundial',`${name} asume en ${meta.nombre}. ${GameState.world.leagues.length} ligas y ${GameState.world.clubs.length} clubes disputan la temporada en paralelo.`);
     MANAGEMENT.addMessage('Reglamento de carrera',GameState.world.rules,'sistema');
-    MANAGEMENT.addMessage('Datos de jugadores',`Las ${GameState.players.length.toLocaleString('es-AR')} identidades provienen de Transfermarkt. Las fichas conservan su fuente, temporada y fecha de tasación cuando existe. Los planteles son selecciones históricas de participantes, con atributos, salarios y contratos simulados; no constituyen un registro oficial de inscripciones actuales. Los juveniles futuros sí son generados por las inferiores.`, 'sistema');
+    MANAGEMENT.addMessage('Datos de jugadores',`${GameState.players.filter(p=>p.realIdentity).length.toLocaleString('es-AR')} identidades reales provienen de fuentes de planteles identificadas. Hay ${GameState.players.filter(p=>!p.realIdentity).length.toLocaleString('es-AR')} reservas ficticias, marcadas explícitamente, para completar planteles sin cobertura suficiente. Las fichas conservan su fuente, temporada y fecha de tasación cuando existe. Los planteles son selecciones históricas de participantes, con atributos, salarios y contratos simulados; no constituyen un registro oficial de inscripciones actuales. Los juveniles futuros sí son generados por las inferiores.`, 'sistema');
     saveGame(true);view='dashboard';render();return GameState;
   }
-  newCareer=function(){if(typeof WORLD_DATABASE==='undefined')return legacy.newCareer();return createWorldCareer($('#manager')?.value,$('#club')?.value,$('#objective')?.value,{competitionFormat:$('#careerCompetitionFormat')?.value||'realistic'})};
+  newCareer=function(){if(typeof WORLD_DATABASE==='undefined')return legacy.newCareer();return createWorldCareer($('#manager')?.value,$('#club')?.value,$('#objective')?.value,{competitionFormat:$('#careerCompetitionFormat')?.value||'realistic',calendarMode:$('#careerCalendarMode')?.value||'realistic'})};
   function recoverTo(nextDate) {
-    while(GameState.today<nextDate){const day=iso(+new Date(GameState.today)+DAY);for(const p of GameState.players){p.condicion_fisica=clamp(p.condicion_fisica+4);p.injury=Math.max(0,p.injury-1);if(p.fecha_nacimiento)p.edad=age(p.fecha_nacimiento,day)}GameState.today=day;window.CLUB_AI?.onDayAdvance(day);window.FM_DRESSING_ROOM?.onDayAdvance(day);window.FM_DEPTH?.progress(day);window.FM_OFFICE?.onDay(day);window.FM_DEVELOPMENT?.onDay(day);window.FM_PLAYER?.captureProgress();}
+    while(GameState.today<nextDate){const day=iso(+new Date(GameState.today)+DAY);if(window.FM_MEDICINE)FM_MEDICINE.onDay(day);for(const p of GameState.players){if(!window.FM_MEDICINE){p.condicion_fisica=clamp(p.condicion_fisica+4);p.injury=Math.max(0,p.injury-1)}if(p.fecha_nacimiento)p.edad=age(p.fecha_nacimiento,day)}GameState.today=day;window.FM_SEASONS?.onDay(day);window.CLUB_AI?.onDayAdvance(day);window.FM_DRESSING_ROOM?.onDayAdvance(day);window.FM_DEPTH?.progress(day);window.FM_OFFICE?.onDay(day);window.FM_DEVELOPMENT?.onDay(day);settleFinances(day);window.FM_FINANCES?.onDay(day);window.FM_PLAYER?.captureProgress();}
   }
   function settleFinances(day) {
+    if(window.FM_FINANCES?.settleLegacy)return FM_FINANCES.settleLegacy(day);
     const f=GameState.finance;f.lastFinancialDate??=day;const weeks=Math.floor((new Date(day)-new Date(f.lastFinancialDate))/(7*DAY));if(weeks<=0)return;
     MANAGEMENT.transaction(-MANAGEMENT.wageBill()*weeks,`Salarios del plantel · ${weeks} semana${weeks>1?'s':''}`,'salarios');MANAGEMENT.transaction(Math.round((club(GameState.userClub.id).capacity||30000)*1.8)*weeks,'Patrocinio semanal','patrocinio');f.lastFinancialDate=iso(+new Date(f.lastFinancialDate)+weeks*7*DAY);
     if(GameState.userClub.presupuesto_dolares<0){GameState.userClub.confianza_directiva=clamp(GameState.userClub.confianza_directiva-3);news('Equilibrio financiero', 'La directiva solicita ventas o una reducción de salarios para recuperar la caja.')}
@@ -310,9 +321,11 @@
     for(const event of m.injuryEvents||[]){const p=player(event.playerId);if(p?.clubId===GameState.userClub.id)MANAGEMENT.addMessage('Parte médico',`${p.nombre}: ${event.type}, ${p.injury} días estimados de recuperación.`, 'medico',{action:'medical',playerId:p.id});}
   }
   function simulatedStats(g,r) {
-    for(const [id,goals]of [[g.home,r.home],[g.away,r.away]]){const xi=aiXI(id),attackers=xi.filter(pid=>['DEL','MED'].includes(player(pid).posicion));for(const pid of xi){const p=player(pid);p.appearances++;p.minutes+=r.extraTime?120:90;p.estado_forma=clamp(6.1+Math.random()*1.1,1,10);p.condicion_fisica=clamp(p.condicion_fisica-(r.extraTime?17:13));if(Math.random()<.001)p.injury=rnd(7,21)}for(let n=0;n<goals&&attackers.length;n++){const scorer=player(pick(attackers));scorer.goals++;scorer.estado_forma=clamp(scorer.estado_forma+.6,1,10);const assist=attackers.find(pid=>pid!==scorer.id);if(assist)player(assist).assists++}}
+    const lineups=[];for(const [id,goals]of [[g.home,r.home],[g.away,r.away]]){const xi=aiXI(id);lineups.push(xi);const attackers=xi.filter(pid=>['DEL','MED'].includes(player(pid).posicion));for(const pid of xi){const p=player(pid);p.appearances++;p.minutes+=r.extraTime?120:90;p.estado_forma=clamp(6.1+Math.random()*1.1,1,10);if(!window.FM_MEDICINE){p.condicion_fisica=clamp(p.condicion_fisica-(r.extraTime?17:13));if(Math.random()<.001)p.injury=rnd(7,21)}}for(let n=0;n<goals&&attackers.length;n++){const scorer=player(pick(attackers));scorer.goals++;scorer.estado_forma=clamp(scorer.estado_forma+.6,1,10);const assist=attackers.find(pid=>pid!==scorer.id);if(assist)player(assist).assists++}}
+    window.FM_MEDICINE?.afterQuickMatch(processingEvent||currentEvent(),g,r,lineups);
   }
   function finishSeason() {
+    if(window.FM_SEASONS?.active())return FM_SEASONS.finishUserSeason();
     if(GameState.finished)return;GameState.finished=true;const l=userLeague(),rows=sortedRows(l.standings),place=rows.findIndex(r=>r.id===GameState.userClub.id)+1,slots=qualificationSlots(l),goal=GameState.userClub.objective.toLowerCase(),championGoal=goal.includes('campe'),qualifying=slots.lib||slots.champions||slots.promotion;
     const fallback=championGoal?place===1:goal.includes('mitad')?place<=Math.ceil(rows.length/2):goal.includes('europeos')?place<=slots.champions+slots.europa+slots.conference:goal.includes('descenso')?place<=rows.length-slots.relegation:place<=qualifying;
     const success=window.FM_COMPETITIONS?.objectiveResult(place,goal,fallback)??fallback,formats=window.FM_COMPETITIONS?.seasonSummary();GameState.userClub.confianza_directiva=clamp(GameState.userClub.confianza_directiva+(success?15:-15));if(place===1&&!(formats&&['ARG1','ARG2'].includes(l.id))&&!(window.FM_REGULATIONS?.enabled()&&FM_REGULATIONS.rules[l.id]))MANAGEMENT.transaction(l.tier===2?1000000:3000000,`Campeón de ${l.name}`,'premios');
@@ -331,7 +344,7 @@
     const beforeStats=userGame?Object.fromEntries(mine().map(p=>[p.id,{minutes:p.minutes,goals:p.goals,appearances:p.appearances}])):null;
     processingEvent=event;
     try {
-    for(const g of event.games){const mineGame=g===userGame,r=mineGame&&result?copy(result):simulated(g,false),regular=window.FM_COMPETITIONS?.updatesTable(event)??true;r.pen??=null;if(event.phase==='groups'||event.type==='LPF'&&regular&&event.phase!=='knockout')r.pen=null;
+    for(const g of event.games){const mineGame=g===userGame,r=mineGame&&result?copy(result):simulated({...g,leagueId:event.leagueId||club(g.home)?.leagueId},false),regular=window.FM_COMPETITIONS?.updatesTable(event)??true;r.pen??=null;if(event.phase==='groups'||event.type==='LPF'&&regular&&event.phase!=='knockout')r.pen=null;
       if(!m||!mineGame)window.FM_REGULATIONS?.simulateExtra(event,g,r);else if(m.extraTime)r.extraTime={home:m.regulationScore[0],away:m.regulationScore[1]};
       if(event.localCompetition&&window.FM_COMPETITIONS?.needsPenalties({score:[r.home,r.away]},event,g)&&!r.pen)r.pen=penalties(g.home,g.away);
       g.result=r;
@@ -339,14 +352,14 @@
       if(mineGame)userImpact(g,r,event);if(!(mineGame&&m))simulatedStats(g,r);
       for(const [side,id]of [[0,g.home],[1,g.away]]){const c=club(id);c.form??=[];c.form.push((side===0?r.home:r.away)>(side===0?r.away:r.home)?'G':r.home===r.away?'E':'P');c.form=c.form.slice(-5)}
     }
-    if(m&&result)recordLiveMatch(m,result);
+    if(m&&result){recordLiveMatch(m,result);window.FM_MEDICINE?.afterMatch(m);window.FM_SCOUT_NETWORK?.observeMatch(m)}
     if(userGame)window.FM_DRESSING_ROOM?.onMatchResult(event,userGame,userGame.result);
     if(userGame)window.MARKET_CONTRACTS?.onMatchResult?.(event,userGame,userGame.result,beforeStats);
     for(const p of GameState.players)if(p.ban&&playing.has(p.clubId)&&(!p.banCompetition||p.banCompetition===event.type)&&!m?.newBans?.includes(p.id)&&!m?.red.includes(p.id))p.ban--;
     if(event.type!=='LPF'){if(event.phase==='groups'&&event.round===6)afterGroups(event.type);else if(event.phase==='knockout')settleTie(event.type,event.stage)}
     window.FM_COMPETITIONS?.onEventComplete(event);
-    event.done=true;const remaining=GameState.calendar.findIndex(e=>!e.done);GameState.eventIndex=remaining<0?GameState.calendar.length:remaining;
-    if(m){GameState.match=null;clearInterval(timer)}if(!currentEvent())finishSeason();
+    event.done=true;window.FM_SEASONS?.onEventComplete(event);const remaining=GameState.calendar.findIndex(e=>!e.done);GameState.eventIndex=remaining<0?GameState.calendar.length:remaining;
+    if(m){GameState.match=null;clearInterval(timer)}if(!GameState.calendar.some(e=>!e.done))finishSeason();
     return true;
     }finally{processingEvent=null}
   }
@@ -364,18 +377,19 @@
     const p=makePlayer(id,c.id,pos,c.rating-rnd(12,20),c.country);p.edad=rnd(17,20);p.birthYear=GameState.year-p.edad;p.realIdentity=false;p.nombre+=' (juvenil)';p.contract=GameState.year+3;p.registrationArgentina=c.country==='Argentina';p.nationalities=[c.country];p.registered=true;p.potential=clamp(overall(p)+rnd(5,17),1,95);p.role={POR:'Arquero',DEF:'Defensor central',MED:'Centrocampista',DEL:'Delantero avanzado'}[pos];p.form=[];p.appearances=0;p.assists=0;p.minutes=0;p.seasonYellow=0;p.trainingFocus='Equipo';p.trainingProgress=0;p.moraleHistory=[];p.personalidad='Profesional';p.shirtNumber=id%25+1;return window.FM_DEPTH?FM_DEPTH.youth(c,p):p;
   }
   nextSeason=function(){
-    if(!isWorld())return legacy.nextSeason();if(!GameState.finished)return;const activateRegulations=!!GameState.world.nextRegulations,historicalTotals=activateRegulations&&!GameState.world.regulationsVersion?Object.fromEntries(GameState.world.leagues.map(l=>[l.id,copy(l.standings)])):null;if(activateRegulations&&GameState.world.competitionFormatsVersion)FM_REGULATIONS.initialize();const activateFormat=(GameState.world.nextCompetitionFormat==='realistic'||activateRegulations)&&!GameState.world.competitionFormatsVersion,previousTotals=activateFormat?copy(league('ARG1').standings):null,previousYear=GameState.year;window.CLUB_AI?.beforeNextSeason(seasonStartDay(GameState.year+1));const previous=GameState.history[0],rankings=previous.worldRankings;exchangeArgentina(rankings);GameState.year++;GameState.finished=false;GameState.match=null;GameState.lastMatch=null;GameState.offers=GameState.offers.map(o=>o.status==='pending'&&!o.awaitingRegistration?{...o,status:'expired'}:o);GameState.transferListed=[];GameState.today=seasonStartDay(GameState.year);
-    for(const p of GameState.players){if(p.fecha_nacimiento)p.edad=age(p.fecha_nacimiento,GameState.today);else p.edad=GameState.year-p.birthYear;p.goals=0;p.assists=0;p.minutes=0;p.appearances=0;p.seasonYellow=0;p.yellowSeason=0;p.redSeason=0;p.yellowCards={LPF:0,LIB:0,SUD:0};p.form=[];p.ban=0;p.injury=0;p.condicion_fisica=100;p.trainingProgress=0;if(p.contract<GameState.year){if(p.clubId===GameState.userClub.id)MANAGEMENT.addMessage('Fin de contrato',`${p.nombre} terminó su contrato y queda libre.`, 'contratos');p.clubId=null;p.contract=GameState.year+1}if(p.edad>33){p.ritmo=clamp(p.ritmo-1,1,99);p.fisico=clamp(p.fisico-1,1,99)}}
+    if(!isWorld())return legacy.nextSeason();if(!GameState.finished)return;if(window.FM_SEASONS?.active())return FM_SEASONS.resumeCareer();const activateRegulations=!!GameState.world.nextRegulations,historicalTotals=activateRegulations&&!GameState.world.regulationsVersion?Object.fromEntries(GameState.world.leagues.map(l=>[l.id,copy(l.standings)])):null;if(activateRegulations&&GameState.world.competitionFormatsVersion)FM_REGULATIONS.initialize();const activateFormat=(GameState.world.nextCompetitionFormat==='realistic'||activateRegulations)&&!GameState.world.competitionFormatsVersion,previousTotals=activateFormat?copy(league('ARG1').standings):null,previousYear=GameState.year;window.CLUB_AI?.beforeNextSeason(GameState.world.nextCalendarMode==='realistic'&&window.FM_SEASONS?FM_SEASONS.definition(GameState.world.userLeagueId,GameState.year+1).preseason:seasonStartDay(GameState.year+1));const previous=GameState.history[0],rankings=previous.worldRankings;exchangeArgentina(rankings);window.FM_PYRAMIDS?.exchangeAnnual?.();window.FM_DEVELOPMENT?.seasonEnd?.(GameState.year);window.FM_MEDICINE?.seasonEnd?.(GameState.year);GameState.year++;window.FM_FINANCES?.onSeason?.(GameState.year);GameState.finished=false;GameState.match=null;GameState.lastMatch=null;GameState.offers=GameState.offers.map(o=>o.status==='pending'&&!o.awaitingRegistration?{...o,status:'expired'}:o);GameState.transferListed=[];GameState.today=seasonStartDay(GameState.year);
+    for(const p of GameState.players){if(p.fecha_nacimiento)p.edad=age(p.fecha_nacimiento,GameState.today);else p.edad=GameState.year-p.birthYear;p.goals=0;p.assists=0;p.minutes=0;p.appearances=0;p.seasonYellow=0;p.yellowSeason=0;p.redSeason=0;p.yellowCards={LPF:0,LIB:0,SUD:0};p.form=[];p.ban=0;if(!window.FM_MEDICINE){p.injury=0;p.condicion_fisica=100}p.trainingProgress=0;if(p.contract<GameState.year){if(p.clubId===GameState.userClub.id)MANAGEMENT.addMessage('Fin de contrato',`${p.nombre} terminó su contrato y queda libre.`, 'contratos');p.clubId=null;p.contract=GameState.year+1}if(p.edad>33&&!window.FM_DEVELOPMENT?.seasonEnd){p.ritmo=clamp(p.ritmo-1,1,99);p.fisico=clamp(p.fisico-1,1,99)}}
     indexState(true);let nextId=Math.max(...GameState.players.map(p=>p.id))+1;
     for(const c of GameState.world.clubs){c.form=[];c.relegated=false;const pool=squad(c.id);let size=pool.length+(window.MARKET_CONTRACTS?.returnSlots(c.id)||0)+(window.MARKET_CONTRACTS?.futureSlots?.(c.id)||0);for(const [pos,minimum]of [['POR',3],['DEF',7],['MED',7],['DEL',5]]){let existing=pool.filter(p=>p.posicion===pos).length;while(existing<minimum&&size<32){GameState.players.push(newYouth(nextId++,c,pos));existing++;size++;}}}
-    indexState(true);for(const c of GameState.world.clubs)registerSquad(c.id);if(activateFormat){FM_COMPETITIONS.initializeNewCareer();GameState.world.competitionHistory=[{year:previousYear,totals:previousTotals}];delete GameState.world.nextCompetitionFormat}if(historicalTotals&&GameState.world.regulations){GameState.world.regulations.history=[{year:previousYear,totals:historicalTotals}]}delete GameState.world.nextRegulations;makeWorldCalendar(rankings);startPreseason();GameState.finance.seasonIncome=0;GameState.finance.seasonExpense=0;GameState.finance.openingBalance=GameState.userClub.presupuesto_dolares;
+    indexState(true);for(const c of GameState.world.clubs)registerSquad(c.id);if(activateFormat){FM_COMPETITIONS.initializeNewCareer();GameState.world.competitionHistory=[{year:previousYear,totals:previousTotals}];delete GameState.world.nextCompetitionFormat}if(historicalTotals&&GameState.world.regulations){GameState.world.regulations.history=[{year:previousYear,totals:historicalTotals}]}delete GameState.world.nextRegulations;if(GameState.world.nextCalendarMode==='realistic'){FM_SEASONS.initialize({calendarMode:'realistic'});delete GameState.world.nextCalendarMode}makeWorldCalendar(rankings);startPreseason();GameState.finance.seasonIncome=0;GameState.finance.seasonExpense=0;GameState.finance.openingBalance=GameState.userClub.presupuesto_dolares;
     const changed=previous.leagueId!==GameState.world.userLeagueId;MANAGEMENT.transaction(userLeague().tier===2?1500000:previous.position<=4?6000000:3000000,'Aporte para la nueva temporada','directiva');if(changed)GameState.userClub.reputacion=clamp(GameState.userClub.reputacion+(userLeague().tier===2?-8:8));
     window.CLUB_AI?.afterNextSeason();window.FM_TACTICS?.ensure();window.FM_PLAYER?.captureProgress();
     GameState.userClub.wageBudget=Math.max(GameState.userClub.wageBudget,Math.ceil(MANAGEMENT.wageBill()*1.1/1000)*1000);autoLineup();news('Nuevo proyecto',`Temporada ${GameState.year}. ${GameState.userClub.nombre} disputa ${userLeague().name}. La tabla del año anterior define las plazas continentales. Las nuevas promociones juveniles son identidades ficticias de las inferiores.`);view='dashboard';saveGame(true);render();
   };
+  function refillLeague(id){indexState(true);let nextId=Math.max(...GameState.players.map(p=>p.id))+1;for(const c of league(id).clubIds.map(club)){const pool=squad(c.id);let size=pool.length+(window.MARKET_CONTRACTS?.returnSlots(c.id)||0)+(window.MARKET_CONTRACTS?.futureSlots?.(c.id)||0);for(const [pos,minimum]of [['POR',3],['DEF',7],['MED',7],['DEL',5]]){let existing=pool.filter(p=>p.posicion===pos).length;while(existing<minimum&&size<32){GameState.players.push(newYouth(nextId++,c,pos));existing++;size++}}}indexState(true)}
   startMatch=function(){if(!isWorld())return legacy.startMatch();if(GameState.match){view='match';render();return}if(!matchReady())return toast('Todavía no es la hora del partido. Continuá avanzando los turnos del día.');processDueEvents();const target=nextUserEvent();if(!target||!eventDue(target))return;GameState.eventIndex=GameState.calendar.indexOf(target);if(!fixture(currentEvent()))return;indexState(true);const already=GameState.match;const result=legacy.startMatch();if(!already&&GameState.match&&window.CLUB_AI){const m=GameState.match;m.neutral=!!fixture(currentEvent())?.neutral;const rival=m.userSide===0?m.away:m.home;m.aiTactics={...m.aiTactics,...CLUB_AI.tacticsFor(rival)};saveGame(true);}return result;};
   Object.assign(actions,{new:()=>newCareer(),finish:()=>finishMatch(),advance:()=>advance(),season:()=>nextSeason(),kickoff:()=>startMatch(),continue:()=>{if(!isWorld()){if(GameState.match){view='match';render()}else if(GameState.finished){view='dashboard';render()}else if(fixture(currentEvent())){view='match';render()}else legacy.advance()}else advanceTurn()}});
   actions.auto=()=>{if(locked())return;if(isWorld()&&window.FM_TACTICS)FM_TACTICS.autoSelect();else legacy.autoLineup();saveGame(true);render()};
   window.WORLD_CLOCK={periods:PERIODS,ensure:ensureClock,info:clockInfo,nextFixture:nextUserEvent,ready:matchReady,latest:()=>ensureClock()?.recent||[],advance:advanceTurn,processDueEvents,eventSlot};
-  window.WORLD_ENGINE={league,allLeagues:()=>isWorld()?GameState.world.leagues:WORLD_DATABASE.leagues,allClubs:()=>isWorld()?GameState.world.clubs:WORLD_DATABASE.clubs,userLeague,competitionLabel,eventGames,qualificationSlots,tableFor:id=>league(id)?.standings||{},createWorldCareer,hydrateWorldState,hydrate:hydrateWorldState,hydratePlayerIdentity,playerFromReference,isForeign,foreignLimit,needsPenalties,roundRobin,sortedRows,reindex:()=>indexState(true),seekUserFixture,completeOne,makeWorldCalendar,basicDefaults};
+  window.WORLD_ENGINE={league,allLeagues:()=>isWorld()?GameState.world.leagues:WORLD_DATABASE.leagues,allClubs:()=>isWorld()?GameState.world.clubs:WORLD_DATABASE.clubs,userLeague,competitionLabel,eventGames,qualificationSlots,tableFor:id=>league(id)?.standings||{},createWorldCareer,hydrateWorldState,hydrate:hydrateWorldState,hydratePlayerIdentity,playerFromReference,isForeign,foreignLimit,needsPenalties,roundRobin,sortedRows,reindex:()=>indexState(true),seekUserFixture,completeOne,makeWorldCalendar,makeContinentalCalendar,basicDefaults,registerSquad,refillLeague,exchangeArgentina,seasonStartDay,recoverTo,settleFinances,qualifiedTeams};
 })();

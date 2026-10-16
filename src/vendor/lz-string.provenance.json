@@ -1,0 +1,8 @@
+{
+  "package": "lz-string",
+  "version": "1.5.0",
+  "source": "https://registry.npmjs.org/lz-string/-/lz-string-1.5.0.tgz",
+  "integrity": "sha512-h5bgJWpxJNswbU7qCrV0tIKQCaS3blPDrqKWx+QxzuzL1zGUzij9XCWLrSLsJPu5t+eWA/ycetzYAO5IOMcWAQ==",
+  "license": "MIT",
+  "localChanges": "Optional maximum decoded length and dictionary limit for imported saved careers; upstream compression and wire format unchanged."
+}

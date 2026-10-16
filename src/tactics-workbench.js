@@ -260,7 +260,7 @@
   function commitLineup(all) {
     const ids=all.filter(id=>id!=null);
     if(new Set(ids).size!==ids.length)return false;
-    const limit=window.WORLD_ENGINE.foreignLimit(),foreign=ids.filter(id=>window.WORLD_ENGINE.isForeign(playerAt(id))).length;
+    const limit=(window.FM_REGISTRATION?FM_REGISTRATION.profile(GameState.userClub.id).foreignMatch:window.WORLD_ENGINE.foreignLimit()),foreign=ids.filter(id=>window.WORLD_ENGINE.isForeign(playerAt(id))).length;
     if(foreign>limit){toast(`La convocatoria supera el límite de ${limit} extranjeros.`);return false}
     GameState.tactics.xi=all.slice(0,11);GameState.tactics.bench=all.slice(11,18);ui.moveSource=null;ui.alternative=null;saveGame(true);return true;
   }
@@ -293,7 +293,7 @@
     return overall(p)*.50+roleFit(p,role,slot)*.30+positionFit(p,slot)*.12+p.condicion_fisica*.08;
   }
   function selectLineup(t=GameState.tactics,preferred=[]) {
-    const pool=mine().filter(eligible),chosen=[],limit=window.WORLD_ENGINE.foreignLimit();let foreign=0;
+    const pool=mine().filter(eligible),chosen=[],limit=(window.FM_REGISTRATION?FM_REGISTRATION.profile(GameState.userClub.id).foreignMatch:window.WORLD_ENGINE.foreignLimit());let foreign=0;
     const canSelect=(p,index)=>!chosen.includes(p.id)&&permittedAt(p,index)&&(!window.WORLD_ENGINE.isForeign(p)||foreign<limit);
     for(let index=0;index<18;index++){
       const wanted=pool.find(p=>p.id===preferred[index]&&canSelect(p,index));
@@ -315,8 +315,9 @@
     if(all.slice(11).some(id=>id==null))issues.push('Completá los siete suplentes.');
     if(new Set(all.filter(id=>id!=null)).size!==all.filter(id=>id!=null).length)issues.push('Un jugador está asignado más de una vez.');
     if(playerAt(all[0])?.posicion!=='POR'||all.slice(1,11).some(id=>playerAt(id)?.posicion==='POR'))issues.push('El once necesita un arquero en el primer puesto y diez jugadores de campo.');
+    const registrationReason=window.FM_REGISTRATION?.lineupReason(all.filter(id=>id!=null));if(registrationReason)issues.push(registrationReason);
     const missing=all.filter(id=>id!=null&&!eligible(playerAt(id)));if(missing.length)issues.push(`${missing.length} convocado${missing.length===1?' no está':'s no están'} disponible${missing.length===1?'':'s'}.`);
-    const limit=window.WORLD_ENGINE.foreignLimit();if(all.filter(id=>id!=null&&window.WORLD_ENGINE.isForeign(playerAt(id))).length>limit)issues.push(`La convocatoria supera el cupo de ${limit} extranjeros.`);
+    const limit=(window.FM_REGISTRATION?FM_REGISTRATION.profile(GameState.userClub.id).foreignMatch:window.WORLD_ENGINE.foreignLimit());if(all.filter(id=>id!=null&&window.WORLD_ENGINE.isForeign(playerAt(id))).length>limit)issues.push(`La convocatoria supera el cupo de ${limit} extranjeros.`);
     return {valid:issues.length===0,issues};
   }
   const TEAM_FIELDS=['formation','style','mentality','tempo','width','line','pressing','captain','penaltyTaker'];
@@ -381,7 +382,7 @@
     return `<section class="card tw-pitch-card"><div class="fm-panel-title"><h2>${esc(t.formation)}</h2><span class="badge">${esc(t.style)}</span></div><div class="tw-pitch" aria-label="Cancha táctica, once titular"><svg viewBox="0 0 100 120" preserveAspectRatio="none" aria-hidden="true"><rect x="3" y="3" width="94" height="114" fill="none"/><path d="M3 60H97M32 3V22H68V3M39 3V11H61V3M32 117V98H68V117M39 117V109H61V117"/><circle cx="50" cy="60" r="12"/><circle cx="50" cy="60" r=".6" fill="currentColor"/><path d="M41 22a11 11 0 0 0 18 0M41 98a11 11 0 0 1 18 0"/></svg>${formationLayout(t.formation).map((layout,index)=>slotButton(index,layout)).join('')}</div><div class="tw-interaction-note" aria-live="polite">${live()?'Partido en curso: ajustá las instrucciones. Los cambios se realizan desde la pantalla del partido.':ui.moveSource!=null?`Seleccionaste ${esc(playerAt(lineupArray()[ui.moveSource])?.nombre || 'un puesto vacío')}. Elegí el destino para intercambiar. <button data-tw-cancel>Cancelar</button>`:'Arrastrá un jugador o seleccioná origen y destino. Con teclado: Enter para seleccionar, flechas para recorrer, Escape para cancelar.'}</div><div class="tw-fit-legend"><span><i class="good"></i>Natural</span><span><i class="partial"></i>Adaptable</span><span><i class="bad"></i>Fuera de posición</span></div><div class="tw-bench-title">Banco de suplentes <span>7 puestos</span></div><div class="tw-bench">${Array.from({length:7},(_,index)=>slotButton(index+11)).join('')}</div></section>`;
   }
   function teamOptions() {
-    const t=GameState.tactics,value=familiarity(t),limit=window.WORLD_ENGINE.foreignLimit();
+    const t=GameState.tactics,value=familiarity(t),limit=(window.FM_REGISTRATION?FM_REGISTRATION.profile(GameState.userClub.id).foreignMatch:window.WORLD_ENGINE.foreignLimit());
     const foreign=lineupArray(t).filter(id=>id!=null&&window.WORLD_ENGINE.isForeign(playerAt(id))).length;
     return `<section class="card tw-team-options"><h2>Instrucciones del equipo</h2><label class="field">Formación<select data-tw-team="formation" ${live()?'disabled':''}>${selectOptions(Object.keys(FORMATIONS),t.formation)}</select></label><label class="field">Estilo<select data-tw-team="style">${selectOptions(STYLES,t.style)}</select></label><label class="field">Mentalidad<select data-tw-team="mentality">${selectOptions(['Cauta','Equilibrada','Ofensiva'],t.mentality || 'Equilibrada')}</select></label>${[['tempo','Ritmo'],['width','Amplitud'],['line','Línea defensiva'],['pressing','Presión']].map(([key,label])=>`<div class="tw-slider"><div><label for="tw-${key}">${label}</label><output id="tw-${key}-value">${t[key]??50}%</output></div><input id="tw-${key}" type="range" min="10" max="90" step="10" value="${t[key]??50}" data-tw-team="${key}"></div>`).join('')}<div class="tw-familiarity"><div><strong>Familiaridad táctica</strong><span data-tw-familiarity>${Math.round(value)}%</span></div><div class="tw-progress"><i style="width:${value}%"></i></div><p>${value<50?'El equipo está aprendiendo este planteo.':value<80?'Los movimientos empiezan a salir con fluidez.':'El equipo domina este planteo.'} Aumenta con el entrenamiento al avanzar las jornadas.</p></div><label class="field">Capitán<select data-tw-team="captain" ${live()?'disabled':''}>${mine().map(p=>`<option value="${p.id}" ${p.id===t.captain?'selected':''}>${esc(p.nombre)}</option>`).join('')}</select></label><label class="field">Penales<select data-tw-team="penaltyTaker" ${live()?'disabled':''}>${mine().filter(p=>p.posicion!=='POR').map(p=>`<option value="${p.id}" ${p.id===t.penaltyTaker?'selected':''}>${esc(p.nombre)}</option>`).join('')}</select></label><div class="tw-quota">${limit>=32?'Inscripción extranjera libre':`${foreign} de ${limit} cupos extranjeros en la convocatoria`}</div></section>`;
   }

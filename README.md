@@ -51,6 +51,21 @@ El **mercado** añade representantes con prioridades y plazos, propuesta deporti
 
 En **Carrera y proyectos** hay puntos de recuperación e historial de decisiones. Las copias locales usan IndexedDB y conservan hasta seis estados; una recuperación valida la carrera antes de sustituirla. La falta de espacio o de IndexedDB no sustituye ni daña el guardado principal. **Exportar JSON** permite conservar una copia fuera del navegador y trasladar la carrera. El historial guarda los acuerdos y novedades con su fecha y evidencia, con un límite para evitar crecimiento indefinido.
 
+## Realismo de las carreras
+
+Las carreras nuevas usan **temporadas por país**. Europa cruza de agosto a mayo; las ligas sudamericanas mantienen sus fases anuales. Cada país cierra e inicia sus categorías sin reiniciar las demás. Se conservan resultados por temporada, hay preparación, ventanas internacionales, receso mundialista 2026 y reprogramaciones con descanso mínimo. Las fechas, cruces y proyecciones futuras se generan: no son el fixture oficial. **Competiciones → Temporadas** permite consultar todos los ciclos. El calendario anual de legado sigue disponible; las partidas anteriores lo conservan y pueden programar la migración al cerrar una temporada.
+
+- **Inscripción:** listas domésticas y continentales separadas, nacionalidades múltiples, cupos extranjeros por país y reservas de formación sólo cuando existe historia verificable. Las listas iniciales se conservan para no invalidar carreras. Algunos perfiles nacionales y plazos continentales son simplificaciones expresamente indicadas; no se reproduce todo el derecho federativo.
+- **Contratos:** vencimientos exactos, renovación negociada, aumentos por aniversario, precontratos de últimos seis meses, consentimiento efectivo del club en los supuestos ingleses, rescisión y préstamos que no pueden superar el vínculo del propietario. La fecha contractual publicada queda separada del contrato de carrera.
+- **Medicina:** carga individual, viajes, descanso, ritmo competitivo, diagnóstico, intervalo de recuperación, rehabilitación y riesgo de recaída. La condición física y la preparación competitiva son variables distintas. La pestaña médica del entrenamiento y la ficha propia permiten seguir el tratamiento.
+- **Economía:** caja, autorización para fichar y resultado contable separados; cuotas, amortización de pases, valor contable al vender, obligaciones, créditos y proyecciones. No se inventan costos históricos de los jugadores iniciales. Impuestos, monedas y acuerdos comerciales son escenarios ficticios declarados, no finanzas publicadas de cada club.
+- **Ojeo y desarrollo:** atributos observados e intervalos, confianza y opiniones de empleados distintos. La IA también decide con estimaciones y no consulta el potencial oculto. El crecimiento depende de edad, posición, minutos, entorno, preparación y lesiones; un cambio de año no cura automáticamente ni resta atributos a todos los veteranos.
+- **Ascensos:** las primeras y segundas categorías intercambian clubes una sola vez después de resolver fases y promociones; los filiales inhabilitados no ocupan plazas de ascenso. No se simulan terceras categorías ni sanciones administrativas.
+
+El simulador rápido se calibra con **4.076 partidos reales representados de 15 primeras divisiones**, con cobertura y fuente por liga. Football-Data aporta Europa 2025/26 y Argentina/Brasil 2025; Transfermarkt y RSSSF aportan muestras sudamericanas fechadas o tablas reconciliadas. Cuando sólo existe tabla, la localía se estima y se declara; las divisiones sin muestra usan una referencia prestada. **Competiciones → Motor y referencias** muestra esta distinción. Las pruebas estadísticas ejecutan 200 temporadas por liga; esto valida la distribución del modelo rápido. El partido minuto a minuto aplica ajustes acotados de frecuencia y conversión, manteniendo las causas tácticas, sin afirmar igualdad exacta con las medias históricas.
+
+La incidencia médica usa como referencia histórica el estudio de [Ekstrand, Hägglund y Waldén, 2011](https://bjsm.bmj.com/content/45/7/553), DOI 10.1136/bjsm.2009.060582: 23 clubes europeos masculinos, temporadas 2001–2008, 27,5 lesiones de partido y 4,1 de entrenamiento por mil horas de exposición. No son tasas medidas de cada liga de este juego.
+
 ## Ligas y clubes incluidos
 
 | País | Liga | Clubes | Planteles de referencia |
@@ -72,7 +87,7 @@ En **Carrera y proyectos** hay puntos de recuperación e historial de decisiones
 | Alemania | Bundesliga | 18 | 2025/26 |
 | Francia | Ligue 1 | 18 | 2025/26 |
 
-Son las primeras divisiones completas de los diez países de CONMEBOL, la segunda división argentina completa y las cinco grandes ligas europeas completas. Todos los clubes pueden dirigirse. Las tablas, partidos y estadísticas de las otras ligas se simulan en paralelo y pueden consultarse en Competiciones. El mercado permite filtrar por país, liga y club y muestra resultados paginados.
+La base original conserva las primeras divisiones completas de los diez países de CONMEBOL, la segunda división argentina completa y las cinco grandes ligas europeas completas. Todos los clubes pueden dirigirse. Las tablas, partidos y estadísticas de las otras ligas se simulan en paralelo y pueden consultarse en Competiciones. El mercado permite filtrar por país, liga y club y muestra resultados paginados.
 
 Al crear carrera podés elegir **Formatos por país** (predeterminado) o **Calendario clásico**. En Argentina:
 
@@ -96,11 +111,34 @@ Las zonas y fechas son una adaptación jugable, no una importación del fixture 
 | Inglaterra, España e Italia | 38 fechas; minitablas de enfrentamientos directos en España e Italia, y desempates italianos por título y salvación |
 | Alemania y Francia | 34 fechas y posiciones diferenciadas de descenso directo y promoción |
 
-**El calendario civil sigue siendo anual y adaptado**: todavía no reproduce agosto–mayo en Europa, el fixture oficial ni todos los descansos internacionales. Fuera de Argentina no se incluyen divisiones inferiores: se registra el descenso deportivo y la posición de promoción, pero los clubes no se intercambian al año siguiente. Las copas nacionales no están cargadas; sus cupos continentales se cubren con la clasificación de liga. Los promedios usan únicamente puntos efectivamente jugados en la carrera. Estas limitaciones también aparecen en Reglamento: las fases deportivas nuevas no equivalen a una reproducción completa de cada reglamento federativo.
+La ampliación añade estas **14 competiciones de ascenso**:
+
+| País | Competición | Clubes |
+|---|---|---:|
+| Inglaterra | Championship | 24 |
+| España | Segunda División | 22 |
+| Italia | Serie B | 20 |
+| Alemania | 2. Bundesliga | 18 |
+| Francia | Ligue 2 | 18 |
+| Brasil | Série B | 20 |
+| Chile | Liga de Ascenso | 16 |
+| Uruguay | Segunda División | 14 |
+| Paraguay | Intermedia | 16 |
+| Ecuador | Serie B | 12 |
+| Perú | Liga 2 | 18 |
+| Colombia | Primera B | 16 |
+| Venezuela | Liga FUTVE 2 | 17 |
+| Bolivia | Pool de fase nacional de Copa Simón Bolívar | 24 |
+
+El catálogo combinado contiene **565 clubes, 30 competiciones y 15.183 identidades reales únicas**. Se agregan 5.963 identidades sin cambiar ninguna de las 9.220 originales. Los planteles adicionales con cobertura incompleta se completan con reservas ficticias marcadas; no se cuentan como jugadores reales.
+
+**Bolivia:** no se pudo verificar la nómina nacional 2026. Se emplea un pool histórico RSSSF 2025 adaptado (Real Potosí, ya en Primera, se sustituye por Wilstermann). No equivale a los participantes, sorteo ni ligas departamentales oficiales 2026; sus planteles no verificados usan reservas ficticias. Otros suplementos históricos y adaptaciones de fases se identifican en la competición y la fuente.
+
+Las copas nacionales y UEFA no están cargadas; los cupos continentales domésticos se cubren con la clasificación de liga. Los promedios usan únicamente temporadas jugadas. Las fases y ventanas no equivalen a una reproducción completa de cada reglamento federativo.
 
 En **Competiciones → Ligas nacionales**, elegí la liga y alterná Fases y finales, Acumulada, Calendario, Promedios y Reglamento. Las etapas finales reciben únicamente equipos clasificados; los cruces opcionales quedan sin jugar cuando el reglamento resuelve el título automáticamente. Cada campeón se registra por su torneo y los objetivos consideran sus títulos, no únicamente la posición anual.
 
-Las carreras anteriores conservan la temporada actual. **Activar formatos por país el próximo año** aplica las estructuras nuevas al comenzar la siguiente temporada. La actualización mantiene exactamente los 310 clubes y las 9.220 identidades de referencia.
+Las carreras anteriores conservan la temporada actual. **Activar formatos por país el próximo año** aplica las estructuras nuevas al comenzar la siguiente temporada. La actualización conserva los 310 clubes y las 9.220 identidades originales sin alterar sus datos; el catálogo adicional se incorpora únicamente a carreras nuevas.
 
 ## Libertadores y Sudamericana
 
@@ -186,19 +224,21 @@ El marcador y los controles de pausa y velocidad permanecen visibles. El botón 
 
 ## Datos reales y estimaciones
 
-Las membresías y planteles se verificaron en páginas públicas de **Transfermarkt**: Sudamérica 2026, Europa 2025/26. Cada jugador tiene identidad numérica única, perfil, nacimiento, posición, nacionalidades y, cuando están publicados, pie, altura y valor de referencia. Hay **9.220 identidades iniciales únicas**, seleccionadas en planteles de 18–32 con al menos dos arqueros y cobertura de posiciones. Los jugadores de temporadas superpuestas o transferidos aparecen en un solo club.
+Las membresías y planteles se verificaron en páginas públicas de **Transfermarkt**: Sudamérica 2026, Europa 2025/26. Cada jugador tiene identidad numérica única, perfil, nacimiento, posición, nacionalidades y, cuando están publicados, pie, altura y valor de referencia. El núcleo conserva **9.220 identidades únicas**, seleccionadas en planteles de 18–32 con al menos dos arqueros y cobertura de posiciones; el catálogo ampliado suma **15.183 identidades reales**. Los suplementos sin cobertura suficiente usan reservas ficticias, identificadas como tales. Los jugadores de temporadas superpuestas o transferidos aparecen en un solo club.
 
 Son selecciones de participantes de la temporada de referencia, **no listas de inscripción actualizadas en vivo**. En Águilas Doradas, Sebastián Guerra completa la segunda plaza de arquero como participante histórico de 2025, identificado por su fuente. Libertad incluye canteranos reales publicados en 2026. Los juveniles que aparecen en años futuros son generados por la simulación y se identifican expresamente.
 
 Hay **3.670 tasaciones con fecha individual**, procedentes del archivo CSV complementario. Las cifras disponibles únicamente en las tablas de planteles conservan `valuationDate: null` y la ficha aclara que su fecha de consulta no es la fecha de valoración. Los valores sin cotización permanecen ausentes en la referencia, con un valor de juego estimado. No se convierten guiones en precios cero ni jugadores libres.
 
-Las edades se calculan con el nacimiento completo y la fecha de carrera. Los atributos técnicos, mentales, potencial, personalidad, salarios, cláusulas, presupuestos y condiciones contractuales del juego son **estimaciones**, no atributos oficiales de Football Manager. Transfermarkt no contiene esos atributos de FM. La referencia se publica en EUR y el valor de carrera se expresa en USD usando EUR 1 = USD 1,10; USD 1 = ARS 1.200. Son conversiones fijas de simulación, no tipos de cambio financieros vigentes.
+Las edades se calculan con el nacimiento completo y la fecha de carrera. Los atributos técnicos, mentales, potencial, personalidad, salarios, cláusulas, presupuestos y condiciones contractuales negociadas del juego son **estimaciones**, no atributos oficiales de Football Manager. Transfermarkt no contiene esos atributos de FM. La referencia se publica en EUR y el valor de carrera se expresa en USD usando EUR 1 = USD 1,10; la contabilidad usa los coeficientes por país declarados en Finanzas (ARS 1.100 por USD en el escenario actual). Son conversiones fijas de simulación, no tipos de cambio financieros vigentes.
 
 La aplicación es autocontenida: no consulta Transfermarkt, Google Drive ni servidores de datos durante una partida. Los estilos e iconos necesarios están incorporados, con emblemas ilustrados propios.
 
 ## Base auditable y reconstrucción
 
-- [data/world-database.json](data/world-database.json): base final deduplicada, clubes, ligas, jugadores, fuentes y reglas de selección.
+- [data/world-database.json](data/world-database.json): núcleo original deduplicado de 310 clubes y 9.220 jugadores.
+- [data/world/pyramids.json](data/world/pyramids.json): suplemento auditado de ascenso, procedencia y cobertura por club. El builder valida y combina ambos catálogos antes de incorporar el guardado.
+- [data/world/match-benchmarks.json](data/world/match-benchmarks.json): muestras estadísticas, registros originales o tablas, fechas, hashes y fuentes del motor.
 - [data/world/](data/world/): instantáneas regionales revisadas, reservas verificadas, IDs compatibles y participantes continentales.
 - [src/](src/): módulos de mundo, competiciones, IA, contratos, fichas, tácticas, bandeja y persistencia, incorporados en el HTML.
 - [data/transfermarkt-2025.json](data/transfermarkt-2025.json): referencia anterior de 400 jugadores, conservada para las carreras previas.
@@ -232,6 +272,18 @@ python3 -m http.server 8000
 En otra terminal:
 
 ```bash
+python3 tests/test_real_calendars.py
+python3 tests/test_football_pyramids.py
+python3 tests/test_pyramid_integration.py
+python3 tests/test_realism_workspace.py
+python3 tests/test_real_contracts.py
+python3 tests/test_club_market_snapshot.py
+python3 tests/test_sports_medicine.py
+python3 tests/test_medical_profile_integration.py
+python3 tests/test_club_finances.py
+python3 tests/test_scouting_uncertainty.py
+python3 tests/test_match_calibration.py
+python3 tests/test_compressed_storage.py
 python3 tests/test_match_persistence.py
 python3 tests/test_match_simulation.py
 python3 tests/test_match_centre_depth.py
@@ -259,3 +311,5 @@ La batería de paneles verifica escritorio y celular, controles visibles, oferta
 La batería de formatos comprueba que la base permanezca intacta, los 22 marcadores y controles sean accesibles en cuatro tamaños de pantalla, los cambios compartan ventana y las estadísticas correspondan al motor. Simula temporadas completas, verifica todos los campeones y fases, prueba minitablas, prórroga y activación desde una partida anterior.
 
 El reloj respeta partidos locales de tarde y continentales de noche aun cuando un calendario anterior los almacenó en otro orden; terminar un partido no salta ni omite el encuentro nocturno pendiente.
+
+Los guardados grandes usan compresión UTF-16 mediante lz-string 1.5.0 (MIT), incorporado localmente con límite de descompresión para importaciones. La licencia y la procedencia están en `src/vendor/`. Las copias JSON anteriores siguen admitidas; la exportación conserva el estado completo para trasladarlo.
