@@ -67,7 +67,7 @@ window.FM_SCOUT_NETWORK=(()=>{
   function observedRange(p,value,scale=99){const o=latest(p),exact=own(p)||knowledge(p).legacy&&knowledge(p).level>=100,width=exact?0:Math.ceil((o.spread+Math.min(10,Math.floor(ageDays(o.date)/30)))*scale/99),center=bound(Math.round(Number(value)||1),1,scale),low=bound(center-width,1,scale),high=bound(center+width,1,scale);return low===high?String(center):`${low}–${high}`}
   function range(p,value,scale=99,kind='quality'){const a=assessment(p,{kind,value,scale});return a.low===a.high?String(a.estimate):`${a.low}–${a.high}`}
   const potentialRange=p=>range(p,undefined,99,'potential');
-  function prefer(id,staffId){const p=player(Number(id));if(!p)return false;const d=dossier(p);if(staffId&&!d.observations.some(o=>o.staff.id===staffId))return false;d.preferredStaffId=staffId||null;saveGame(true);render();return true}
+  function prefer(id,staffId){const p=player(Number(id));if(!p)return false;const d=dossier(p);if(staffId&&!d.observations.some(o=>o.staff.id===staffId))return false;d.preferredStaffId=staffId||null;WORLD_STORAGE.scheduleSave();render();return true}
   function canReobserve(p,plan={}){
     const r=window.FM_DEPTH?.ensure()?.reports[p.id];if(!r?.completed)return true;
     const d=dossier(p),staff=staffFor(plan);return !d.observations.some(o=>o.coverage===100&&o.staff.id===staff.id&&ageDays(o.date)<30);

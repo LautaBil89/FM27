@@ -127,7 +127,7 @@
   }
   function setPhase(phase,key,value) {
     const t=ensure(),spec=Object.hasOwn(PHASES,phase)&&Object.hasOwn(PHASES[phase].fields,key)?PHASES[phase].fields[key]:null;if(!t||!spec||!spec.values.includes(value))return false;
-    t.phases[phase][key]=value;saveGame(true);return true;
+    t.phases[phase][key]=value;WORLD_STORAGE.scheduleSave();return true;
   }
   function setPiece(key,value) {
     const t=ensure();if(!t)return false;
@@ -141,7 +141,7 @@
       }
       t.setPieces[key]=id;
     }else return false;
-    saveGame(true);return true;
+    WORLD_STORAGE.scheduleSave();return true;
   }
   function markingOpponents() {
     const m=GameState?.match;
@@ -154,7 +154,7 @@
   function setMarkingTarget(id,targetId) {
     const t=ensure(),p=playerAt(id),target=targetId===''||targetId==null?null:Number(targetId);
     if(!t||!owned(p)||p.posicion==='POR'||target!=null&&!markingOpponents().some(item=>item.id===target))return false;
-    t.instructions[p.id]={...instructionsFor(p.id,t),markingTarget:target};saveGame(true);return true;
+    t.instructions[p.id]={...instructionsFor(p.id,t),markingTarget:target};WORLD_STORAGE.scheduleSave();return true;
   }
   function ensure() {
     if(!active())return null;
@@ -262,7 +262,7 @@
     if(new Set(ids).size!==ids.length)return false;
     const limit=(window.FM_REGISTRATION?FM_REGISTRATION.profile(GameState.userClub.id).foreignMatch:window.WORLD_ENGINE.foreignLimit()),foreign=ids.filter(id=>window.WORLD_ENGINE.isForeign(playerAt(id))).length;
     if(foreign>limit){toast(`La convocatoria supera el límite de ${limit} extranjeros.`);return false}
-    GameState.tactics.xi=all.slice(0,11);GameState.tactics.bench=all.slice(11,18);ui.moveSource=null;ui.alternative=null;saveGame(true);return true;
+    GameState.tactics.xi=all.slice(0,11);GameState.tactics.bench=all.slice(11,18);ui.moveSource=null;ui.alternative=null;WORLD_STORAGE.scheduleSave();return true;
   }
   function swapSlots(from,to) {
     if(!active()||live()){if(active())toast('Durante el partido, cambiá jugadores desde el banco de suplentes.');return false}
@@ -351,16 +351,16 @@
     const t=ensure();if(!t||live())return false;
     const plan=t.savedPlans.find(item=>item.id===String(id)),cleaned=String(name||'').trim().slice(0,40);
     if(!plan||!cleaned){toast('Ingresá un nombre para el plan.');return false}
-    plan.name=cleaned;ui.renameId=null;saveGame(true);return true;
+    plan.name=cleaned;ui.renameId=null;WORLD_STORAGE.scheduleSave();return true;
   }
   function deletePlan(id) {
     const t=ensure();if(!t||live())return false;
     const old=t.savedPlans.length;t.savedPlans=t.savedPlans.filter(plan=>plan.id!==String(id));if(old===t.savedPlans.length)return false;
-    if(ui.renameId===id)ui.renameId=null;saveGame(true);return true;
+    if(ui.renameId===id)ui.renameId=null;WORLD_STORAGE.scheduleSave();return true;
   }
   function setInstruction(id,key,value) {
     const t=ensure(),p=playerAt(id),spec=Object.hasOwn(INSTRUCTIONS,key)?INSTRUCTIONS[key]:null;if(!t||!owned(p)||!spec||!spec.values.includes(value))return false;
-    t.instructions[p.id]={...instructionsFor(p.id,t),[key]:value};saveGame(true);return true;
+    t.instructions[p.id]={...instructionsFor(p.id,t),[key]:value};WORLD_STORAGE.scheduleSave();return true;
   }
   function recommendations(index=ui.selectedSlot) {
     if(!active())return [];
@@ -477,7 +477,7 @@
     if(node.hasAttribute('data-tw-instruction')){setInstruction(Number(node.dataset.twPlayer),node.dataset.twInstruction,node.value);return repaint()}
     if(node.hasAttribute('data-tw-role')){
       const p=playerAt(node.dataset.twRole),slot=node.dataset.twRoleSlot;
-      if(owned(p)&&rolesFor(slot).includes(node.value)){ensure().roles[p.id]=node.value;saveGame(true);repaint()}return;
+      if(owned(p)&&rolesFor(slot).includes(node.value)){ensure().roles[p.id]=node.value;WORLD_STORAGE.scheduleSave();repaint()}return;
     }
     if(node.hasAttribute('data-tw-team')){
       const t=ensure(),key=node.dataset.twTeam,value=node.value;
@@ -489,7 +489,7 @@
       else if(['tempo','width','line','pressing'].includes(key))t[key]=bound(value,10,90);
       else if(['captain','penaltyTaker'].includes(key)){const p=playerAt(value);if(live()||!owned(p)||key==='penaltyTaker'&&p.posicion==='POR')return;t[key]=p.id}
       else return;
-      ui.moveSource=null;saveGame(true);return repaint();
+      ui.moveSource=null;WORLD_STORAGE.scheduleSave();return repaint();
     }
   },true);
   document.addEventListener('input',event=>{

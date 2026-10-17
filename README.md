@@ -316,4 +316,6 @@ La batería de formatos comprueba que la base permanezca intacta, los 22 marcado
 
 El reloj respeta partidos locales de tarde y continentales de noche aun cuando un calendario anterior los almacenó en otro orden; terminar un partido no salta ni omite el encuentro nocturno pendiente.
 
+Las búsquedas, filtros, lecturas de la bandeja, ajustes tácticos y paradas del avance agrupan sus autoguardados y procesan la validación, compactación y compresión en un Web Worker local. La interfaz sigue respondiendo durante ese trabajo. Las revisiones impiden que una tarea atrasada reemplace un guardado manual, una importación o una carrera nueva. Al salir se completa el guardado pendiente; el botón Guardar y las firmas económicas conservan el guardado inmediato. Si el navegador bloquea workers, se utiliza el guardado convencional. El formato de las partidas anteriores se mantiene.
+
 Los guardados grandes usan compresión UTF-16 mediante lz-string 1.5.0 (MIT), incorporado localmente con límite de descompresión para importaciones. La licencia y la procedencia están en `src/vendor/`. Las copias JSON anteriores siguen admitidas; la exportación conserva el estado completo para trasladarlo.

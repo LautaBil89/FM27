@@ -269,9 +269,9 @@
     }
     if (!expanded()) return;
     const mapping={worldTableLeague:'tableLeague',worldFixtureRound:'fixtureRound',worldBrowseCountry:'worldCountry',worldBrowseLeague:'worldLeague',worldMarketCountry:'marketCountry',worldMarketLeague:'marketLeague',worldMarketClub:'marketClub',worldMarketAge:'marketAge'};
-    if(mapping[node.id]) {ui[mapping[node.id]]=node.value;ui.worldPage=0;ui.marketPage=0;if(node.id==='worldTableLeague')ui.fixtureRound='';render();saveGame(true);}
-    if(node.id==='worldMarketBudget'){ui.marketBudget=node.checked;ui.marketPage=0;render();saveGame(true);}
-    if(node.id==='marketPos' || node.id==='marketQuery'){ui.marketPage=0;render();saveGame(true);}
+    if(mapping[node.id]) {ui[mapping[node.id]]=node.value;ui.worldPage=0;ui.marketPage=0;if(node.id==='worldTableLeague')ui.fixtureRound='';render();WORLD_STORAGE.scheduleSave();}
+    if(node.id==='worldMarketBudget'){ui.marketBudget=node.checked;ui.marketPage=0;render();WORLD_STORAGE.scheduleSave();}
+    if(node.id==='marketPos' || node.id==='marketQuery'){ui.marketPage=0;render();WORLD_STORAGE.scheduleSave();}
   });
   let searchTimer;
   document.addEventListener('input',event=>{
@@ -284,7 +284,7 @@
       if(node.id==='worldCareerSearch'){retainWelcome();ui.careerSearch=node.value;}
       if(node.id==='worldClubSearch'){ui.worldQuery=node.value;ui.worldPage=0;}
       if(node.id==='marketQuery'){marketQuery=node.value;ui.marketPage=0;}
-      render();if(GameState)saveGame(true);
+      render();if(GameState)WORLD_STORAGE.scheduleSave();
     },180);
   });
   window.WORLD_UI = { state:ui, welcome, domesticTable, profileSource };

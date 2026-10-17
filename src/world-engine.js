@@ -257,7 +257,7 @@
   function advanceTurn(options={}) {
     if(!isWorld())return legacy.advance();
     const silent=!!options.silent,clock=ensureClock();
-    const finish=changed=>{if(!silent){saveGame(true);render()}return changed};
+    const finish=changed=>{if(!silent){WORLD_STORAGE.scheduleSave();render()}return changed};
     if(GameState.match){if(!silent)view='match';return finish(false)}
     if(GameState.finished){if(!silent)view='dashboard';return finish(false)}
     processDueEvents();

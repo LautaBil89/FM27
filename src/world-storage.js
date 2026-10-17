@@ -53,11 +53,13 @@ const WORLD_STORAGE = (() => {
     const id = p.transfermarkt?.playerId ?? p.playerId;
     return p.realIdentity !== false && dbPlayers.has(id) ? id : null;
   }
+  const identityTemplates = new Map();
   function identity(reference) {
     if (reference === null) return {};
+    if(identityTemplates.has(reference))return identityTemplates.get(reference);
     const ref = dbPlayers.get(reference);
     if (!ref) fail('la base instalada no incluye un jugador de este guardado');
-    return WORLD_ENGINE.hydratePlayerIdentity({}, ref);
+    const template=WORLD_ENGINE.hydratePlayerIdentity({}, ref);identityTemplates.set(reference,template);return template;
   }
   function residual(record, base, preserved) {
     const result = {};
@@ -301,7 +303,50 @@ const WORLD_STORAGE = (() => {
     }
     return serialized;
   }
+  // Autosaves use a single background codec. The public manual save stays synchronous.
+  let saveRevision=0,saveTimer=null,saveDirty=false,dirtySince=0,saveWorker=null,workerBusy=false,workerFailed=false,workerState=null,workerRevision=-1;
+  function invalidateAutosave(){saveRevision++;if(saveTimer!==null)clearTimeout(saveTimer);saveTimer=null;saveDirty=false;dirtySince=0;}
+  function saveError(error){toast('No se pudo guardar la carrera: '+(error.name==='QuotaExceededError'?'se agotó el espacio del navegador. Exportá una copia de seguridad.':error.message||'revisá los permisos del navegador.'));}
+  function backgroundWorker(){
+    if(saveWorker||workerFailed)return saveWorker;
+    if(typeof Worker==='undefined'||typeof Blob==='undefined'){workerFailed=true;return null}
+    try{
+      const definitions={own,object,same,copy,fail,string,integer,finite,validDate,mask,playerReference,identity,residual,packRecords,table,result,cupNodes,validateWorld,encode,serialize};
+      const source=`const FORMAT='${FORMAT}',COMPRESSED_FORMAT='${COMPRESSED_FORMAT}',CODEC_VERSION=${CODEC_VERSION},alphabet=${JSON.stringify(alphabet)},missing=Symbol('absent'),identityTemplates=new Map();let dbPlayers,dbClubs,dbLeagues,FORMATIONS;const WORLD_ENGINE={hydratePlayerIdentity:${WORLD_ENGINE.hydratePlayerIdentity.toString()}};const f=String.fromCharCode,LZString={_compress:${LZString._compress.toString()},compressToUTF16:${LZString.compressToUTF16.toString()}};`+Object.entries(definitions).map(([name,fn])=>`const ${name}=${fn.toString()};`).join('\n')+`self.onmessage=({data})=>{if(data.init){dbPlayers=new Map(data.init.players.map(p=>[p.playerId,p]));dbClubs=new Map(data.init.clubs.map(c=>[c.id,c]));dbLeagues=new Map(data.init.leagues.map(l=>[l.id,l]));FORMATIONS=data.init.formations;return}try{self.postMessage({id:data.id,text:serialize(data.state)})}catch(error){self.postMessage({id:data.id,error:error.message})}};`;
+      const url=URL.createObjectURL(new Blob([source],{type:'text/javascript'}));
+      try{saveWorker=new Worker(url)}finally{URL.revokeObjectURL(url)}
+      saveWorker.onmessage=({data})=>{
+        workerBusy=false;
+        if(data.id===saveRevision&&workerState===GameState){
+          if(data.error)saveError(new Error(data.error));
+          else try{localStorage.setItem(KEY,data.text)}catch(error){saveError(error)}
+        }
+        workerState=null;
+        if(saveDirty){clearTimeout(saveTimer);saveTimer=setTimeout(runAutosave,0)}
+      };
+      saveWorker.onerror=event=>{event.preventDefault();saveWorker?.terminate();saveWorker=null;workerFailed=true;workerBusy=false;const retry=saveDirty||workerState===GameState&&workerRevision===saveRevision;workerState=null;if(retry)save(true)};
+      saveWorker.postMessage({init:{players:WORLD_DATABASE.players,clubs:WORLD_DATABASE.clubs,leagues:WORLD_DATABASE.leagues,formations:FORMATIONS}});
+      return saveWorker;
+    }catch(error){saveWorker?.terminate();saveWorker=null;workerFailed=true;return null}
+  }
+  function runAutosave(){
+    saveTimer=null;if(!saveDirty)return;if(!GameState){invalidateAutosave();return}if(workerBusy)return;
+    if(GameState.version!==3){save(true);return}
+    const worker=backgroundWorker();if(!worker){save(true);return}
+    saveDirty=false;dirtySince=0;workerBusy=true;workerState=GameState;workerRevision=saveRevision;
+    try{worker.postMessage({id:saveRevision,state:GameState})}catch(error){workerBusy=false;workerState=null;save(true)}
+  }
+  function scheduleSave(){
+    if(!GameState)return false;
+    saveRevision++;saveDirty=true;dirtySince||=Date.now();clearTimeout(saveTimer);
+    saveTimer=setTimeout(runAutosave,Math.max(0,Math.min(350,2000-(Date.now()-dirtySince))));return true;
+  }
+  function autosavePending(){return saveDirty||workerBusy&&workerRevision===saveRevision}
+  function flushSave(){return autosavePending()?save(true):true}
+  window.addEventListener?.('pagehide',flushSave);
+  document.addEventListener?.('visibilitychange',()=>{if(document.hidden)flushSave()});
   function save(silent = false) {
+    invalidateAutosave();
     if (!GameState) return false;
     try {
       localStorage.setItem(KEY, serialize(GameState));
@@ -318,6 +363,7 @@ const WORLD_STORAGE = (() => {
       if (!text) return false;
       if (bytes(text) > MAX_IMPORT_BYTES) fail('guardado demasiado grande');
       const candidate = decode(JSON.parse(text));
+      invalidateAutosave();
       GameState = candidate; window.GameState = candidate;
       if (candidate.version !== 3) MANAGEMENT.ensure();
       return true;
@@ -328,6 +374,7 @@ const WORLD_STORAGE = (() => {
     if (GameState && options.confirm !== false && !confirm('¿Reemplazar la carrera actual por esta copia de seguridad?')) return false;
     // Persist first: a rejected or oversized import cannot replace the current career.
     if (options.persist !== false) localStorage.setItem(KEY, serialize(candidate));
+    invalidateAutosave();
     clearInterval(timer); timer = null;
     GameState = candidate; window.GameState = candidate;
     if (candidate.version !== 3) MANAGEMENT.ensure();
@@ -361,7 +408,7 @@ const WORLD_STORAGE = (() => {
   window.saveGame = save;
   window.loadGame = function () { if (!restore()) return false; view = GameState.match ? 'match' : 'dashboard'; render(); return true; };
   Object.assign(actions, {save: () => save(), export: exportGame, import: importGame});
-  return {encode, decode, validate: s => s?.version === 3 ? validateWorld(s) : MANAGEMENT.validateImported(s), serialize, importState, exportGame, importGame, maxImportBytes: MAX_IMPORT_BYTES,
+  return {scheduleSave,flushSave,pending:autosavePending,encode, decode, validate: s => s?.version === 3 ? validateWorld(s) : MANAGEMENT.validateImported(s), serialize, importState, exportGame, importGame, maxImportBytes: MAX_IMPORT_BYTES,
     inspect: s => { const text = serialize(s); return {players: s.players.length, characters: text.length, utf8Bytes: bytes(text), localStorageBytes: text.length * 2, hydratedBytes: bytes(JSON.stringify(s))}; }};
 })();
 window.WORLD_STORAGE = WORLD_STORAGE;

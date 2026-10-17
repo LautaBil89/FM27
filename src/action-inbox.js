@@ -142,9 +142,9 @@ window.FM_INBOX = (() => {
     return result;
   }
   function markRead(id,read=true) {
-    if(!active())return;const m=GameState.inbox.find(q=>q.id===Number(id));if(m)m.read=read;saveGame(true);
+    if(!active())return;const m=GameState.inbox.find(q=>q.id===Number(id));if(m)m.read=read;WORLD_STORAGE.scheduleSave();
   }
-  function readAll() {if(!active())return;GameState.inbox.forEach(m=>m.read=true);saveGame(true);render();}
+  function readAll() {if(!active())return;GameState.inbox.forEach(m=>m.read=true);WORLD_STORAGE.scheduleSave();render();}
   function filtered() {
     const s=ui(),query=s.query.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es');
     return GameState.inbox.filter(m=>(s.filter!=='pending'||isPending(m))&&(s.filter!=='unread'||!m.read)&&(s.category==='all'||category(m)===s.category)&&(!query||`${m.title} ${m.body} ${lookup(m.playerId)?.nombre||''}`.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es').includes(query)));
@@ -197,14 +197,14 @@ window.FM_INBOX = (() => {
     const allowed=actionsFor(m).find(a=>a.id===action&&!a.disabled);if(!allowed)return toast('La situación cambió. Revisá el estado del mensaje.');
     const p=lookup(m.playerId);m.read=true;
     if(action==='scout-cancel')return window.FM_OFFICE?.cancelObservation(p.id);
-    if(action==='profile'){saveGame(true);return details(p.id);}
+    if(action==='profile'){WORLD_STORAGE.scheduleSave();return details(p.id);}
     if(action==='negotiate-counter')return MARKET_CONTRACTS.openCounterNegotiation(m.offerId);
     if(action==='personal-contract')return MARKET_CONTRACTS.openPlayerNegotiation(m.offerId);
-    if(action==='sale-accept'||action==='sale-reject'){window.CLUB_AI.respondToSaleOffer(m.offerId,action==='sale-accept');saveGame(true);return render();}
-    if(action==='counter-accept'||action==='counter-reject'){window.MARKET_CONTRACTS.respondCounter(m.offerId,action==='counter-accept');saveGame(true);return render();}
-    if(action==='offer-cancel'){window.CLUB_AI.cancelUserOffer(m.offerId);saveGame(true);return render();}
-    if(action==='renew'){saveGame(true);return renew(p.id);}
-    if(action==='negotiate'){saveGame(true);return buy(p.id);}
+    if(action==='sale-accept'||action==='sale-reject'){return window.CLUB_AI.respondToSaleOffer(m.offerId,action==='sale-accept');}
+    if(action==='counter-accept'||action==='counter-reject'){return window.MARKET_CONTRACTS.respondCounter(m.offerId,action==='counter-accept');}
+    if(action==='offer-cancel'){return window.CLUB_AI.cancelUserOffer(m.offerId);}
+    if(action==='renew'){WORLD_STORAGE.scheduleSave();return renew(p.id);}
+    if(action==='negotiate'){WORLD_STORAGE.scheduleSave();return buy(p.id);}
     if(action==='shortlist'){return MANAGEMENT.shortlist(p.id);}
     if(action==='scout'){return MANAGEMENT.scout(p.id);}
     if(action==='recovery'){p.trainingFocus='Recuperación';push({title:`Recuperación planificada: ${p.nombre}`,body:'El plan individual de recuperación está asignado. Se aplicará al avanzar los días; una lesión necesita completar su recuperación antes del regreso.',type:'plantel',playerId:p.id});toast('Plan individual de recuperación asignado');}
@@ -212,20 +212,20 @@ window.FM_INBOX = (() => {
     if(action==='report')ui().reportOpen=ui().reportOpen===m.id?null:m.id;
     if(action==='dismiss')m.dismissed=true;
     if(action.startsWith('go-'))view=action.slice(3);
-    saveGame(true);render();
+    WORLD_STORAGE.scheduleSave();render();
   }
   document.addEventListener('click',event=>{
     if(!active())return;const b=event.target.closest('button');if(!b||b.disabled)return;
     if(b.hasAttribute('data-inbox-read-all'))return readAll();
     if(b.dataset.inboxOpen){ui().selected=Number(b.dataset.inboxOpen);ui().reportOpen=null;markRead(ui().selected);render();}
-    if(b.dataset.inboxFilter){ui().filter=b.dataset.inboxFilter;saveGame(true);render();}
+    if(b.dataset.inboxFilter){ui().filter=b.dataset.inboxFilter;WORLD_STORAGE.scheduleSave();render();}
     if(b.dataset.inboxAction)execute(Number(b.dataset.inboxMessage),b.dataset.inboxAction);
     if(b.dataset.inboxRead){markRead(Number(b.dataset.inboxRead),b.dataset.readValue==='read');render();}
     if(b.dataset.inboxGo){view=b.dataset.inboxGo;render();}
     if(b.dataset.inboxPlayer)details(Number(b.dataset.inboxPlayer));
   });
-  document.addEventListener('input',event=>{if(active()&&event.target.id==='inboxSearch'){ui().query=event.target.value.slice(0,120);saveGame(true);render();}});
-  document.addEventListener('change',event=>{if(active()&&event.target.id==='inboxCategory'){ui().category=event.target.value;saveGame(true);render();}});
+  document.addEventListener('input',event=>{if(active()&&event.target.id==='inboxSearch'){ui().query=event.target.value.slice(0,120);WORLD_STORAGE.scheduleSave();render();}});
+  document.addEventListener('change',event=>{if(active()&&event.target.id==='inboxCategory'){ui().category=event.target.value;WORLD_STORAGE.scheduleSave();render();}});
   window.inboxView=renderInbox;
   render=function(){
     const focus=document.activeElement,searching=focus?.id==='inboxSearch',caret=searching?focus.selectionStart:null;
