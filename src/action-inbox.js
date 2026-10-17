@@ -2,7 +2,7 @@
 window.FM_INBOX = (() => {
   const legacyInbox = window.inboxView, legacyRender = render;
   const categories = {mercado:'Mercado',contratos:'Contratos',ojeo:'Ojeo',plantel:'Plantel',partidos:'Partidos',directiva:'Directiva',sistema:'Sistema',prensa:'Prensa'};
-  const supported = new Set(['sale','offer','scout','contract','tactics','medical','match','finance','recovery','career']);
+  const supported = new Set(['sale','offer','scout','contract','tactics','medical','match','finance','recovery','career','incident']);
   const active = () => !!GameState?.world && GameState.version === 3;
   const owned = p => !!p && p.clubId === GameState.userClub.id;
   const lookup = id => Number.isSafeInteger(Number(id)) ? player(Number(id)) : null;
@@ -32,7 +32,7 @@ window.FM_INBOX = (() => {
     if(supported.has(message.action))m.action=message.action;
     if(lookup(message.playerId))m.playerId=Number(message.playerId);
     if(typeof message.offerId==='string'||Number.isSafeInteger(message.offerId))m.offerId=String(message.offerId).slice(0,160);
-    for(const key of ['contractAtCreation','contractEndAtCreation','issue','matchDate'])if(typeof message[key]==='string'||Number.isSafeInteger(message[key]))m[key]=message[key];
+    for(const key of ['contractAtCreation','contractEndAtCreation','issue','matchDate','incidentId'])if(typeof message[key]==='string'||Number.isSafeInteger(message[key]))m[key]=message[key];
     GameState.inbox.unshift(m);GameState.inbox=GameState.inbox.slice(0,150);return m;
   }
   function onMessage(message) {
@@ -85,6 +85,7 @@ window.FM_INBOX = (() => {
         const notice=push({title:o.type==='sell'?`Oferta por ${p.nombre}`:`Negociación por ${p.nombre}`,body:o.type==='renewal'?(o.awaitingUser?'El representante presentó una contraoferta. Revisá las condiciones actuales y su plazo.':'Tu propuesta de renovación sigue en evaluación. La respuesta estará disponible desde el '+date(o.responseDate)+'.'):o.type==='sell'?`${clubName(o.toClub)} ofrece ${money(o.fee)}. La venta necesita tu decisión y debe respetar la cobertura del plantel y el presupuesto del comprador.`:`La propuesta está en evaluación. Podés revisar sus condiciones o retirarla antes de que se cierre.`,type:o.type==='renewal'?'contratos':'mercado',action:o.type==='sell'?'sale':'offer',offerId:o.id,playerId:p.id,sourceKey:o.type==='renewal'?`renewal:${o.id}:${GameState.today}`:`offer:${o.id}`});
         if(o.type==='renewal'&&notice)o.lastMessageId=notice.id;
       }
+      window.FM_INCIDENTS?.ensureMessages();
       refreshAlerts();
     } finally {pushing=false;}
     return true;
@@ -93,6 +94,7 @@ window.FM_INBOX = (() => {
     if(!active()||m.dismissed)return false;
     const p=lookup(m.playerId),o=m.offerId?offerFor(m):null;
     if(m.offerId)return !!o&&!o.awaitingRegistration&&!o.saleResponsePending&&o.status==='pending'&&(o.type!=='renewal'||o.awaitingUser&&(!o.lastMessageId||o.lastMessageId===m.id))&&(o.type!=='sell'||owned(p));
+    if(m.action==='incident')return !!window.FM_INCIDENTS?.pending(m.incidentId);
     if(m.action==='career')return m.date.slice(0,4)===String(GameState.year)&&!!GameState.world.depth?.jobs?.some(j=>j.status==='open');
     if(m.action==='contract')return owned(p)&&!p.loanId&&!window.FM_RENEWALS?.current(p.id)&&MARKET_CONTRACTS.contractEnd(p)<=MARKET_CONTRACTS.addMonths(GameState.today,12)&&(!m.contractEndAtCreation||m.contractEndAtCreation===MARKET_CONTRACTS.contractEnd(p))&&(!Number.isInteger(m.contractAtCreation)||p.contract===m.contractAtCreation);
     if(m.action==='medical')return owned(p)&&(p.injury>0||p.condicion_fisica<65)&&p.trainingFocus!=='Recuperación';
@@ -102,6 +104,7 @@ window.FM_INBOX = (() => {
     return false;
   }
   function status(m) {
+    if(m.action==='incident'){const e=window.FM_INCIDENTS?.get(m.incidentId);return ({pending:isPending(m)?'Tu decisión':'Fuera de plazo',resolved:'Decisión aplicada',expired:'Resuelto por vencimiento',cancelled:'Archivado por cambio de club'})[e?.status]||'Archivado';}
     if(m.offerId) {
       const o=offerFor(m);if(!o)return 'Oferta archivada';if(o.awaitingRegistration)return 'Inscripción el '+date(o.registrationDate);if(o.saleResponsePending)return 'Esperando al comprador';if(o.type==='renewal'&&o.lastMessageId&&o.lastMessageId!==m.id)return 'Propuesta anterior · ver estado actual';
       return ({pending:o.type==='sell'||o.awaitingUser?'Tu decisión':'En negociación',accepted:'Acuerdo cerrado',rejected:'Oferta rechazada',expired:'Oferta vencida',cancelled:'Oferta retirada',canceled:'Oferta retirada'})[o.status]||'Negociación finalizada';
@@ -115,6 +118,7 @@ window.FM_INBOX = (() => {
   function actionsFor(m) {
     const result=[],p=lookup(m.playerId),o=m.offerId?offerFor(m):null,blocked=locked();
     const add=(id,label,disabled=false,primary=false)=>result.push({id,label,disabled,primary});
+    if(m.action==='incident'){for(const c of window.FM_INCIDENTS?.choices(m.incidentId)||[])add('incident:'+c.id,c.label,blocked||c.disabled);return result;}
     if(o?.status==='pending'&&!o.awaitingRegistration) {
       if(o.type==='renewal'&&owned(p)){add('renewal-open',o.counter?'Contraofertar renovación':'Ver renovación',blocked);if(!o.lastMessageId||o.lastMessageId===m.id){if(o.counter)add('renewal-accept','Aceptar condiciones',blocked,true);add('renewal-cancel','Retirar propuesta',blocked);}}
       else if(o.type==='sell'&&owned(p)&&!o.saleResponsePending){add('negotiate-counter','Contraofertar',blocked);add('sale-accept','Aceptar oferta',blocked,true);add('sale-reject','Rechazar oferta',blocked);}
@@ -188,6 +192,7 @@ window.FM_INBOX = (() => {
     if(!active())return;ensure();const m=GameState.inbox.find(q=>q.id===Number(id));if(!m)return;
     const allowed=actionsFor(m).find(a=>a.id===action&&!a.disabled);if(!allowed)return toast('La situación cambió. Revisá el estado del mensaje.');
     const p=lookup(m.playerId);m.read=true;
+    if(action.startsWith('incident:')){const result=FM_INCIDENTS.resolve(m.incidentId,action.slice(9));if(!result.ok)toast(result.reason);render();return;}
     if(action==='scout-cancel')return window.FM_OFFICE?.cancelObservation(p.id);
     if(action==='profile'){WORLD_STORAGE.scheduleSave();return details(p.id);}
     if(action==='renewal-open')return FM_RENEWALS.open(p.id);

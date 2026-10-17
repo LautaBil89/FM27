@@ -342,7 +342,7 @@
   }
   newCareer=function(){if(typeof WORLD_DATABASE==='undefined')return legacy.newCareer();return createWorldCareer($('#manager')?.value,$('#club')?.value,$('#objective')?.value,{competitionFormat:$('#careerCompetitionFormat')?.value||'realistic',calendarMode:$('#careerCalendarMode')?.value||'realistic'})};
   function recoverTo(nextDate) {
-    while(GameState.today<nextDate){const day=iso(+new Date(GameState.today)+DAY);if(window.FM_MEDICINE)FM_MEDICINE.onDay(day);for(const p of GameState.players){if(!window.FM_MEDICINE){p.condicion_fisica=clamp(p.condicion_fisica+4);p.injury=Math.max(0,p.injury-1)}if(p.fecha_nacimiento)p.edad=age(p.fecha_nacimiento,day)}GameState.today=day;window.FM_SEASONS?.onDay(day);window.CLUB_AI?.onDayAdvance(day);window.FM_DRESSING_ROOM?.onDayAdvance(day);window.FM_DEPTH?.progress(day);window.FM_OFFICE?.onDay(day);window.FM_DEVELOPMENT?.onDay(day);settleFinances(day);window.FM_FINANCES?.onDay(day);window.FM_PLAYER?.captureProgress();}
+    while(GameState.today<nextDate){const day=iso(+new Date(GameState.today)+DAY);if(window.FM_MEDICINE)FM_MEDICINE.onDay(day);for(const p of GameState.players){if(!window.FM_MEDICINE){p.condicion_fisica=clamp(p.condicion_fisica+4);p.injury=Math.max(0,p.injury-1)}if(p.fecha_nacimiento)p.edad=age(p.fecha_nacimiento,day)}GameState.today=day;window.FM_SEASONS?.onDay(day);window.CLUB_AI?.onDayAdvance(day);window.FM_DRESSING_ROOM?.onDayAdvance(day);window.FM_DEPTH?.progress(day);window.FM_OFFICE?.onDay(day);window.FM_DEVELOPMENT?.onDay(day);settleFinances(day);window.FM_FINANCES?.onDay(day);window.FM_INCIDENTS?.onDay(day);window.FM_PLAYER?.captureProgress();}
   }
   function settleFinances(day) {
     if(window.FM_FINANCES?.settleLegacy)return FM_FINANCES.settleLegacy(day);

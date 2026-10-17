@@ -18768,7 +18768,7 @@ const WORLD_MATCH_BENCHMARKS = {"schema":1,"builtAt":"2026-10-16T15:26:17.559734
   }
   newCareer=function(){if(typeof WORLD_DATABASE==='undefined')return legacy.newCareer();return createWorldCareer($('#manager')?.value,$('#club')?.value,$('#objective')?.value,{competitionFormat:$('#careerCompetitionFormat')?.value||'realistic',calendarMode:$('#careerCalendarMode')?.value||'realistic'})};
   function recoverTo(nextDate) {
-    while(GameState.today<nextDate){const day=iso(+new Date(GameState.today)+DAY);if(window.FM_MEDICINE)FM_MEDICINE.onDay(day);for(const p of GameState.players){if(!window.FM_MEDICINE){p.condicion_fisica=clamp(p.condicion_fisica+4);p.injury=Math.max(0,p.injury-1)}if(p.fecha_nacimiento)p.edad=age(p.fecha_nacimiento,day)}GameState.today=day;window.FM_SEASONS?.onDay(day);window.CLUB_AI?.onDayAdvance(day);window.FM_DRESSING_ROOM?.onDayAdvance(day);window.FM_DEPTH?.progress(day);window.FM_OFFICE?.onDay(day);window.FM_DEVELOPMENT?.onDay(day);settleFinances(day);window.FM_FINANCES?.onDay(day);window.FM_PLAYER?.captureProgress();}
+    while(GameState.today<nextDate){const day=iso(+new Date(GameState.today)+DAY);if(window.FM_MEDICINE)FM_MEDICINE.onDay(day);for(const p of GameState.players){if(!window.FM_MEDICINE){p.condicion_fisica=clamp(p.condicion_fisica+4);p.injury=Math.max(0,p.injury-1)}if(p.fecha_nacimiento)p.edad=age(p.fecha_nacimiento,day)}GameState.today=day;window.FM_SEASONS?.onDay(day);window.CLUB_AI?.onDayAdvance(day);window.FM_DRESSING_ROOM?.onDayAdvance(day);window.FM_DEPTH?.progress(day);window.FM_OFFICE?.onDay(day);window.FM_DEVELOPMENT?.onDay(day);settleFinances(day);window.FM_FINANCES?.onDay(day);window.FM_INCIDENTS?.onDay(day);window.FM_PLAYER?.captureProgress();}
   }
   function settleFinances(day) {
     if(window.FM_FINANCES?.settleLegacy)return FM_FINANCES.settleLegacy(day);
@@ -22786,7 +22786,7 @@ window.FM_CALIBRATION=(()=>{
 window.FM_INBOX = (() => {
   const legacyInbox = window.inboxView, legacyRender = render;
   const categories = {mercado:'Mercado',contratos:'Contratos',ojeo:'Ojeo',plantel:'Plantel',partidos:'Partidos',directiva:'Directiva',sistema:'Sistema',prensa:'Prensa'};
-  const supported = new Set(['sale','offer','scout','contract','tactics','medical','match','finance','recovery','career']);
+  const supported = new Set(['sale','offer','scout','contract','tactics','medical','match','finance','recovery','career','incident']);
   const active = () => !!GameState?.world && GameState.version === 3;
   const owned = p => !!p && p.clubId === GameState.userClub.id;
   const lookup = id => Number.isSafeInteger(Number(id)) ? player(Number(id)) : null;
@@ -22816,7 +22816,7 @@ window.FM_INBOX = (() => {
     if(supported.has(message.action))m.action=message.action;
     if(lookup(message.playerId))m.playerId=Number(message.playerId);
     if(typeof message.offerId==='string'||Number.isSafeInteger(message.offerId))m.offerId=String(message.offerId).slice(0,160);
-    for(const key of ['contractAtCreation','contractEndAtCreation','issue','matchDate'])if(typeof message[key]==='string'||Number.isSafeInteger(message[key]))m[key]=message[key];
+    for(const key of ['contractAtCreation','contractEndAtCreation','issue','matchDate','incidentId'])if(typeof message[key]==='string'||Number.isSafeInteger(message[key]))m[key]=message[key];
     GameState.inbox.unshift(m);GameState.inbox=GameState.inbox.slice(0,150);return m;
   }
   function onMessage(message) {
@@ -22869,6 +22869,7 @@ window.FM_INBOX = (() => {
         const notice=push({title:o.type==='sell'?`Oferta por ${p.nombre}`:`Negociación por ${p.nombre}`,body:o.type==='renewal'?(o.awaitingUser?'El representante presentó una contraoferta. Revisá las condiciones actuales y su plazo.':'Tu propuesta de renovación sigue en evaluación. La respuesta estará disponible desde el '+date(o.responseDate)+'.'):o.type==='sell'?`${clubName(o.toClub)} ofrece ${money(o.fee)}. La venta necesita tu decisión y debe respetar la cobertura del plantel y el presupuesto del comprador.`:`La propuesta está en evaluación. Podés revisar sus condiciones o retirarla antes de que se cierre.`,type:o.type==='renewal'?'contratos':'mercado',action:o.type==='sell'?'sale':'offer',offerId:o.id,playerId:p.id,sourceKey:o.type==='renewal'?`renewal:${o.id}:${GameState.today}`:`offer:${o.id}`});
         if(o.type==='renewal'&&notice)o.lastMessageId=notice.id;
       }
+      window.FM_INCIDENTS?.ensureMessages();
       refreshAlerts();
     } finally {pushing=false;}
     return true;
@@ -22877,6 +22878,7 @@ window.FM_INBOX = (() => {
     if(!active()||m.dismissed)return false;
     const p=lookup(m.playerId),o=m.offerId?offerFor(m):null;
     if(m.offerId)return !!o&&!o.awaitingRegistration&&!o.saleResponsePending&&o.status==='pending'&&(o.type!=='renewal'||o.awaitingUser&&(!o.lastMessageId||o.lastMessageId===m.id))&&(o.type!=='sell'||owned(p));
+    if(m.action==='incident')return !!window.FM_INCIDENTS?.pending(m.incidentId);
     if(m.action==='career')return m.date.slice(0,4)===String(GameState.year)&&!!GameState.world.depth?.jobs?.some(j=>j.status==='open');
     if(m.action==='contract')return owned(p)&&!p.loanId&&!window.FM_RENEWALS?.current(p.id)&&MARKET_CONTRACTS.contractEnd(p)<=MARKET_CONTRACTS.addMonths(GameState.today,12)&&(!m.contractEndAtCreation||m.contractEndAtCreation===MARKET_CONTRACTS.contractEnd(p))&&(!Number.isInteger(m.contractAtCreation)||p.contract===m.contractAtCreation);
     if(m.action==='medical')return owned(p)&&(p.injury>0||p.condicion_fisica<65)&&p.trainingFocus!=='Recuperación';
@@ -22886,6 +22888,7 @@ window.FM_INBOX = (() => {
     return false;
   }
   function status(m) {
+    if(m.action==='incident'){const e=window.FM_INCIDENTS?.get(m.incidentId);return ({pending:isPending(m)?'Tu decisión':'Fuera de plazo',resolved:'Decisión aplicada',expired:'Resuelto por vencimiento',cancelled:'Archivado por cambio de club'})[e?.status]||'Archivado';}
     if(m.offerId) {
       const o=offerFor(m);if(!o)return 'Oferta archivada';if(o.awaitingRegistration)return 'Inscripción el '+date(o.registrationDate);if(o.saleResponsePending)return 'Esperando al comprador';if(o.type==='renewal'&&o.lastMessageId&&o.lastMessageId!==m.id)return 'Propuesta anterior · ver estado actual';
       return ({pending:o.type==='sell'||o.awaitingUser?'Tu decisión':'En negociación',accepted:'Acuerdo cerrado',rejected:'Oferta rechazada',expired:'Oferta vencida',cancelled:'Oferta retirada',canceled:'Oferta retirada'})[o.status]||'Negociación finalizada';
@@ -22899,6 +22902,7 @@ window.FM_INBOX = (() => {
   function actionsFor(m) {
     const result=[],p=lookup(m.playerId),o=m.offerId?offerFor(m):null,blocked=locked();
     const add=(id,label,disabled=false,primary=false)=>result.push({id,label,disabled,primary});
+    if(m.action==='incident'){for(const c of window.FM_INCIDENTS?.choices(m.incidentId)||[])add('incident:'+c.id,c.label,blocked||c.disabled);return result;}
     if(o?.status==='pending'&&!o.awaitingRegistration) {
       if(o.type==='renewal'&&owned(p)){add('renewal-open',o.counter?'Contraofertar renovación':'Ver renovación',blocked);if(!o.lastMessageId||o.lastMessageId===m.id){if(o.counter)add('renewal-accept','Aceptar condiciones',blocked,true);add('renewal-cancel','Retirar propuesta',blocked);}}
       else if(o.type==='sell'&&owned(p)&&!o.saleResponsePending){add('negotiate-counter','Contraofertar',blocked);add('sale-accept','Aceptar oferta',blocked,true);add('sale-reject','Rechazar oferta',blocked);}
@@ -22972,6 +22976,7 @@ window.FM_INBOX = (() => {
     if(!active())return;ensure();const m=GameState.inbox.find(q=>q.id===Number(id));if(!m)return;
     const allowed=actionsFor(m).find(a=>a.id===action&&!a.disabled);if(!allowed)return toast('La situación cambió. Revisá el estado del mensaje.');
     const p=lookup(m.playerId);m.read=true;
+    if(action.startsWith('incident:')){const result=FM_INCIDENTS.resolve(m.incidentId,action.slice(9));if(!result.ok)toast(result.reason);render();return;}
     if(action==='scout-cancel')return window.FM_OFFICE?.cancelObservation(p.id);
     if(action==='profile'){WORLD_STORAGE.scheduleSave();return details(p.id);}
     if(action==='renewal-open')return FM_RENEWALS.open(p.id);
@@ -24575,6 +24580,85 @@ window.FM_INTEGRITY=(()=>{
     try{if(save){await checkpoint();render()}else if(refresh){await list();render()}else{await restore(restoreButton.dataset.integrityRestore);render()}}finally{if(b.isConnected)b.disabled=false}
   });
   return {ensure,record,checkpoint,list,restore,page,ui,onSaved};
+})();
+
+/* Sucesos ficticios de la carrera: una tirada diaria, decisiones persistentes. */
+window.FM_INCIDENTS = (() => {
+  const tiers=[{name:'Cotidiana',weight:24,cooldown:35},{name:'Poco habitual',weight:12,cooldown:60},{name:'Inusual',weight:5,cooldown:100},{name:'Extraordinaria',weight:1.5,cooldown:180},{name:'Insólita',weight:.25,cooldown:365}];
+  // Each effect is immediate, bounded, and described before the decision.
+  const definitions=[
+    ['boots',0,'Problemas con los botines','Una entrega de botines llegó con talles equivocados. El utilero propone resolverlo antes de entrenar.','Comprar reemplazos',{cost:1,morale:2},'Usar el material de reserva',{condition:-1}],
+    ['school',0,'Invitación de una escuela','Una escuela del barrio invita al plantel a una actividad solidaria.','Organizar la visita',{cost:.4,morale:1,pressure:-3},'Enviar un saludo grabado',{pressure:-1}],
+    ['bus',0,'El micro necesita una reparación','El transporte contratado tiene una avería. Hay que organizar el traslado al entrenamiento.','Contratar un reemplazo',{cost:.8,condition:1},'Compartir vehículos',{condition:-2}],
+    ['meal',0,'Nuevo menú del plantel','El nutricionista propone mejorar el servicio de comidas de esta semana.','Aprobar el servicio',{cost:.8,condition:2},'Mantener el menú habitual',{}],
+    ['birthday',0,'Cumpleaños en el vestuario','El grupo propone una pequeña reunión después del entrenamiento para fortalecer la convivencia.','Organizar la reunión',{cost:.3,morale:2},'Felicitar al grupo',{morale:1}],
+    ['rain',1,'Lluvia en el predio','Las canchas auxiliares están anegadas. Se puede alquilar un espacio cubierto.','Alquilar instalaciones',{cost:1.2,condition:1},'Entrenar en espacios reducidos',{condition:-2}],
+    ['interview',1,'Entrevista con el capitán','Un medio propone una entrevista especial sobre la convivencia del equipo.','Preparar la entrevista',{cost:.4,pressure:-3},'Priorizar la privacidad',{morale:1}],
+    ['family',1,'Jornada de las familias','Los futbolistas piden abrir un entrenamiento para sus familias.','Organizar la jornada',{cost:.7,morale:3},'Reservar el entrenamiento',{morale:-1}],
+    ['grass',1,'Desgaste del césped','El encargado detectó una zona dañada en la cancha de entrenamiento.','Reparar de inmediato',{cost:1.5,condition:1},'Reducir el espacio de trabajo',{condition:-2}],
+    ['supporters',1,'Banderazo organizado','Una agrupación propone recibir al equipo en el predio, con acceso controlado.','Financiar la organización',{cost:.6,morale:2,pressure:-2},'Agradecer sin abrir el predio',{pressure:1}],
+    ['sponsor',2,'Campaña publicitaria sorpresa','Un patrocinador ofrece un ingreso extra a cambio de una jornada promocional del plantel.','Participar en la campaña',{income:3,condition:-2},'Proteger el descanso',{condition:1}],
+    ['power',2,'Corte de luz en el gimnasio','Una falla externa dejó sin energía el gimnasio antes de la sesión.','Alquilar un generador',{cost:1.4},'Hacer trabajo alternativo',{condition:-1,morale:1}],
+    ['oldboys',2,'Visita de exjugadores','Un grupo de referentes históricos ofrece compartir una charla con el plantel.','Organizar el encuentro',{cost:.8,morale:4,pressure:-1},'Enviar un agradecimiento',{}],
+    ['lostkit',2,'Equipaje deportivo demorado','Parte de la indumentaria quedó retenida por un error logístico del proveedor.','Pagar un envío urgente',{cost:1.2},'Usar equipos alternativos',{morale:-2}],
+    ['community',2,'Reconocimiento del barrio','Una asociación local quiere reconocer el trabajo social del club en un acto público.','Participar y colaborar',{cost:1,reputation:1,pressure:-4},'Recibir el reconocimiento a distancia',{pressure:-1}],
+    ['film',3,'Un rodaje quiere usar el predio','Una productora ofrece alquilar una zona del predio para una escena, sin usar imágenes de los jugadores.','Aceptar el rodaje',{income:5,condition:-3,morale:-1},'Mantener la rutina',{morale:1}],
+    ['collector',3,'Subasta de una camiseta histórica','Un coleccionista propone financiar una subasta solidaria junto al club.','Aportar a la organización',{cost:1.5,reputation:2,pressure:-5},'Difundir la iniciativa',{pressure:-1}],
+    ['music',3,'Una canción del club se vuelve viral','Una canción creada por hinchas está circulando en todo el país. El área de comunicación propone acompañarla.','Producir una versión oficial',{cost:1,morale:4,pressure:-4},'Compartir la versión original',{morale:2}],
+    ['scientists',3,'Prueba de equipamiento deportivo','Una universidad invita al club a probar sensores de recuperación durante una jornada.','Participar con supervisión',{cost:1,condition:4},'Mantener el protocolo habitual',{}],
+    ['reunion',3,'Reencuentro de una generación campeona','Una generación histórica del club propone una visita al vestuario y una actividad con hinchas.','Organizar el homenaje',{cost:2,morale:5,reputation:1},'Hacer un homenaje digital',{morale:2}],
+    ['goat',4,'¡Una cabra invadió el entrenamiento!','Un animal de una propiedad vecina entró al predio. El personal puede devolverlo con ayuda especializada.','Pedir asistencia y recuperar la sesión',{cost:.4,morale:3},'Suspender la sesión y esperar al dueño',{condition:2,morale:1}],
+    ['cat',4,'Un gato adoptó el banco de suplentes','Un gato apareció en el predio y el plantel quiere organizar su cuidado con una protectora.','Financiar el cuidado responsable',{cost:.5,morale:5,pressure:-2},'Coordinar su adopción con una protectora',{morale:2}],
+    ['mascot',4,'El disfraz de la mascota viajó al club equivocado','Un intercambio de paquetes dejó al club con una mascota de otro deporte. Comunicación propone aprovechar la confusión.','Publicar el intercambio y devolverlo',{cost:.4,morale:4,pressure:-3},'Resolverlo discretamente',{}],
+    ['replica',4,'La réplica de la copa no pasa por la puerta','La réplica encargada para una exposición llegó con un pedestal demasiado grande.','Adaptar la exposición',{cost:1,morale:3,pressure:-3},'Exponer solo fotografías',{pressure:1}],
+    ['balloon',4,'Un globo publicitario aterrizó en el predio','Un globo sin pasajeros de una campaña local cayó sobre una cancha auxiliar vacía. La empresa ofrece compensar al club.','Aceptar la compensación y limpiar',{income:2,condition:-1},'Donar la compensación al barrio',{reputation:2,pressure:-4}]
+  ].map(([id,tier,title,body,a,x,b,y])=>({id,tier,title,body,choices:[{id:'a',label:a,effect:x},{id:'b',label:b,effect:y}]}));
+  const addDays=(d,n)=>new Date(Date.parse(d+'T12:00:00Z')+n*86400000).toISOString().slice(0,10);
+  const state=()=>GameState.world.incidents??=( {nextId:1,lastDay:null,lastClub:null,history:[],cooldowns:{},lastEvents:{}} );
+  const get=id=>state().history.find(e=>e.id===String(id));
+  const definition=e=>definitions.find(d=>d.id===e?.definitionId);
+  const pending=id=>{const e=get(id);return !!e&&e.status==='pending'&&e.clubId===GameState.userClub.id&&e.deadline>=GameState.today};
+  function effectsText(x,unit){return [x.cost?`Costo: ${money(Math.round(x.cost*unit))}`:'',x.income?`Ingreso: ${money(Math.round(x.income*unit))}`:'',...Object.entries({morale:'Moral del plantel',condition:'Condición',pressure:'Presión de la hinchada',reputation:'Reputación'}).filter(([k])=>x[k]).map(([k,label])=>`${label}: ${x[k]>0?'+':''}${x[k]}`)].filter(Boolean).join(' · ')||'Sin cambios económicos ni deportivos';}
+  function choices(id){const e=get(id),d=definition(e);return pending(id)?d.choices.map(c=>({...c,label:`${c.label} — ${effectsText(c.effect,e.unit)}`,disabled:!!c.effect.cost&&CLUB_AI.availableBudget(e.clubId)<Math.round(c.effect.cost*e.unit)})):[];}
+  function notify(e){const d=definition(e);if(!d)return;FM_INBOX.push({title:d.title,body:`Situación ficticia de esta carrera · ${tiers[d.tier].name}. ${d.body}\nRespondé hasta el ${date(e.deadline)}. Sin respuesta: ${d.choices[1].label}.\n${d.choices.map(c=>`${c.label}: ${effectsText(c.effect,e.unit)}`).join('\n')}${e.outcome?'\nResolución: '+e.outcome:''}`,type:'plantel',action:'incident',incidentId:e.id,sourceKey:`incident:${e.id}`});}
+  function ensureMessages(){if(!GameState?.world)return;for(const e of state().history){if(e.status==='pending'&&e.clubId!==GameState.userClub.id)e.status='cancelled';if(pending(e.id))notify(e);}}
+  function resolve(id,choiceId,automatic=false){
+    const e=get(id),d=definition(e),c=d?.choices.find(c=>c.id===choiceId);
+    if(!e||!c||e.status!=='pending'||e.clubId!==GameState.userClub.id||locked()||(!automatic&&e.deadline<GameState.today))return {ok:false,reason:'La situación ya no admite esa decisión.'};
+    const x=c.effect,amount=Math.round(((x.income||0)-(x.cost||0))*e.unit);
+    if(amount<0&&(CLUB_AI.availableBudget(e.clubId)<-amount))return {ok:false,reason:'No hay presupuesto disponible para esta opción.'};
+    if(amount&&!CLUB_AI.transaction(e.clubId,amount,d.title,'other'))return {ok:false,reason:'No se pudo registrar el movimiento financiero.'};
+    for(const p of mine()){if(x.morale)p.moral=clamp(p.moral+x.morale,0,100);if(x.condition)p.condicion_fisica=clamp(p.condicion_fisica+x.condition,0,100);}
+    if(x.pressure)GameState.userClub.presion_hinchada=clamp(GameState.userClub.presion_hinchada+x.pressure,0,100);
+    if(x.reputation)GameState.userClub.reputacion=clamp(GameState.userClub.reputacion+x.reputation,0,100);
+    e.status=automatic?'expired':'resolved';e.choice=choiceId;e.resolvedDate=GameState.today;e.outcome=`${automatic?'Aplicada por vencimiento: ':''}${c.label}. ${effectsText(x,e.unit)}`;
+    const m=GameState.inbox.find(m=>m.incidentId===e.id);if(m)m.body+='\nResolución: '+e.outcome;
+    if(automatic)FM_INBOX.push({title:`Resolución: ${d.title}`,body:e.outcome,type:'plantel',sourceKey:`incident-result:${e.id}`});
+    WORLD_STORAGE.scheduleSave();return {ok:true};
+  }
+  function create(definitionId,day=GameState.today){
+    const s=state(),d=definitions.find(d=>d.id===definitionId),clubId=GameState.userClub.id;
+    if(!d||day!==GameState.today||locked()||s.history.some(e=>e.clubId===clubId&&e.status==='pending'))return null;
+    const unit=Math.round(Math.max(100,Math.min(25000,CLUB_AI.wageBill(clubId)*.015)));
+    const e={id:`unexpected-${s.nextId++}`,definitionId:d.id,clubId,date:day,deadline:addDays(day,3),unit,status:'pending'};
+    s.history.push(e);s.history=s.history.slice(-100);s.cooldowns[clubId+':'+d.id]=addDays(day,tiers[d.tier].cooldown);s.lastEvents[clubId]=day;notify(e);return e;
+  }
+  function onDay(day,random=Math.random){
+    if(!GameState?.world||locked()||day!==GameState.today)return;
+    const s=state(),clubId=GameState.userClub.id;
+    for(const e of s.history.filter(e=>e.status==='pending')){
+      if(e.clubId!==clubId)e.status='cancelled';
+      else if(e.deadline<day)resolve(e.id,'b',true);
+    }
+    if(s.lastDay===day&&s.lastClub===clubId)return;
+    s.lastDay=day;s.lastClub=clubId;
+    if(GameState.finished||GameState.world.depth?.dismissed||s.history.some(e=>e.status==='pending')||s.lastEvents[clubId]&&addDays(s.lastEvents[clubId],6)>day)return;
+    // Absolute probabilities: ineligible events become quiet days, never extra rare events.
+    const roll=random();if(!Number.isFinite(roll)||roll<0||roll>=1)return;
+    const total=definitions.reduce((n,d)=>n+tiers[d.tier].weight,0);let cursor=roll*total/.16;
+    for(const d of definitions){cursor-=tiers[d.tier].weight;if(cursor<0){if(!s.cooldowns[clubId+':'+d.id]||s.cooldowns[clubId+':'+d.id]<=day)create(d.id,day);return;}}
+  }
+  return {definitions:definitions.map(d=>({id:d.id,title:d.title,tier:tiers[d.tier].name,weight:tiers[d.tier].weight})),onDay,create,get,pending,choices,resolve,ensureMessages};
 })();
 
 /* Viewport-sized workspaces: navigation stays fixed; long records scroll locally. */
