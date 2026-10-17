@@ -18610,7 +18610,7 @@ const WORLD_MATCH_BENCHMARKS = {"schema":1,"builtAt":"2026-10-16T15:26:17.559734
   }
   function registerSquad(id) {const foreign=squad(id).filter(p=>isForeign(p,id)).sort((a,b)=>overall(b)-overall(a));for(const p of squad(id))p.registered=true;for(const p of foreign.slice(typeof registrationLimit==='function'?registrationLimit(id):foreignLimit(id)))p.registered=false}
   let processingEvent=null;
-  available=p=>isWorld()?!!p&&p.registered!==false&&p.injury===0&&(!window.FM_REGISTRATION?.eligible||FM_REGISTRATION.eligible(p,p.clubId,processingEvent||(p.clubId===GameState.userClub.id?nextUserEvent():currentEvent()))!==false)&&(p.ban===0||(p.banCompetition&&p.banCompetition!==(processingEvent||(p.clubId===GameState.userClub.id?nextUserEvent():currentEvent()))?.type)):legacy.available(p);
+  available=p=>isWorld()?!!p&&p.injury===0&&(window.FM_REGISTRATION?.eligible?FM_REGISTRATION.eligible(p,p.clubId,processingEvent||(p.clubId===GameState.userClub.id?nextUserEvent():currentEvent())):p.registered!==false)&&(p.ban===0||(p.banCompetition&&p.banCompetition!==(processingEvent||(p.clubId===GameState.userClub.id?nextUserEvent():currentEvent()))?.type)):legacy.available(p);
   aiXI=function(id){
     if(!isWorld())return legacy.aiXI(id);
     const pool=squad(id).filter(available).sort((a,b)=>overall(b)*b.condicion_fisica-overall(a)*a.condicion_fisica),ids=[];
@@ -18778,6 +18778,7 @@ const WORLD_MATCH_BENCHMARKS = {"schema":1,"builtAt":"2026-10-16T15:26:17.559734
       for(const [side,id]of [[0,g.home],[1,g.away]]){const c=club(id);c.form??=[];c.form.push((side===0?r.home:r.away)>(side===0?r.away:r.home)?'G':r.home===r.away?'E':'P');c.form=c.form.slice(-5)}
     }
     if(m&&result){recordLiveMatch(m,result);window.FM_MEDICINE?.afterMatch(m);window.FM_SCOUT_NETWORK?.observeMatch(m)}
+    window.MARKET_CONTRACTS?.recordLoanAppearances?.();
     if(userGame)window.FM_DRESSING_ROOM?.onMatchResult(event,userGame,userGame.result);
     if(userGame)window.MARKET_CONTRACTS?.onMatchResult?.(event,userGame,userGame.result,beforeStats);
     for(const p of GameState.players)if(p.ban&&playing.has(p.clubId)&&(!p.banCompetition||p.banCompetition===event.type)&&!m?.newBans?.includes(p.id)&&!m?.red.includes(p.id))p.ban--;
@@ -18803,6 +18804,7 @@ const WORLD_MATCH_BENCHMARKS = {"schema":1,"builtAt":"2026-10-16T15:26:17.559734
   }
   nextSeason=function(){
     if(!isWorld())return legacy.nextSeason();if(!GameState.finished)return;if(window.FM_SEASONS?.active())return FM_SEASONS.resumeCareer();const activateRegulations=!!GameState.world.nextRegulations,historicalTotals=activateRegulations&&!GameState.world.regulationsVersion?Object.fromEntries(GameState.world.leagues.map(l=>[l.id,copy(l.standings)])):null;if(activateRegulations&&GameState.world.competitionFormatsVersion)FM_REGULATIONS.initialize();const activateFormat=(GameState.world.nextCompetitionFormat==='realistic'||activateRegulations)&&!GameState.world.competitionFormatsVersion,previousTotals=activateFormat?copy(league('ARG1').standings):null,previousYear=GameState.year;window.CLUB_AI?.beforeNextSeason(GameState.world.nextCalendarMode==='realistic'&&window.FM_SEASONS?FM_SEASONS.definition(GameState.world.userLeagueId,GameState.year+1).preseason:seasonStartDay(GameState.year+1));const previous=GameState.history[0],rankings=previous.worldRankings;exchangeArgentina(rankings);window.FM_PYRAMIDS?.exchangeAnnual?.();window.FM_DEVELOPMENT?.seasonEnd?.(GameState.year);window.FM_MEDICINE?.seasonEnd?.(GameState.year);GameState.year++;window.FM_FINANCES?.onSeason?.(GameState.year);GameState.finished=false;GameState.match=null;GameState.lastMatch=null;GameState.offers=GameState.offers.map(o=>o.status==='pending'&&!o.awaitingRegistration?{...o,status:'expired'}:o);GameState.transferListed=[];GameState.today=seasonStartDay(GameState.year);
+    window.MARKET_CONTRACTS?.recordLoanAppearances?.();
     for(const p of GameState.players){if(p.fecha_nacimiento)p.edad=age(p.fecha_nacimiento,GameState.today);else p.edad=GameState.year-p.birthYear;p.goals=0;p.assists=0;p.minutes=0;p.appearances=0;p.seasonYellow=0;p.yellowSeason=0;p.redSeason=0;p.yellowCards={LPF:0,LIB:0,SUD:0};p.form=[];p.ban=0;if(!window.FM_MEDICINE){p.injury=0;p.condicion_fisica=100}p.trainingProgress=0;if(p.contract<GameState.year){if(p.clubId===GameState.userClub.id)MANAGEMENT.addMessage('Fin de contrato',`${p.nombre} terminó su contrato y queda libre.`, 'contratos');p.clubId=null;p.contract=GameState.year+1}if(p.edad>33&&!window.FM_DEVELOPMENT?.seasonEnd){p.ritmo=clamp(p.ritmo-1,1,99);p.fisico=clamp(p.fisico-1,1,99)}}
     indexState(true);let nextId=Math.max(...GameState.players.map(p=>p.id))+1;
     for(const c of GameState.world.clubs){c.form=[];c.relegated=false;const pool=squad(c.id);let size=pool.length+(window.MARKET_CONTRACTS?.returnSlots(c.id)||0)+(window.MARKET_CONTRACTS?.futureSlots?.(c.id)||0);for(const [pos,minimum]of [['POR',3],['DEF',7],['MED',7],['DEL',5]]){let existing=pool.filter(p=>p.posicion===pos).length;while(existing<minimum&&size<32){GameState.players.push(newYouth(nextId++,c,pos));existing++;size++;}}}
@@ -19425,7 +19427,7 @@ window.FM_SEASONS=(()=>{
   function finishUserSeason(){if(!active()||GameState.finished)return false;const id=GameState.world.userLeagueId,s=leagueSeason(id);if(s?.status!=='completed')return false;const futureUser=GameState.calendar.some(e=>!e.done&&e.date<=s.rolloverDate&&fixture(e));if(futureUser)return false;const key=`${id}:${s.year}`;if(registry().reviewed.includes(key))return false;registry().reviewed.push(key);const h=registry().history.findLast(h=>h.leagueId===id&&h.year===s.year),rows=WORLD_ENGINE.sortedRows(h.standings),place=rows.findIndex(r=>r.id===GameState.userClub.id)+1,l=WORLD_ENGINE.league(id),slots=WORLD_ENGINE.qualificationSlots(l),goal=GameState.userClub.objective.toLowerCase(),fallback=goal.includes('campe')?h.champion===GameState.userClub.id:goal.includes('descenso')?!h.relegated.includes(GameState.userClub.id):goal.includes('mitad')?place<=Math.ceil(rows.length/2):goal.includes('europeos')?place<=slots.champions+slots.europa+slots.conference:place<=(slots.lib||slots.champions||slots.promotion),success=FM_COMPETITIONS.objectiveResult(place,goal,fallback),rankings=Object.fromEntries(GameState.world.leagues.map(l=>[l.id,WORLD_ENGINE.sortedRows(l.standings).map(r=>r.id)]));GameState.finished=true;GameState.userClub.confianza_directiva=clamp(GameState.userClub.confianza_directiva+(success?15:-15));GameState.history.unshift({year:s.year,seasonLabel:s.label,calendarMode:'realistic',leagueId:id,position:place,points:h.standings[GameState.userClub.id]?.pts||0,champion:h.champion,cup:GameState.world.cups.LIB?.winner,sudCup:GameState.world.cups.SUD?.winner,objectiveMet:success,qualified:h.ranking.slice(0,slots.lib),sudamericana:h.ranking.slice(slots.lib,slots.lib+slots.sud),worldRankings:rankings,...(['ARG1','ARG2'].includes(id)?{sportingFormats:h.sporting}:{domesticFormats:{[id]:h.sporting}})});news('Balance de la temporada',`${l.name} ${s.label}: puesto ${place}. Las demás competiciones conservan sus propias temporadas y resultados.`);MANAGEMENT.addMessage(success?'Objetivo de temporada cumplido':'Evaluación de la directiva',`${GameState.userClub.nombre} terminó ${place}º en ${l.name} ${s.label}. Confianza: ${GameState.userClub.confianza_directiva}%. Podés revisar el balance y continuar hacia la próxima preparación sin reiniciar las otras ligas.`, 'directiva',{action:'career'});return true}
   function checkCompletion(){if(!active())return;for(const l of GameState.world.leagues)markCompleted(l.id);finishUserSeason()}
   function refreshUser(){WORLD_ENGINE.hydrateWorldState();WORLD_ENGINE.reindex();GameState.userClub.cupos_extranjeros_usados=foreigners(GameState.userClub.id);autoLineup()}
-  function resetClubSeason(l,year){const ids=new Set(l.clubIds);for(const p of GameState.players.filter(p=>ids.has(p.clubId))){p.seasonHistory??=[];if(p.appearances)p.seasonHistory.push({year:year-1,leagueId:l.id,appearances:p.appearances,minutes:p.minutes,goals:p.goals,assists:p.assists});p.seasonHistory=p.seasonHistory.slice(-8);p.goals=0;p.assists=0;p.minutes=0;p.appearances=0;p.seasonYellow=0;p.yellowSeason=0;p.redSeason=0;p.yellowCards={LPF:0,LIB:0,SUD:0};p.form=[];p.ban=0;p.banCompetition=null;p.trainingProgress=0}for(const id of l.clubIds){club(id).form=[];club(id).relegated=false}l.standings=Object.fromEntries(l.clubIds.map(id=>[id,{id,pj:0,g:0,e:0,p:0,gf:0,gc:0,pts:0}]));WORLD_ENGINE.reindex();WORLD_ENGINE.refillLeague?.(l.id);for(const id of l.clubIds)WORLD_ENGINE.registerSquad?.(id)}
+  function resetClubSeason(l,year){window.MARKET_CONTRACTS?.recordLoanAppearances?.();const ids=new Set(l.clubIds);for(const p of GameState.players.filter(p=>ids.has(p.clubId))){p.seasonHistory??=[];if(p.appearances)p.seasonHistory.push({year:year-1,leagueId:l.id,appearances:p.appearances,minutes:p.minutes,goals:p.goals,assists:p.assists});p.seasonHistory=p.seasonHistory.slice(-8);p.goals=0;p.assists=0;p.minutes=0;p.appearances=0;p.seasonYellow=0;p.yellowSeason=0;p.redSeason=0;p.yellowCards={LPF:0,LIB:0,SUD:0};p.form=[];p.ban=0;p.banCompetition=null;p.trainingProgress=0}for(const id of l.clubIds){club(id).form=[];club(id).relegated=false}l.standings=Object.fromEntries(l.clubIds.map(id=>[id,{id,pj:0,g:0,e:0,p:0,gf:0,gc:0,pts:0}]));WORLD_ENGINE.reindex();WORLD_ENGINE.refillLeague?.(l.id);for(const id of l.clubIds)WORLD_ENGINE.registerSquad?.(id)}
   function pairedLeagues(id){const l=WORLD_ENGINE.league(id);if(!l)return[];return GameState.world.leagues.filter(other=>other.country===l.country&&[1,2].includes(other.tier)).map(l=>l.id)}
   function canRollover(id){const own=leagueSeason(id);if(!own||own.status!=='completed')return false;const paired=pairedLeagues(id);return paired.every(other=>{const s=leagueSeason(other);return s&&s.status==='completed'&&s.year===own.year&&GameState.today>=s.rolloverDate})}
   function rollover(id){
@@ -20743,13 +20745,14 @@ window.WORLD_STORAGE = WORLD_STORAGE;
   }
   function canReceive(p,id,wage=p?.salario,options={}){
     const e=economy(id);if(!p||!e)return{ok:false,reason:'el club o el jugador ya no está disponible'};
+    const continuation=options.loanPurchaseId&&(GameState.world.ai?.contracts?.loans||[]).some(l=>l.id===options.loanPurchaseId&&l.status==='purchasing'&&l.playerId===p.id&&l.borrowerClub===id&&l.ownerClub===p.clubId);
     const excluded=options.excludeOfferId||null,returnSlots=liveLoans().filter(l=>l.ownerClub===id&&l.playerId!==p.id).length;
     if(p.clubId===id)return{ok:false,reason:'el jugador ya pertenece al club'};
     if(squad(id).length+returnSlots+incomingSlots(id,excluded)>=32)return{ok:false,reason:'no quedan plazas: también se reservan los retornos de préstamos'};
-    const registry=window.FM_REGISTRATION?.canRegister(p,id);if(registry&&!registry.ok)return registry;
+    const registry=!continuation&&window.FM_REGISTRATION?.canRegister(p,id);if(registry&&!registry.ok)return registry;
     const foreign=WORLD_ENGINE.isForeign(p,id),limit=WORLD_ENGINE.foreignLimit(id),pendingForeign=GameState.offers.filter(o=>o.status==='pending'&&(o.toClub||(o.type==='buy'?userId():null))===id&&o.id!==excluded).filter(o=>WORLD_ENGINE.isForeign(player(o.playerId),id)).length;
     const returningForeign=liveLoans().filter(l=>l.ownerClub===id&&l.playerId!==p.id&&WORLD_ENGINE.isForeign(player(l.playerId),id)).length;
-    if(foreign&&foreigners(id)+pendingForeign+returningForeign>=limit)return{ok:false,reason:'no quedan cupos de extranjeros'};
+    if(foreign&&(!continuation||p.registered!==false)&&foreigners(id)+pendingForeign+returningForeign>=limit)return{ok:false,reason:'no quedan cupos de extranjeros'};
     if(!Number.isFinite(wage)||wage<0)return{ok:false,reason:'el salario no es válido'};
     if(wageBill(id)+reservedWages(id,excluded)+wage>positive(e.wageBudget))return{ok:false,reason:'se supera el presupuesto salarial'};
     return{ok:true,reason:''};
@@ -21038,11 +21041,11 @@ window.WORLD_STORAGE = WORLD_STORAGE;
   function clubState(id=GameState.userClub.id){const s=ensure();if(!s||!club(id))return null;const key=cycleKey(id),c=s.clubs[id]??={cycle:key,domestic:[],continental:{},grandfathered:true};c.continental??={};if(c.cycle!==key){c.cycle=key;c.domestic=c.domestic.filter(pid=>player(pid)?.clubId===id);c.grandfathered=false}if(!c.initialized){c.domestic=squad(id).filter(p=>p.registered!==false).map(p=>p.id);c.initialized=true}return c}
   function list(id=GameState.userClub.id,competition='domestic'){const c=clubState(id);if(!c)return [];if(competition==='domestic')return c.domestic;c.continental[competition]??=squad(id).filter(p=>p.registered!==false).slice(0,50).map(p=>p.id);return c.continental[competition]}
   function canRegister(p,id=GameState.userClub.id,options={}){if(!p||!club(id))return {ok:false,reason:'Jugador o club no disponible'};const r=profile(id),competition=options.competition||'domestic',rows=list(id,competition).map(player).filter(q=>q?.clubId===id&&q.id!==p.id);if(competition!=='domestic'){if(rows.length>=50)return{ok:false,reason:'La lista continental tiene 50 jugadores'};return{ok:true,reason:''}}if(exempt(p,id))return{ok:true,reason:'Exento sub-21'};const seniors=rows.filter(q=>!exempt(q,id)),local=seniors.filter(q=>trained(q,id)).length,clubLocal=seniors.filter(q=>trained(q,id,true)).length;let max=r.squad;if(r.homegrown){const total=local+(trained(p,id)?1:0),atClub=clubLocal+(trained(p,id,true)?1:0);max-=r.clubTrained?Math.max(0,r.clubTrained-atClub)+Math.max(0,r.homegrown-r.clubTrained-Math.max(0,total-atClub)):Math.max(0,r.homegrown-total)}if(seniors.length>=max)return{ok:false,reason:`No queda plaza sénior en la lista (${max}; se reservan plazas de formación verificadas)`};if(isForeign(p,id)&&rows.filter(q=>isForeign(q,id)).length>=r.foreignSquad)return{ok:false,reason:'No queda cupo de extranjeros en la lista doméstica'};if(r.nonEUIncoming&&p.clubId&&club(p.clubId)?.country!==r.country&&isForeign(p,id)){const intake=ensure().internationalIntakes[id+':'+cycleKey(id)]||[];if(intake.length>=r.nonEUIncoming&&!intake.includes(p.id))return{ok:false,reason:'Se agotaron las altas extracomunitarias internacionales de este ciclo'}}return{ok:true,reason:''}}
-  function register(pid,id=GameState.userClub.id,competition='domestic',options={}){const p=player(Number(pid));if(!p||p.clubId!==id)return{ok:false,reason:'El jugador no pertenece al club'};const rows=list(id,competition);if(rows.includes(p.id))return{ok:true,already:true};if(!options.transfer&&!registrationOpen(GameState.today,id)&&!exempt(p,id))return{ok:false,reason:'La ventana de inscripción está cerrada'};const check=canRegister(p,id,{competition});if(!check.ok)return check;rows.push(p.id);if(competition==='domestic')p.registered=true;return{ok:true}}
+  function register(pid,id=GameState.userClub.id,competition='domestic',options={}){if(locked())return{ok:false,reason:'Terminá el partido antes de modificar la lista'};const p=player(Number(pid));if(!p||p.clubId!==id)return{ok:false,reason:'El jugador no pertenece al club'};const rows=list(id,competition);if(rows.includes(p.id))return{ok:true,already:true};if(!options.transfer&&!registrationOpen(GameState.today,id)&&!exempt(p,id))return{ok:false,reason:'La ventana de inscripción está cerrada'};const check=canRegister(p,id,{competition});if(!check.ok)return check;rows.push(p.id);if(competition==='domestic')p.registered=true;return{ok:true}}
   function unregister(pid,id=GameState.userClub.id,competition='domestic'){if(locked())return{ok:false,reason:'Terminá el partido antes de modificar la lista'};const rows=list(id,competition),index=rows.indexOf(Number(pid));if(index>=0)rows.splice(index,1);if(competition==='domestic'&&player(Number(pid))?.clubId===id)player(Number(pid)).registered=false;return{ok:true}}
   function onTransfer(p,from,id){if(!active())return;const old=ensure().clubs[from];if(old){old.domestic=old.domestic.filter(x=>x!==p.id);for(const key of Object.keys(old.continental))old.continental[key]=old.continental[key].filter(x=>x!==p.id)}if(!id)return;const r=profile(id);if(r.nonEUIncoming&&from&&club(from)?.country!==r.country&&isForeign(p,id)){const key=id+':'+cycleKey(id);ensure().internationalIntakes[key]??=[];if(!ensure().internationalIntakes[key].includes(p.id))ensure().internationalIntakes[key].push(p.id)}const c=clubState(id);if(!c.domestic.includes(p.id))c.domestic.push(p.id);p.registered=true}
-  function eligible(p,id=p?.clubId,event=null){if(!active()||!p)return true;if(!id)return false;if(p.registered===false)return false;const competition=['LIB','SUD'].includes(event?.type)?event.type:'domestic';if(competition==='domestic'&&exempt(p,id))return true;return list(id,competition).includes(p.id)}
-  function lineupReason(ids,id=GameState.userClub.id,event=null){const ps=ids.map(player).filter(Boolean),missing=ps.find(p=>!eligible(p,id,event));if(missing)return `${missing.nombre} no está inscrito para esta competición`;const r=profile(id),n=ps.filter(p=>isForeign(p,id)).length;if(n>r.foreignMatch)return `La convocatoria supera el cupo de ${r.foreignMatch} extranjeros de ${r.country}`;return ''}
+  function eligible(p,id=p?.clubId,event=null){if(!active())return true;if(!p)return false;if(!id||p.clubId!==id)return false;const competition=['LIB','SUD'].includes(event?.type)?event.type:'domestic';if(competition==='domestic'&&p.registered===false)return false;if(competition==='domestic'&&exempt(p,id))return true;return list(id,competition).includes(p.id)}
+  function lineupReason(ids,id=GameState.userClub.id,event=null){if(new Set(ids.map(Number)).size!==ids.length)return 'Un jugador está asignado más de una vez';const ps=ids.map(pid=>player(Number(pid)));if(ps.some(p=>!p))return 'La convocatoria incluye un jugador que ya no está disponible';const missing=ps.find(p=>!eligible(p,id,event));if(missing)return `${missing.nombre} no está inscrito para esta competición`;const r=profile(id),n=ps.filter(p=>isForeign(p,id)).length;if(n>r.foreignMatch)return `La convocatoria supera el cupo de ${r.foreignMatch} extranjeros de ${r.country}`;return ''}
   function onDayAdvance(day=GameState.today){const s=ensure();if(!s||!valid(day)||s.lastDay===day)return false;s.lastDay=day;return true}
   function panel(id=GameState.userClub.id){const r=profile(id),current=list(id),rows=squad(id).sort((a,b)=>overall(b)-overall(a));return `<section class="card rr-panel"><div class="row between"><h2>Inscripción deportiva</h2><span class="badge">${registrationOpen(GameState.today,id)?'Ventana abierta':'Próxima alta: '+date(nextRegistrationDate(GameState.today,id))}</span></div><p class="small muted">${esc(r.country)} · ${r.squad} plazas sénior · ${r.foreignSquad>=99?'sin cupo general':r.foreignSquad+' extranjeros inscritos'} · convocatoria ${r.foreignMatch>=99?'sin cupo':r.foreignMatch+' extranjeros'}${r.u21Exempt?' · sub-21 exentos':''}</p><p class="small muted">${esc(r.note)} Las listas de copas son independientes y admiten 50 jugadores; no se reproducen todos los plazos administrativos CONMEBOL. <a href="${r.sourceUrl}" target="_blank" rel="noopener">Referencia oficial</a></p><div class="scroll"><table><thead><tr><th>Jugador</th><th>Inscripción</th><th>Condición normativa</th><th>Lista doméstica</th><th>Libertadores / Sudamericana</th></tr></thead><tbody>${rows.map(p=>`<tr><td><button class="fm-player-link" data-player="${p.id}">${esc(p.nombre)}</button></td><td>${current.includes(p.id)?'<span class="green">Inscrito</span>':'<span class="red">Sin inscripción</span>'}</td><td>${exempt(p,id)?'Sub-21 exento':isForeign(p,id)?'Ocupa cupo extranjero':'Nacional / comunitario'}${trained(p,id)?' · formación verificada':''}</td><td><button data-rr-player="${p.id}" data-rr-club="${id}" data-rr-competition="domestic" data-rr-decision="${current.includes(p.id)?'remove':'add'}">${current.includes(p.id)?'Retirar':'Inscribir'}</button></td><td>${['LIB','SUD'].map(comp=>`<button data-rr-player="${p.id}" data-rr-club="${id}" data-rr-competition="${comp}" data-rr-decision="${list(id,comp).includes(p.id)?'remove':'add'}">${comp} ${list(id,comp).includes(p.id)?'✓':'+'}</button>`).join(' ')}</td></tr>`).join('')}</tbody></table></div></section>`}
   function decorate(){if(!active()||view!=='squad')return;const host=document.querySelector('#content');if(!host||host.querySelector('[data-rr-open]'))return;const title=host.querySelector('h2');if(title)title.insertAdjacentHTML('afterend','<button data-rr-open>Listas e inscripción</button>')}
@@ -21147,9 +21150,25 @@ window.WORLD_STORAGE = WORLD_STORAGE;
     if (!p) return 0;
     const loan = world() && activeLoan(p);
     if (!loan) return p.clubId===id ? p.salario : 0;
-    return loan.borrowerClub===id ? amount(loan.ownerWage*loan.wageShare/100) : loan.ownerClub===id ? loan.ownerWage-amount(loan.ownerWage*loan.wageShare/100) : 0;
+    const wage=amount(p.salario);return loan.borrowerClub===id ? amount(wage*loan.wageShare/100) : loan.ownerClub===id ? wage-amount(wage*loan.wageShare/100) : 0;
   }
   function returnSlots(id) { return ensure()?.loans.filter(row=>row.status==='active'&&row.ownerClub===id).length || 0; }
+  function purchasingLoan(p,offer){
+    return ensure()?.loans.find(l=>l.status==='purchasing'&&l.playerId===p?.id&&offer.id==='purchase-'+l.id&&l.ownerClub===offer.fromClub&&l.borrowerClub===offer.toClub);
+  }
+  function recordLoanAppearances(){
+    if(!world())return;
+    for(const loan of ensure().loans.filter(l=>l.status==='active')){
+      const p=player(loan.playerId);if(!p||p.clubId!==loan.borrowerClub)continue;
+      const current=Math.max(0,Number(p.appearances)||0);
+      if(!Number.isFinite(loan.appearanceCount)){
+        loan.appearanceCount=Math.max(0,current-(Number(loan.startAppearances)||0));loan.lastAppearanceCount=current;
+      }else{
+        const previous=Math.max(0,Number(loan.lastAppearanceCount)||0);
+        loan.appearanceCount+=current>=previous?current-previous:current;loan.lastAppearanceCount=current;
+      }
+    }
+  }
   function statusReason(p,to,wage,offer) {
     if (!p || (p.clubId!==offer.fromClub && !(p.clubId==null&&offer.fromClub==null))) return 'La situación del jugador cambió';
     if (!club(to)) return 'El club de destino no está disponible';
@@ -21157,12 +21176,13 @@ window.WORLD_STORAGE = WORLD_STORAGE;
     if (activeLoan(p)) return 'El jugador está cedido hasta completar su préstamo';
     if (committed(p.id,offer.id)) return 'El jugador ya firmó un acuerdo para la próxima ventana';
     if(offer.precontract){const legal=precontractEligibility(p,to,GameState.today,offer.ownerConsent===true);if(!legal.ok)return legal.reason;}
-    if (p.clubId&&!offer.precontract) {
+    const continuity=purchasingLoan(p,offer);
+    if (p.clubId&&!offer.precontract&&!continuity) {
       const releasable = ai().canRelease(p,p.clubId);
       if (releasable===false || (releasable && releasable.ok===false)) return 'El club necesita conservar cobertura en esa posición';
     }
-    const registration=window.FM_REGISTRATION?.canRegister(p,to);if(registration&&!registration.ok)return registration.reason;
-    const receiving=ai().canReceive(p,to,wage,{excludeOfferId:offer.id});
+    const registration=!continuity&&window.FM_REGISTRATION?.canRegister(p,to);if(registration&&!registration.ok)return registration.reason;
+    const receiving=ai().canReceive(p,to,wage,{excludeOfferId:offer.id,loanPurchaseId:continuity?.id});
     if (receiving===false||(receiving&&receiving.ok===false)) return receiving?.reason||'El club no puede inscribir al jugador';
     if (amount(offer.fee)+amount(offer.bonus)+(offer.dealType==='loan'&&['mandatory','conditional'].includes(offer.purchaseMode)?amount(offer.purchaseFee):0)>ai().availableBudget(to,offer.id)) return 'No hay fondos para cubrir el pase y sus obligaciones';
     return '';
@@ -21471,7 +21491,7 @@ window.WORLD_STORAGE = WORLD_STORAGE;
     for(const p of GameState.players){
       const escalator=p.contractWageEscalator,end=contractEnd(p);
       if(escalator&&Number.isFinite(escalator.percent)&&escalator.percent>0&&escalator.percent<=15&&validDay(escalator.nextDate)){
-        let n=0;while(escalator.nextDate<=day&&escalator.nextDate<=end&&n++<25){p.salario=Math.round(p.salario*(1+escalator.percent/100));escalator.nextDate=addMonths(escalator.nextDate,12);count++;if(p.clubId===GameState.userClub.id)message('Aumento salarial pactado',`${p.nombre}: se aplica el ${escalator.percent}% anual firmado. Nuevo salario: ${cash(p.salario)} por semana.`,{playerId:p.id},'contratos')}
+        let n=0;while(escalator.nextDate<=day&&escalator.nextDate<=end&&n++<25){p.salario=Math.round(p.salario*(1+escalator.percent/100));const loan=activeLoan(p);if(loan)loan.ownerWage=p.salario;escalator.nextDate=addMonths(escalator.nextDate,12);count++;if(p.clubId===GameState.userClub.id||loan?.ownerClub===GameState.userClub.id)message('Aumento salarial pactado',`${p.nombre}: se aplica el ${escalator.percent}% anual firmado. Nuevo salario: ${cash(p.salario)} por semana.`,{playerId:p.id},'contratos')}
       }
       if(p.clubId&&end<day&&!activeLoan(p)){
         const from=p.clubId;p.clubId=null;p.registered=false;p.contractExpiredDate=end;window.FM_REGISTRATION?.onTransfer(p,from,null);reindex=true;count++;
@@ -21508,7 +21528,7 @@ window.WORLD_STORAGE = WORLD_STORAGE;
     const reason=termsReason(offer,p)||statusReason(p,offer.toClub,offer.dealType==='loan'?amount(p?.salario*offer.wageShare/100):offer.wage,offer);
     if (reason) return {ok:false,reason};
     if (p.clubId===GameState.userClub.id&&offer.toClub!==GameState.userClub.id&&offer.type!=='sell') return {ok:false,reason:'La venta requiere una oferta aceptada por el entrenador'};
-    const before=p.clubId,royalty=offer.dealType==='permanent'?royaltyFor(p,before):null;
+    const continuity=purchasingLoan(p,offer),before=p.clubId,royalty=offer.dealType==='permanent'?royaltyFor(p,before):null;
     const installments=offer.dealType==='permanent'?offer.installments:0;
     const initialFee=installments?Math.round(offer.fee*offer.upfrontPercent/100):offer.fee;
     const payment=initialFee+offer.bonus;
@@ -21518,20 +21538,20 @@ window.WORLD_STORAGE = WORLD_STORAGE;
       const remaining=offer.fee-initialFee,base=Math.floor(remaining/installments);
       for (let n=1;n<=installments;n++) ensure().payments.push({id:nextId('payment'),offerId:offer.id||nextId('transfer'),playerId:p.id,fromClub:offer.toClub,toClub:before,amount:n===installments?remaining-base*(installments-1):base,dueDate:addMonths(GameState.today,n),status:'pending',...(royalty?{royalty}:{} )});
     }
-    p.clubId=offer.toClub;window.FM_RENEWALS?.invalidatePlayer(p.id,'El jugador cambió de club');p.registered=true;p.moral=85;window.FM_REGISTRATION?.onTransfer(p,before,offer.toClub);
+    p.clubId=offer.toClub;window.FM_RENEWALS?.invalidatePlayer(p.id,'El jugador cambió de club');if(!continuity){p.registered=true;p.moral=85;window.FM_REGISTRATION?.onTransfer(p,before,offer.toClub)}
     if (offer.dealType==='loan') {
-      const loan={id:nextId('loan'),playerId:p.id,ownerClub:before,borrowerClub:offer.toClub,startDate:GameState.today,endDate:addMonths(GameState.today,offer.loanMonths),wageShare:offer.wageShare,ownerWage:p.salario,ownerRole:p.squadRole||null,ownerBonuses:structuredClone(p.contractBonuses||{}),status:'active',purchaseMode:offer.purchaseMode||'none',purchaseFee:offer.purchaseFee||0,playingTime:offer.playingTime||'Rotación',recallAllowed:offer.recallAllowed,recallFrom:addMonths(GameState.today,Math.min(3,offer.loanMonths)),purchaseAppearances:offer.purchaseAppearances||10,startAppearances:p.appearances||0,ownerContractEnd:contractEnd(p)};
+      const loan={id:nextId('loan'),playerId:p.id,ownerClub:before,borrowerClub:offer.toClub,startDate:GameState.today,endDate:addMonths(GameState.today,offer.loanMonths),wageShare:offer.wageShare,ownerWage:p.salario,ownerRole:p.squadRole||null,ownerBonuses:structuredClone(p.contractBonuses||{}),status:'active',purchaseMode:offer.purchaseMode||'none',purchaseFee:offer.purchaseFee||0,playingTime:offer.playingTime||'Rotación',recallAllowed:offer.recallAllowed,recallFrom:addMonths(GameState.today,Math.min(3,offer.loanMonths)),purchaseAppearances:offer.purchaseAppearances||10,startAppearances:p.appearances||0,appearanceCount:0,lastAppearanceCount:p.appearances||0,ownerContractEnd:contractEnd(p)};
       ensure().loans.push(loan);p.loanId=loan.id;
     } else {
-      p.salario=offer.wage;setContract(p,offer.years,GameState.today,{annualIncrease:offer.annualIncrease,releaseClause:offer.releaseClause});
+      p.salario=offer.wage;if(!continuity||contractEnd(p)<addMonths(GameState.today,12))setContract(p,offer.years,GameState.today,{annualIncrease:continuity?p.contractWageEscalator?.percent:offer.annualIncrease,releaseClause:offer.releaseClause});
       delete p.sellOnClause;
       if (before&&offer.sellOnPercent>0)p.sellOnClause={beneficiaryClub:before,ownerClub:offer.toClub,percent:offer.sellOnPercent};
     }
     GameState.transferListed=GameState.transferListed.filter(id=>id!==p.id);
     if (offer.id) {state.completedTransfers.push(offer.id);state.completedTransfers=state.completedTransfers.slice(-160)}
     WORLD_ENGINE.reindex();
-    if(offer.playingTime){p.squadRole=offer.playingTime;p.contractBonuses={appearance:amount(offer.appearanceBonus),goal:amount(offer.goalBonus),cleanSheet:amount(offer.cleanSheetBonus),title:amount(offer.titleBonus)};if(p.clubId===GameState.userClub.id)window.FM_DRESSING_ROOM?.onSigning?.(p,offer.playingTime)}
-    if (before===GameState.userClub.id||offer.toClub===GameState.userClub.id) {GameState.userClub.cupos_extranjeros_usados=foreigners(GameState.userClub.id);autoLineup()}
+    if(offer.playingTime){p.squadRole=offer.playingTime;p.contractBonuses={appearance:amount(offer.appearanceBonus),goal:amount(offer.goalBonus),cleanSheet:amount(offer.cleanSheetBonus),title:amount(offer.titleBonus)};if(p.clubId===GameState.userClub.id&&!continuity)window.FM_DRESSING_ROOM?.onSigning?.(p,offer.playingTime)}
+    if (before===GameState.userClub.id||offer.toClub===GameState.userClub.id) {GameState.userClub.cupos_extranjeros_usados=foreigners(GameState.userClub.id);if(!continuity)autoLineup()}
     window.FM_FINANCES?.onTransfer({id:offer.id||'transfer-'+p.id+'-'+GameState.today,playerId:p.id,fromClub:before,toClub:offer.toClub,fee:offer.fee,bonus:offer.bonus,years:offer.years,dealType:offer.dealType,installments,date:GameState.today,contractEnd:contractEnd(p)});
     ai().recordTransfer({date:GameState.today,playerId:p.id,playerName:p.nombre,fromClub:before,toClub:offer.toClub,fee:offer.fee,wage:offer.wage,dealType:offer.dealType,installments,sellOnPercent:offer.sellOnPercent});
     return {ok:true,offer};
@@ -21589,13 +21609,14 @@ window.WORLD_STORAGE = WORLD_STORAGE;
     trim();
   }
   function purchaseLoan(id,automatic=false){
+    recordLoanAppearances();
     const loan=ensure()?.loans.find(l=>l.id===id&&l.status==='active'),p=loan&&player(loan.playerId);
     const fail=reason=>({ok:false,reason});
     if(!loan||!p||p.clubId!==loan.borrowerClub||!['option','mandatory','conditional'].includes(loan.purchaseMode))return fail('La compra no está disponible');
-    if(loan.purchaseMode==='conditional'&&(p.appearances||0)-(loan.startAppearances||0)<loan.purchaseAppearances)return fail('Todavía no se alcanzó la condición de partidos');
+    if(loan.purchaseMode==='conditional'&&loan.appearanceCount<loan.purchaseAppearances)return fail('Todavía no se alcanzó la condición de partidos');
     if(!automatic&&(locked()||loan.borrowerClub!==GameState.userClub.id))return fail('Sólo el club prestatario puede ejecutar la opción fuera de un partido');
     const beforeClub=p.clubId,loanId=p.loanId;loan.status='purchasing';p.clubId=loan.ownerClub;delete p.loanId;WORLD_ENGINE.reindex();
-    const result=executeTransfer({id:'purchase-'+loan.id,type:loan.ownerClub===GameState.userClub.id?'sell':'buy',dealType:'permanent',playerId:p.id,fromClub:loan.ownerClub,toClub:loan.borrowerClub,fee:loan.purchaseFee,wage:loan.ownerWage,bonus:0,years:Math.max(1,Math.min(5,p.contract-GameState.year)),releaseClause:p.clausula_rescision,playingTime:loan.playingTime,appearanceBonus:p.contractBonuses?.appearance||0,goalBonus:p.contractBonuses?.goal||0,cleanSheetBonus:p.contractBonuses?.cleanSheet||0,titleBonus:p.contractBonuses?.title||0});
+    const result=executeTransfer({id:'purchase-'+loan.id,type:loan.ownerClub===GameState.userClub.id?'sell':'buy',dealType:'permanent',playerId:p.id,fromClub:loan.ownerClub,toClub:loan.borrowerClub,fee:loan.purchaseFee,wage:p.salario,bonus:0,years:Math.max(1,Math.min(5,p.contract-Number(GameState.today.slice(0,4)))),releaseClause:p.clausula_rescision,playingTime:p.squadRole||loan.playingTime,appearanceBonus:p.contractBonuses?.appearance||0,goalBonus:p.contractBonuses?.goal||0,cleanSheetBonus:p.contractBonuses?.cleanSheet||0,titleBonus:p.contractBonuses?.title||0});
     if(!result.ok){p.clubId=beforeClub;p.loanId=loanId;loan.status='active';WORLD_ENGINE.reindex();return result}
     loan.status='purchased';loan.purchaseDate=GameState.today;
     if([loan.ownerClub,loan.borrowerClub].includes(GameState.userClub.id))message('Compra de cedido ejecutada',`${p.nombre}: pase definitivo por ${cash(loan.purchaseFee)}. Se mantienen el salario y las condiciones personales pactadas.`,{playerId:p.id},'contratos');
@@ -21603,11 +21624,11 @@ window.WORLD_STORAGE = WORLD_STORAGE;
   }
   function returnLoans(day=GameState.today) {
     if (!world()||!validDay(day)) return;
-    let changed=false;
+    recordLoanAppearances();let changed=false;
     for (const loan of ensure().loans.filter(row=>row.status==='active'&&row.endDate<=day)) {
-      const p=player(loan.playerId);if((loan.purchaseMode==='mandatory'||loan.purchaseMode==='conditional'&&(p?.appearances||0)-(loan.startAppearances||0)>=loan.purchaseAppearances)&&p?.clubId===loan.borrowerClub){const result=purchaseLoan(loan.id,true);if(!result.ok&&!loan.purchaseNotice){loan.purchaseNotice=true;if([loan.ownerClub,loan.borrowerClub].includes(GameState.userClub.id))message('Compra obligatoria pendiente',`${p.nombre}: ${result.reason}. Sigue cedido hasta resolver el compromiso; la obligación no se cancela por falta de fondos.`,{id:loan.id,playerId:p.id},'contratos')}continue}loan.status='returned';loan.returnDate=day;
+      const p=player(loan.playerId);if((loan.purchaseMode==='mandatory'||loan.purchaseMode==='conditional'&&loan.appearanceCount>=loan.purchaseAppearances)&&p?.clubId===loan.borrowerClub){const result=purchaseLoan(loan.id,true);if(!result.ok&&!loan.purchaseNotice){loan.purchaseNotice=true;if([loan.ownerClub,loan.borrowerClub].includes(GameState.userClub.id))message('Compra obligatoria pendiente',`${p.nombre}: ${result.reason}. Sigue cedido hasta resolver el compromiso; la obligación no se cancela por falta de fondos.`,{id:loan.id,playerId:p.id},'contratos')}continue}loan.status='returned';loan.returnDate=day;
       if (!p) continue;
-      if (p.clubId===loan.borrowerClub) {p.clubId=loan.ownerClub;p.salario=loan.ownerWage;p.registered=true;window.FM_REGISTRATION?.onTransfer(p,loan.borrowerClub,loan.ownerClub);if(loan.ownerRole)p.squadRole=loan.ownerRole;else delete p.squadRole;if(loan.ownerBonuses)p.contractBonuses=structuredClone(loan.ownerBonuses);changed=true}
+      if (p.clubId===loan.borrowerClub) {p.clubId=loan.ownerClub;loan.ownerWage=p.salario;p.registered=true;window.FM_REGISTRATION?.onTransfer(p,loan.borrowerClub,loan.ownerClub);if(loan.ownerRole)p.squadRole=loan.ownerRole;else delete p.squadRole;if(loan.ownerBonuses)p.contractBonuses=structuredClone(loan.ownerBonuses);changed=true}
       delete p.loanId;
       if ([loan.ownerClub,loan.borrowerClub].includes(GameState.userClub.id)) message('Fin del préstamo',`${p.nombre} regresa a ${clubName(loan.ownerClub)} al cumplirse el préstamo.`,{id:loan.id,playerId:p.id},'contratos');
     }
@@ -21706,7 +21727,7 @@ window.WORLD_STORAGE = WORLD_STORAGE;
   },true);
   function renewContract(pid,terms={}) {return window.FM_RENEWALS?FM_RENEWALS.submit(pid,terms):{ok:false,reason:'La negociación de renovación no está disponible'}}
   const legacyRenew=renew;renew=function(pid){if(!world())return legacyRenew(pid);if(typeof MARKET_CONTRACTS.openRenewal==='function')return MARKET_CONTRACTS.openRenewal(pid);return legacyRenew(pid)};
-  window.MARKET_CONTRACTS={offerPresentation,ensure,contractEnd,setContract,migrateContracts,renewContract,precontractEligibility,requestPrecontractConsent,progressContracts,terminationQuote,terminateContract,recallLoan,submitOffer,submitPlayerTerms,processOffers,settle,returnLoans,purchaseLoan,executeTransfer,agreeTransfer,registerAgreements,restoreAgreements,registrationOpen,nextRegistrationDate,negotiationProfile,committed,futureSlots,onResale,reserved,pendingWages,loanWageFor,returnSlots,respondCounter,counterOffer,clubNegotiation,processSaleCounters,cancelOffer,expireOffers,summary,addMonths,offerFeedback,offerResources};
+  window.MARKET_CONTRACTS={recordLoanAppearances,offerPresentation,ensure,contractEnd,setContract,migrateContracts,renewContract,precontractEligibility,requestPrecontractConsent,progressContracts,terminationQuote,terminateContract,recallLoan,submitOffer,submitPlayerTerms,processOffers,settle,returnLoans,purchaseLoan,executeTransfer,agreeTransfer,registerAgreements,restoreAgreements,registrationOpen,nextRegistrationDate,negotiationProfile,committed,futureSlots,onResale,reserved,pendingWages,loanWageFor,returnSlots,respondCounter,counterOffer,clubNegotiation,processSaleCounters,cancelOffer,expireOffers,summary,addMonths,offerFeedback,offerResources};
 })();
 
 /* A full player workspace for expanded careers. Historic source data stays separate. */
@@ -22273,7 +22294,7 @@ window.WORLD_STORAGE = WORLD_STORAGE;
     if(all.slice(11).some(id=>id==null))issues.push('Completá los siete suplentes.');
     if(new Set(all.filter(id=>id!=null)).size!==all.filter(id=>id!=null).length)issues.push('Un jugador está asignado más de una vez.');
     if(playerAt(all[0])?.posicion!=='POR'||all.slice(1,11).some(id=>playerAt(id)?.posicion==='POR'))issues.push('El once necesita un arquero en el primer puesto y diez jugadores de campo.');
-    const registrationReason=window.FM_REGISTRATION?.lineupReason(all.filter(id=>id!=null));if(registrationReason)issues.push(registrationReason);
+    const registrationReason=window.FM_REGISTRATION?.lineupReason(all.filter(id=>id!=null),GameState.userClub.id,GameState.calendar.find(e=>e.id===GameState.match?.eventId)||window.WORLD_CLOCK?.nextFixture());if(registrationReason)issues.push(registrationReason);
     const missing=all.filter(id=>id!=null&&!eligible(playerAt(id)));if(missing.length)issues.push(`${missing.length} convocado${missing.length===1?' no está':'s no están'} disponible${missing.length===1?'':'s'}.`);
     const limit=(window.FM_REGISTRATION?FM_REGISTRATION.profile(GameState.userClub.id).foreignMatch:window.WORLD_ENGINE.foreignLimit());if(all.filter(id=>id!=null&&window.WORLD_ENGINE.isForeign(playerAt(id))).length>limit)issues.push(`La convocatoria supera el cupo de ${limit} extranjeros.`);
     return {valid:issues.length===0,issues};
@@ -22326,7 +22347,7 @@ window.WORLD_STORAGE = WORLD_STORAGE;
   }
   function badgeFor(p,slot) {
     if(!p)return '<span class="tw-fit bad">Sin asignar</span>';
-    if(!eligible(p))return `<span class="tw-fit bad">${p.injury?'Lesionado':p.registered===false?'Sin inscribir':'Suspendido'}</span>`;
+    if(!eligible(p))return `<span class="tw-fit bad">${p.injury?'Lesionado':p.ban?'Suspendido':'Sin inscripción para esta competición'}</span>`;
     const fit=positionFit(p,slot);return `<span class="tw-fit ${fit===100?'good':fit>=60?'partial':'bad'}">${fit===100?'Natural':fit>=60?'Adaptable':'Fuera de posición'}</span>`;
   }
   function selectOptions(values,selected) {return values.map(value=>`<option value="${esc(value)}" ${value===selected?'selected':''}>${esc(value)}</option>`).join('')}
@@ -22392,7 +22413,7 @@ window.WORLD_STORAGE = WORLD_STORAGE;
   }
   function squadView() {
     const t=GameState.tactics,all=lineupArray(t),members=mine().sort((a,b)=>['POR','DEF','MED','DEL'].indexOf(a.posicion)-['POR','DEF','MED','DEL'].indexOf(b.posicion)||overall(b)-overall(a));
-    return `<section class="card tw-reserves"><div class="fm-panel-title"><h2>Plantel disponible</h2><span class="small muted">Asignación rápida al puesto seleccionado</span></div><div class="scroll"><table><thead><tr><th>Jugador</th><th>Posición natural</th><th>Condición</th><th>Convocatoria</th><th>Acción</th></tr></thead><tbody>${members.map(p=>{const index=all.indexOf(p.id),state=p.registered===false?'Sin inscribir':p.injury?`${p.injury} días de lesión`:!available(p)?'Suspendido':index<0?'Fuera de convocatoria':index<11?'Titular':'Suplente';return `<tr class="${index===ui.selectedSlot?'tw-selected-row':''}"><td><button class="fm-player-link" data-player="${p.id}">${esc(p.nombre)}</button><span class="fm-player-sub">${p.edad} años · Media ${overall(p)}</span></td><td>${esc(naturalPositions(p).join(' / '))}</td><td><span class="${p.condicion_fisica<65?'red':'green'}">${Math.round(p.condicion_fisica)}%</span></td><td><span class="tw-fit ${eligible(p)?index<0?'partial':'good':'bad'}">${esc(state)}</span></td><td><button data-tw-use="${p.id}" ${live()||!permittedAt(p,ui.selectedSlot)?'disabled':''}>${index===ui.selectedSlot?'Asignado':'Asignar'}</button></td></tr>`}).join('')}</tbody></table></div></section>`;
+    return `<section class="card tw-reserves"><div class="fm-panel-title"><h2>Plantel disponible</h2><span class="small muted">Asignación rápida al puesto seleccionado</span></div><div class="scroll"><table><thead><tr><th>Jugador</th><th>Posición natural</th><th>Condición</th><th>Convocatoria</th><th>Acción</th></tr></thead><tbody>${members.map(p=>{const index=all.indexOf(p.id),state=p.injury?`${p.injury} días de lesión`:!available(p)?p.ban?'Suspendido':'Sin inscripción para esta competición':index<0?'Fuera de convocatoria':index<11?'Titular':'Suplente';return `<tr class="${index===ui.selectedSlot?'tw-selected-row':''}"><td><button class="fm-player-link" data-player="${p.id}">${esc(p.nombre)}</button><span class="fm-player-sub">${p.edad} años · Media ${overall(p)}</span></td><td>${esc(naturalPositions(p).join(' / '))}</td><td><span class="${p.condicion_fisica<65?'red':'green'}">${Math.round(p.condicion_fisica)}%</span></td><td><span class="tw-fit ${eligible(p)?index<0?'partial':'good':'bad'}">${esc(state)}</span></td><td><button data-tw-use="${p.id}" ${live()||!permittedAt(p,ui.selectedSlot)?'disabled':''}>${index===ui.selectedSlot?'Asignado':'Asignar'}</button></td></tr>`}).join('')}</tbody></table></div></section>`;
   }
   function renderWorkbench() {
     if(!active())return oldTactics();ensure();ui.selectedSlot=Math.round(bound(ui.selectedSlot,0,17));

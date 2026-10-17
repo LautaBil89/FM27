@@ -315,7 +315,7 @@
     if(all.slice(11).some(id=>id==null))issues.push('Completá los siete suplentes.');
     if(new Set(all.filter(id=>id!=null)).size!==all.filter(id=>id!=null).length)issues.push('Un jugador está asignado más de una vez.');
     if(playerAt(all[0])?.posicion!=='POR'||all.slice(1,11).some(id=>playerAt(id)?.posicion==='POR'))issues.push('El once necesita un arquero en el primer puesto y diez jugadores de campo.');
-    const registrationReason=window.FM_REGISTRATION?.lineupReason(all.filter(id=>id!=null));if(registrationReason)issues.push(registrationReason);
+    const registrationReason=window.FM_REGISTRATION?.lineupReason(all.filter(id=>id!=null),GameState.userClub.id,GameState.calendar.find(e=>e.id===GameState.match?.eventId)||window.WORLD_CLOCK?.nextFixture());if(registrationReason)issues.push(registrationReason);
     const missing=all.filter(id=>id!=null&&!eligible(playerAt(id)));if(missing.length)issues.push(`${missing.length} convocado${missing.length===1?' no está':'s no están'} disponible${missing.length===1?'':'s'}.`);
     const limit=(window.FM_REGISTRATION?FM_REGISTRATION.profile(GameState.userClub.id).foreignMatch:window.WORLD_ENGINE.foreignLimit());if(all.filter(id=>id!=null&&window.WORLD_ENGINE.isForeign(playerAt(id))).length>limit)issues.push(`La convocatoria supera el cupo de ${limit} extranjeros.`);
     return {valid:issues.length===0,issues};
@@ -368,7 +368,7 @@
   }
   function badgeFor(p,slot) {
     if(!p)return '<span class="tw-fit bad">Sin asignar</span>';
-    if(!eligible(p))return `<span class="tw-fit bad">${p.injury?'Lesionado':p.registered===false?'Sin inscribir':'Suspendido'}</span>`;
+    if(!eligible(p))return `<span class="tw-fit bad">${p.injury?'Lesionado':p.ban?'Suspendido':'Sin inscripción para esta competición'}</span>`;
     const fit=positionFit(p,slot);return `<span class="tw-fit ${fit===100?'good':fit>=60?'partial':'bad'}">${fit===100?'Natural':fit>=60?'Adaptable':'Fuera de posición'}</span>`;
   }
   function selectOptions(values,selected) {return values.map(value=>`<option value="${esc(value)}" ${value===selected?'selected':''}>${esc(value)}</option>`).join('')}
@@ -434,7 +434,7 @@
   }
   function squadView() {
     const t=GameState.tactics,all=lineupArray(t),members=mine().sort((a,b)=>['POR','DEF','MED','DEL'].indexOf(a.posicion)-['POR','DEF','MED','DEL'].indexOf(b.posicion)||overall(b)-overall(a));
-    return `<section class="card tw-reserves"><div class="fm-panel-title"><h2>Plantel disponible</h2><span class="small muted">Asignación rápida al puesto seleccionado</span></div><div class="scroll"><table><thead><tr><th>Jugador</th><th>Posición natural</th><th>Condición</th><th>Convocatoria</th><th>Acción</th></tr></thead><tbody>${members.map(p=>{const index=all.indexOf(p.id),state=p.registered===false?'Sin inscribir':p.injury?`${p.injury} días de lesión`:!available(p)?'Suspendido':index<0?'Fuera de convocatoria':index<11?'Titular':'Suplente';return `<tr class="${index===ui.selectedSlot?'tw-selected-row':''}"><td><button class="fm-player-link" data-player="${p.id}">${esc(p.nombre)}</button><span class="fm-player-sub">${p.edad} años · Media ${overall(p)}</span></td><td>${esc(naturalPositions(p).join(' / '))}</td><td><span class="${p.condicion_fisica<65?'red':'green'}">${Math.round(p.condicion_fisica)}%</span></td><td><span class="tw-fit ${eligible(p)?index<0?'partial':'good':'bad'}">${esc(state)}</span></td><td><button data-tw-use="${p.id}" ${live()||!permittedAt(p,ui.selectedSlot)?'disabled':''}>${index===ui.selectedSlot?'Asignado':'Asignar'}</button></td></tr>`}).join('')}</tbody></table></div></section>`;
+    return `<section class="card tw-reserves"><div class="fm-panel-title"><h2>Plantel disponible</h2><span class="small muted">Asignación rápida al puesto seleccionado</span></div><div class="scroll"><table><thead><tr><th>Jugador</th><th>Posición natural</th><th>Condición</th><th>Convocatoria</th><th>Acción</th></tr></thead><tbody>${members.map(p=>{const index=all.indexOf(p.id),state=p.injury?`${p.injury} días de lesión`:!available(p)?p.ban?'Suspendido':'Sin inscripción para esta competición':index<0?'Fuera de convocatoria':index<11?'Titular':'Suplente';return `<tr class="${index===ui.selectedSlot?'tw-selected-row':''}"><td><button class="fm-player-link" data-player="${p.id}">${esc(p.nombre)}</button><span class="fm-player-sub">${p.edad} años · Media ${overall(p)}</span></td><td>${esc(naturalPositions(p).join(' / '))}</td><td><span class="${p.condicion_fisica<65?'red':'green'}">${Math.round(p.condicion_fisica)}%</span></td><td><span class="tw-fit ${eligible(p)?index<0?'partial':'good':'bad'}">${esc(state)}</span></td><td><button data-tw-use="${p.id}" ${live()||!permittedAt(p,ui.selectedSlot)?'disabled':''}>${index===ui.selectedSlot?'Asignado':'Asignar'}</button></td></tr>`}).join('')}</tbody></table></div></section>`;
   }
   function renderWorkbench() {
     if(!active())return oldTactics();ensure();ui.selectedSlot=Math.round(bound(ui.selectedSlot,0,17));
