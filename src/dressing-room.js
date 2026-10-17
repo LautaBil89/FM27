@@ -139,7 +139,7 @@ window.FM_DRESSING_ROOM=(()=>{
     const s=ensure();if(!s||s.matches.includes(event.id))return;s.matches.push(event.id);s.matches=s.matches.slice(-120);const concerns=[];
     for(const p of mine()){
       const r=s.players[p.id],minutes=Math.max(0,(p.minutes||0)-r.lastMinutes);r.lastMinutes=p.minutes||0;r.minutes+=minutes;
-      const eligible=!!(minutes||(!p.injury&&!p.ban&&p.registered!==false));if(eligible)r.opportunities++;
+      const eligible=!!(minutes||(window.WORLD_ENGINE?.canPlay?WORLD_ENGINE.canPlay(p,event):!p.injury&&!p.ban&&p.registered!==false));if(eligible)r.opportunities++;
       if(eligible){r.recent.push({id:event.id,date:GameState.today,minutes,eligible});r.recent=r.recent.slice(-6)}const evidence=participation(p.id);
       if(evidence.enough&&evidence.minutes<evidence.target*.7&&(!r.lastConcern||GameState.today>=day(r.lastConcern,7))){
         r.lastConcern=GameState.today;r.concern={active:true,since:r.concern?.since||GameState.today,kind:'minutes',minutes:evidence.minutes,target:evidence.target,matches:evidence.matches};r.trust=clamp(r.trust-3);p.moral=clamp(p.moral-2);

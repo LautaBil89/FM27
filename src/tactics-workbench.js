@@ -8,6 +8,7 @@
   const playerAt = id => id == null ? null : player(Number(id));
   const owned = p => Boolean(p && p.clubId === GameState?.userClub.id);
   const eligible = p => owned(p) && available(p);
+  const suspended=p=>window.WORLD_ENGINE?.discipline?WORLD_ENGINE.discipline.remaining(p,GameState.calendar.find(e=>e.id===GameState.match?.eventId)||window.WORLD_CLOCK?.nextFixture())>0:!!p.ban;
   const validFormation = value => Object.hasOwn(FORMATIONS, value);
   const ui = {selectedSlot: 0, moveSource: null, alternative: null, renameId: null, phase: 'inPossession', setPieceTab:'attack'};
   const POSITION_LABELS = {POR:'Arquero',DFC:'Central',LI:'Lateral izquierdo',LD:'Lateral derecho',MCD:'Mediocentro defensivo',MC:'Mediocampista',MP:'Mediapunta',EI:'Banda izquierda',ED:'Banda derecha',DC:'Delantero centro'};
@@ -368,7 +369,7 @@
   }
   function badgeFor(p,slot) {
     if(!p)return '<span class="tw-fit bad">Sin asignar</span>';
-    if(!eligible(p))return `<span class="tw-fit bad">${p.injury?'Lesionado':p.ban?'Suspendido':'Sin inscripción para esta competición'}</span>`;
+    if(!eligible(p))return `<span class="tw-fit bad">${p.injury?'Lesionado':suspended(p)?'Suspendido':'Sin inscripción para esta competición'}</span>`;
     const fit=positionFit(p,slot);return `<span class="tw-fit ${fit===100?'good':fit>=60?'partial':'bad'}">${fit===100?'Natural':fit>=60?'Adaptable':'Fuera de posición'}</span>`;
   }
   function selectOptions(values,selected) {return values.map(value=>`<option value="${esc(value)}" ${value===selected?'selected':''}>${esc(value)}</option>`).join('')}
@@ -434,7 +435,7 @@
   }
   function squadView() {
     const t=GameState.tactics,all=lineupArray(t),members=mine().sort((a,b)=>['POR','DEF','MED','DEL'].indexOf(a.posicion)-['POR','DEF','MED','DEL'].indexOf(b.posicion)||overall(b)-overall(a));
-    return `<section class="card tw-reserves"><div class="fm-panel-title"><h2>Plantel disponible</h2><span class="small muted">Asignación rápida al puesto seleccionado</span></div><div class="scroll"><table><thead><tr><th>Jugador</th><th>Posición natural</th><th>Condición</th><th>Convocatoria</th><th>Acción</th></tr></thead><tbody>${members.map(p=>{const index=all.indexOf(p.id),state=p.injury?`${p.injury} días de lesión`:!available(p)?p.ban?'Suspendido':'Sin inscripción para esta competición':index<0?'Fuera de convocatoria':index<11?'Titular':'Suplente';return `<tr class="${index===ui.selectedSlot?'tw-selected-row':''}"><td><button class="fm-player-link" data-player="${p.id}">${esc(p.nombre)}</button><span class="fm-player-sub">${p.edad} años · Media ${overall(p)}</span></td><td>${esc(naturalPositions(p).join(' / '))}</td><td><span class="${p.condicion_fisica<65?'red':'green'}">${Math.round(p.condicion_fisica)}%</span></td><td><span class="tw-fit ${eligible(p)?index<0?'partial':'good':'bad'}">${esc(state)}</span></td><td><button data-tw-use="${p.id}" ${live()||!permittedAt(p,ui.selectedSlot)?'disabled':''}>${index===ui.selectedSlot?'Asignado':'Asignar'}</button></td></tr>`}).join('')}</tbody></table></div></section>`;
+    return `<section class="card tw-reserves"><div class="fm-panel-title"><h2>Plantel disponible</h2><span class="small muted">Asignación rápida al puesto seleccionado</span></div><div class="scroll"><table><thead><tr><th>Jugador</th><th>Posición natural</th><th>Condición</th><th>Convocatoria</th><th>Acción</th></tr></thead><tbody>${members.map(p=>{const index=all.indexOf(p.id),state=p.injury?`${p.injury} días de lesión`:!available(p)?suspended(p)?'Suspendido':'Sin inscripción para esta competición':index<0?'Fuera de convocatoria':index<11?'Titular':'Suplente';return `<tr class="${index===ui.selectedSlot?'tw-selected-row':''}"><td><button class="fm-player-link" data-player="${p.id}">${esc(p.nombre)}</button><span class="fm-player-sub">${p.edad} años · Media ${overall(p)}</span></td><td>${esc(naturalPositions(p).join(' / '))}</td><td><span class="${p.condicion_fisica<65?'red':'green'}">${Math.round(p.condicion_fisica)}%</span></td><td><span class="tw-fit ${eligible(p)?index<0?'partial':'good':'bad'}">${esc(state)}</span></td><td><button data-tw-use="${p.id}" ${live()||!permittedAt(p,ui.selectedSlot)?'disabled':''}>${index===ui.selectedSlot?'Asignado':'Asignar'}</button></td></tr>`}).join('')}</tbody></table></div></section>`;
   }
   function renderWorkbench() {
     if(!active())return oldTactics();ensure();ui.selectedSlot=Math.round(bound(ui.selectedSlot,0,17));

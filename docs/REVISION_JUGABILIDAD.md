@@ -29,6 +29,17 @@ La comprobación incluye guardado y restauración, turnos diarios, liquidaciones
 
 Las carreras antiguas inicializan el contador de cesión con las participaciones todavía disponibles; no se inventan participaciones que una versión anterior ya haya borrado al reiniciar estadísticas. Se probaron una conversión, una compra fallida, el cierre real de ligas, un partido procesado una sola vez y restauración desde guardado, además de regresiones de opciones/obligaciones, tácticas y partido.
 
+## Cuarta revisión: sanciones, apariciones y expectativas de minutos
+
+- Las suspensiones se almacenan por competición; una roja continental no sobrescribe una sanción local pendiente. El contador anterior sigue disponible como resumen para las pantallas y controles heredados.
+- Sólo se descuenta una fecha cuando juega el club en la competición correspondiente. La sanción recibida en ese encuentro no se cumple en ese mismo partido. Los reinicios de estadísticas no borran suspensiones pendientes.
+- Las partidas antiguas migran la sanción que todavía conservan; no se reconstruyen sanciones que una versión anterior ya hubiera sobrescrito o borrado.
+- Un titular sustituido antes de disputar minutos no suma una aparición ni una valoración de forma, y no puede ser figura del encuentro. Los encuentros antiguos sin medición de minutos mantienen su lectura compatible.
+- El vestuario cuenta oportunidades según la competición efectivamente disputada: estar suspendido en liga o fuera de su lista no elimina una oportunidad continental si el jugador estaba habilitado para ella.
+- Ficha, agenda y táctica muestran sanciones y disponibilidad con su contexto de competición.
+
+Comprobaciones: expulsión generada por el motor y restaurada desde guardado; sanciones simultáneas; cumplimiento en una fecha real; cambio real de temporada; sustitución al minuto cero; expectativas del vestuario; regresiones de cambios, lesiones, primas y guardado final del partido.
+
 ## Cambios de esta entrega
 
 1. **Renovaciones con respuesta del jugador.** La propuesta se evalúa desde el día siguiente. El representante puede contraofertar salario, prima, duración y cláusula; el DT puede proponer otras condiciones, aceptar o retirarse. Hay historial, plazo, concesiones limitadas, pérdida de paciencia y espera antes de reabrir conversaciones. Una oferta baja ya no se bloquea por un aumento mínimo universal del 5%: el jugador la evalúa.

@@ -140,7 +140,7 @@
   }
   details = function(id) {return active()?open(id):legacyDetails(id);};
   const fact = (label,value) => `<div class="fp-fact"><span>${esc(label)}</span><strong>${value}</strong></div>`;
-  const availability = p => p.injury ? `${p.injury} días de lesión` : p.ban ? `${p.ban} partido${p.ban===1?'':'s'} de sanción` : p.registered===false ? 'Sin inscripción' : 'Disponible';
+  const availability = p => p.injury ? `${p.injury} días de lesión` : p.ban ? (GameState.worldVersion&&window.WORLD_ENGINE?.discipline?Object.entries(WORLD_ENGINE.discipline.pending(p)).map(([key,n])=>`${({LPF:'Liga',LIB:'Libertadores',SUD:'Sudamericana',ALL:'Todas las competiciones'})[key]||key}: ${n} pendiente${n===1?'':'s'}`).join(' · '):`${p.ban} partido${p.ban===1?'':'s'} de sanción`) : p.registered===false ? 'Sin inscripción' : 'Disponible';
   const comparisonOptions = p => {
     const query=norm(state.compareQuery.trim());
     let choices=query?GameState.players.filter(item=>item.id!==p.id && norm(`${item.nombre} ${currentClub(item)}`).includes(query)).slice(0,40):GameState.players.filter(item=>item.id!==p.id && (own(item)||item.clubId===p.clubId)).sort((a,b)=>a.posicion.localeCompare(b.posicion)||a.nombre.localeCompare(b.nombre));

@@ -185,7 +185,50 @@
   }
   function registerSquad(id) {const foreign=squad(id).filter(p=>isForeign(p,id)).sort((a,b)=>overall(b)-overall(a));for(const p of squad(id))p.registered=true;for(const p of foreign.slice(typeof registrationLimit==='function'?registrationLimit(id):foreignLimit(id)))p.registered=false}
   let processingEvent=null;
-  available=p=>isWorld()?!!p&&p.injury===0&&(window.FM_REGISTRATION?.eligible?FM_REGISTRATION.eligible(p,p.clubId,processingEvent||(p.clubId===GameState.userClub.id?nextUserEvent():currentEvent())):p.registered!==false)&&(p.ban===0||(p.banCompetition&&p.banCompetition!==(processingEvent||(p.clubId===GameState.userClub.id?nextUserEvent():currentEvent()))?.type)):legacy.available(p);
+  function syncSuspensions(p){
+    const rows=Object.entries(p.suspensions||{}).filter(([,n])=>Number.isInteger(n)&&n>0);
+    p.suspensions=Object.fromEntries(rows);p.ban=Math.max(0,...rows.map(([,n])=>n));
+    p.banCompetition=rows.length===1&&rows[0][0]!=='ALL'?rows[0][0]:null;
+  }
+  function suspensionMap(p){
+    if(!p)return {};
+    const legacy=Math.max(0,Math.trunc(Number(p.ban)||0));
+    if(!p.suspensions||typeof p.suspensions!=='object'||Array.isArray(p.suspensions)){
+      if(!legacy)return {};
+      p.suspensions={[p.banCompetition||'ALL']:legacy};
+    }else{
+      const entries=Object.entries(p.suspensions).filter(([,n])=>Number.isInteger(n)&&n>0);
+      const maximum=Math.max(0,...entries.map(([,n])=>n)),competition=entries.length===1&&entries[0][0]!=='ALL'?entries[0][0]:null;
+      // Existing careers and legacy controls can still write the flat fields.
+      if(!legacy&&maximum)p.suspensions={};
+      else if(legacy&&(legacy!==maximum||(p.banCompetition||null)!==competition))p.suspensions[p.banCompetition||'ALL']=legacy;
+    }
+    syncSuspensions(p);return p.suspensions;
+  }
+  function suspensionRemaining(p,event=null){
+    const bans=suspensionMap(p);if(!event)return Math.max(0,...Object.values(bans));
+    return Math.max(bans.ALL||0,bans[event.type]||0);
+  }
+  function awardSuspension(m,p,reason){
+    const event=GameState.calendar.find(e=>e.id===m.eventId)||currentEvent(),key=event?.type||'LPF';
+    const bans=suspensionMap(p);p.suspensions={...bans,[key]:Math.max(bans[key]||0,1)};
+    p.banReason=reason;syncSuspensions(p);m.newBans??=[];if(!m.newBans.includes(p.id))m.newBans.push(p.id);
+  }
+  function serveSuspensions(event,m=null){
+    const playing=new Set((event.games||[]).flatMap(g=>[g.home,g.away]));
+    for(const p of GameState.players){
+      if(!playing.has(p.clubId)||!p.ban||m?.newBans?.includes(p.id)||m?.red?.includes(p.id))continue;
+      const bans=suspensionMap(p);for(const key of ['ALL',event.type])if(bans[key]>0)bans[key]--;
+      syncSuspensions(p);
+    }
+  }
+  function canPlay(p,event=null){
+    if(!p||p.injury!==0)return false;
+    const context=event||processingEvent||(p.clubId===GameState.userClub.id?nextUserEvent():currentEvent());
+    return (window.FM_REGISTRATION?.eligible?FM_REGISTRATION.eligible(p,p.clubId,context):p.registered!==false)&&suspensionRemaining(p,context)===0;
+  }
+  available=p=>isWorld()?canPlay(p):legacy.available(p);
+
   aiXI=function(id){
     if(!isWorld())return legacy.aiXI(id);
     const pool=squad(id).filter(available).sort((a,b)=>overall(b)*b.condicion_fisica-overall(a)*a.condicion_fisica),ids=[];
@@ -315,8 +358,11 @@
     news(win?'La gente se ilusiona':draw?'Un empate para analizar':'La prensa aprieta',`${club(g.home).nombre} ${r.home}–${r.away} ${club(g.away).nombre}. ${competitionLabel(event)}.${isDerby(g)?' El clásico deja huella en el vestuario.':''}`);
   }
   function recordLiveMatch(m,result) {
-    GameState.lastMatch={date:GameState.today,home:m.home,away:m.away,result:copy(result),stats:copy(m.stats),feed:m.feed.slice(0,8),motm:Object.keys(m.ratings).map(Number).sort((a,b)=>m.ratings[b]-m.ratings[a])[0]};
-    for(const [key,rating]of Object.entries(m.ratings)){const p=player(Number(key));if(!p)continue;p.estado_forma=clamp(rating,1,10);p.form??=[];p.form.push(Number(rating.toFixed(1)));p.form=p.form.slice(-5);p.lastRating=rating;p.appearances++;p.minutes+=(m.minutesPlayed?.[Number(key)]||0);p.seasonYellow=p.yellowSeason||p.seasonYellow||0}
+    const measured=Object.values(m.minutesPlayed||{}).some(n=>Number(n)>0);
+    const performances=Object.entries(m.ratings).filter(([key])=>player(Number(key))&&(!measured||Number(m.minutesPlayed?.[key])>0));
+    const best=performances.slice().sort((a,b)=>b[1]-a[1])[0];
+    GameState.lastMatch={date:GameState.today,home:m.home,away:m.away,result:copy(result),stats:copy(m.stats),feed:m.feed.slice(0,8),motm:best?Number(best[0]):null};
+    for(const [key,rating]of performances){const p=player(Number(key));p.estado_forma=clamp(rating,1,10);p.form??=[];p.form.push(Number(rating.toFixed(1)));p.form=p.form.slice(-5);p.lastRating=rating;p.appearances++;p.minutes+=(m.minutesPlayed?.[Number(key)]||0);p.seasonYellow=p.yellowSeason||p.seasonYellow||0}
     MANAGEMENT.addMessage('Informe del partido',`${club(m.home).nombre} ${result.home}–${result.away} ${club(m.away).nombre}. Revisá el rendimiento y las estadísticas del encuentro.`, 'partidos',{action:'match',matchDate:GameState.today});
     for(const event of m.injuryEvents||[]){const p=player(event.playerId);if(p?.clubId===GameState.userClub.id)MANAGEMENT.addMessage('Parte médico',`${p.nombre}: ${event.type}, ${p.injury} días estimados de recuperación.`, 'medico',{action:'medical',playerId:p.id});}
   }
@@ -340,7 +386,7 @@
   function completeOne(result=null,event=currentEvent()) {
     if(result&&!fixture(event)&&matchReady())event=nextUserEvent();
     if(!eventDue(event)||fixture(event)&&!result)return false;
-    settleFinances(GameState.today);const userGame=fixture(event),m=GameState.match?.eventId===event.id?GameState.match:null,playing=new Set(event.games.flatMap(g=>[g.home,g.away]));
+    settleFinances(GameState.today);const userGame=fixture(event),m=GameState.match?.eventId===event.id?GameState.match:null;
     const beforeStats=userGame?Object.fromEntries(mine().map(p=>[p.id,{minutes:p.minutes,goals:p.goals,appearances:p.appearances}])):null;
     processingEvent=event;
     try {
@@ -356,7 +402,7 @@
     window.MARKET_CONTRACTS?.recordLoanAppearances?.();
     if(userGame)window.FM_DRESSING_ROOM?.onMatchResult(event,userGame,userGame.result);
     if(userGame)window.MARKET_CONTRACTS?.onMatchResult?.(event,userGame,userGame.result,beforeStats);
-    for(const p of GameState.players)if(p.ban&&playing.has(p.clubId)&&(!p.banCompetition||p.banCompetition===event.type)&&!m?.newBans?.includes(p.id)&&!m?.red.includes(p.id))p.ban--;
+    serveSuspensions(event,m);
     if(event.type!=='LPF'){if(event.phase==='groups'&&event.round===6)afterGroups(event.type);else if(event.phase==='knockout')settleTie(event.type,event.stage)}
     window.FM_COMPETITIONS?.onEventComplete(event);
     event.done=true;window.FM_SEASONS?.onEventComplete(event);const remaining=GameState.calendar.findIndex(e=>!e.done);GameState.eventIndex=remaining<0?GameState.calendar.length:remaining;
@@ -380,7 +426,7 @@
   nextSeason=function(){
     if(!isWorld())return legacy.nextSeason();if(!GameState.finished)return;if(window.FM_SEASONS?.active())return FM_SEASONS.resumeCareer();const activateRegulations=!!GameState.world.nextRegulations,historicalTotals=activateRegulations&&!GameState.world.regulationsVersion?Object.fromEntries(GameState.world.leagues.map(l=>[l.id,copy(l.standings)])):null;if(activateRegulations&&GameState.world.competitionFormatsVersion)FM_REGULATIONS.initialize();const activateFormat=(GameState.world.nextCompetitionFormat==='realistic'||activateRegulations)&&!GameState.world.competitionFormatsVersion,previousTotals=activateFormat?copy(league('ARG1').standings):null,previousYear=GameState.year;window.CLUB_AI?.beforeNextSeason(GameState.world.nextCalendarMode==='realistic'&&window.FM_SEASONS?FM_SEASONS.definition(GameState.world.userLeagueId,GameState.year+1).preseason:seasonStartDay(GameState.year+1));const previous=GameState.history[0],rankings=previous.worldRankings;exchangeArgentina(rankings);window.FM_PYRAMIDS?.exchangeAnnual?.();window.FM_DEVELOPMENT?.seasonEnd?.(GameState.year);window.FM_MEDICINE?.seasonEnd?.(GameState.year);GameState.year++;window.FM_FINANCES?.onSeason?.(GameState.year);GameState.finished=false;GameState.match=null;GameState.lastMatch=null;GameState.offers=GameState.offers.map(o=>o.status==='pending'&&!o.awaitingRegistration?{...o,status:'expired'}:o);GameState.transferListed=[];GameState.today=seasonStartDay(GameState.year);
     window.MARKET_CONTRACTS?.recordLoanAppearances?.();
-    for(const p of GameState.players){if(p.fecha_nacimiento)p.edad=age(p.fecha_nacimiento,GameState.today);else p.edad=GameState.year-p.birthYear;p.goals=0;p.assists=0;p.minutes=0;p.appearances=0;p.seasonYellow=0;p.yellowSeason=0;p.redSeason=0;p.yellowCards={LPF:0,LIB:0,SUD:0};p.form=[];p.ban=0;if(!window.FM_MEDICINE){p.injury=0;p.condicion_fisica=100}p.trainingProgress=0;if(p.contract<GameState.year){if(p.clubId===GameState.userClub.id)MANAGEMENT.addMessage('Fin de contrato',`${p.nombre} terminó su contrato y queda libre.`, 'contratos');p.clubId=null;p.contract=GameState.year+1}if(p.edad>33&&!window.FM_DEVELOPMENT?.seasonEnd){p.ritmo=clamp(p.ritmo-1,1,99);p.fisico=clamp(p.fisico-1,1,99)}}
+    for(const p of GameState.players){if(p.fecha_nacimiento)p.edad=age(p.fecha_nacimiento,GameState.today);else p.edad=GameState.year-p.birthYear;p.goals=0;p.assists=0;p.minutes=0;p.appearances=0;p.seasonYellow=0;p.yellowSeason=0;p.redSeason=0;p.yellowCards={LPF:0,LIB:0,SUD:0};p.form=[];if(!window.FM_MEDICINE){p.injury=0;p.condicion_fisica=100}p.trainingProgress=0;if(p.contract<GameState.year){if(p.clubId===GameState.userClub.id)MANAGEMENT.addMessage('Fin de contrato',`${p.nombre} terminó su contrato y queda libre.`, 'contratos');p.clubId=null;p.contract=GameState.year+1}if(p.edad>33&&!window.FM_DEVELOPMENT?.seasonEnd){p.ritmo=clamp(p.ritmo-1,1,99);p.fisico=clamp(p.fisico-1,1,99)}}
     indexState(true);let nextId=Math.max(...GameState.players.map(p=>p.id))+1;
     for(const c of GameState.world.clubs){c.form=[];c.relegated=false;const pool=squad(c.id);let size=pool.length+(window.MARKET_CONTRACTS?.returnSlots(c.id)||0)+(window.MARKET_CONTRACTS?.futureSlots?.(c.id)||0);for(const [pos,minimum]of [['POR',3],['DEF',7],['MED',7],['DEL',5]]){let existing=pool.filter(p=>p.posicion===pos).length;while(existing<minimum&&size<32){GameState.players.push(newYouth(nextId++,c,pos));existing++;size++;}}}
     indexState(true);for(const c of GameState.world.clubs)registerSquad(c.id);if(activateFormat){FM_COMPETITIONS.initializeNewCareer();GameState.world.competitionHistory=[{year:previousYear,totals:previousTotals}];delete GameState.world.nextCompetitionFormat}if(historicalTotals&&GameState.world.regulations){GameState.world.regulations.history=[{year:previousYear,totals:historicalTotals}]}delete GameState.world.nextRegulations;if(GameState.world.nextCalendarMode==='realistic'){FM_SEASONS.initialize({calendarMode:'realistic'});delete GameState.world.nextCalendarMode}makeWorldCalendar(rankings);startPreseason();GameState.finance.seasonIncome=0;GameState.finance.seasonExpense=0;GameState.finance.openingBalance=GameState.userClub.presupuesto_dolares;
@@ -393,5 +439,5 @@
   Object.assign(actions,{new:()=>newCareer(),finish:()=>finishMatch(),advance:()=>advance(),season:()=>nextSeason(),kickoff:()=>startMatch(),continue:()=>{if(!isWorld()){if(GameState.match){view='match';render()}else if(GameState.finished){view='dashboard';render()}else if(fixture(currentEvent())){view='match';render()}else legacy.advance()}else advanceTurn()}});
   actions.auto=()=>{if(locked())return;if(isWorld()&&window.FM_TACTICS)FM_TACTICS.autoSelect();else legacy.autoLineup();saveGame(true);render()};
   window.WORLD_CLOCK={periods:PERIODS,ensure:ensureClock,info:clockInfo,nextFixture:nextUserEvent,ready:matchReady,latest:()=>ensureClock()?.recent||[],advance:advanceTurn,processDueEvents,eventSlot};
-  window.WORLD_ENGINE={league,allLeagues:()=>isWorld()?GameState.world.leagues:WORLD_DATABASE.leagues,allClubs:()=>isWorld()?GameState.world.clubs:WORLD_DATABASE.clubs,userLeague,competitionLabel,eventGames,qualificationSlots,tableFor:id=>league(id)?.standings||{},createWorldCareer,hydrateWorldState,hydrate:hydrateWorldState,hydratePlayerIdentity,playerFromReference,isForeign,foreignLimit,needsPenalties,roundRobin,sortedRows,reindex:()=>indexState(true),seekUserFixture,completeOne,makeWorldCalendar,makeContinentalCalendar,basicDefaults,registerSquad,refillLeague,exchangeArgentina,seasonStartDay,recoverTo,settleFinances,qualifiedTeams};
+  window.WORLD_ENGINE={canPlay,discipline:{remaining:suspensionRemaining,pending:p=>({...suspensionMap(p)}),award:awardSuspension,serve:serveSuspensions},league,allLeagues:()=>isWorld()?GameState.world.leagues:WORLD_DATABASE.leagues,allClubs:()=>isWorld()?GameState.world.clubs:WORLD_DATABASE.clubs,userLeague,competitionLabel,eventGames,qualificationSlots,tableFor:id=>league(id)?.standings||{},createWorldCareer,hydrateWorldState,hydrate:hydrateWorldState,hydratePlayerIdentity,playerFromReference,isForeign,foreignLimit,needsPenalties,roundRobin,sortedRows,reindex:()=>indexState(true),seekUserFixture,completeOne,makeWorldCalendar,makeContinentalCalendar,basicDefaults,registerSquad,refillLeague,exchangeArgentina,seasonStartDay,recoverTo,settleFinances,qualifiedTeams};
 })();
