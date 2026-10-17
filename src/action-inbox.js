@@ -6,7 +6,7 @@ window.FM_INBOX = (() => {
   const active = () => !!GameState?.world && GameState.version === 3;
   const owned = p => !!p && p.clubId === GameState.userClub.id;
   const lookup = id => Number.isSafeInteger(Number(id)) ? player(Number(id)) : null;
-  const offerFor = message => GameState.offers.find(o => String(o.id) === String(message.offerId))||window.FM_RENEWALS?.byId(String(message.offerId));
+  const offerFor = message => {const o=GameState.offers.find(o=>String(o.id)===String(message.offerId))||window.FM_RENEWALS?.byId(String(message.offerId));return o&&MARKET_CONTRACTS.relatedOffer(o)?o:null};
   const clubName = id => GameState.world.clubs.find(c => c.id === id)?.nombre || 'Club';
   const category = m => ['medico','médico','lesion','lesión','entrenamiento'].includes(m.type) ? 'plantel' : m.action==='match' ? 'partidos' : categories[m.type] ? m.type : 'prensa';
   const identifier = m => `message-${m.id}`;
@@ -79,7 +79,7 @@ window.FM_INBOX = (() => {
     if(pushing)return true;
     pushing=true;
     try {
-      for(const o of [...GameState.offers,...(window.FM_RENEWALS?.all()||[])].filter(o=>o.status==='pending')) {
+      for(const o of [...GameState.offers,...(window.FM_RENEWALS?.all()||[])].filter(o=>o.status==='pending'&&MARKET_CONTRACTS.relatedOffer(o))) {
         const p=lookup(o.playerId);if(!p)continue;
         if(GameState.inbox.some(m=>String(m.offerId)===String(o.id)&&(o.type!=='renewal'||!o.lastMessageId||m.id===o.lastMessageId)))continue;
         const notice=push({title:o.type==='sell'?`Oferta por ${p.nombre}`:`Negociación por ${p.nombre}`,body:o.type==='renewal'?(o.awaitingUser?'El representante presentó una contraoferta. Revisá las condiciones actuales y su plazo.':'Tu propuesta de renovación sigue en evaluación. La respuesta estará disponible desde el '+date(o.responseDate)+'.'):o.type==='sell'?`${clubName(o.toClub)} ofrece ${money(o.fee)}. La venta necesita tu decisión y debe respetar la cobertura del plantel y el presupuesto del comprador.`:`La propuesta está en evaluación. Podés revisar sus condiciones o retirarla antes de que se cierre.`,type:o.type==='renewal'?'contratos':'mercado',action:o.type==='sell'?'sale':'offer',offerId:o.id,playerId:p.id,sourceKey:o.type==='renewal'?`renewal:${o.id}:${GameState.today}`:`offer:${o.id}`});
