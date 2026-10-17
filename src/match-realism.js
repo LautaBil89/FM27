@@ -33,7 +33,7 @@
     m.keyPlays=m.keyPlays.slice(-60);const changed=adaptAI(m);
     // The result engine saves before this wrapper attaches recorded plays and decisions.
     // Complete that same checkpoint, including the five-minute extra-time checkpoints.
-    if(m.paused||m.done||m.minute%15===0||(m.extraTime&&m.minute%5===0))saveGame(true);
+    if(m.paused||m.done)saveGame(true);else if(m.minute%15===0||(m.extraTime&&m.minute%5===0))WORLD_STORAGE.scheduleSave();
     if((chances.length||changed)&&view==='match')render();
   };
   function decorate(){

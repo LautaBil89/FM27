@@ -99,6 +99,7 @@ window.FM_DRESSING_ROOM=(()=>{
     GameState.tactics.captain=p.id;s.players[p.id].trust=clamp(s.players[p.id].trust+2);s.lastCaptainChange=GameState.today;log(`${p.nombre} asume la capitanía con liderazgo simulado ${s.players[p.id].leadership}/20.`,p.id);return reply(`${p.nombre} es el nuevo capitán. El liderazgo se gana también con participación y confianza.`);
   }
   function onSigning(p,role){if(!current()||p.clubId!==GameState.userClub.id)return;WORLD_ENGINE.reindex();const s=ensure();s.players[p.id]=relationship(p,true);s.players[p.id].role=Object.hasOwn(roles,role)?role:'Rotación';ensure()}
+  function onRenewal(p,role){const r=ensure()?.players[p.id];if(!r)return;r.role=Object.hasOwn(roles,role)?role:r.role;p.squadRole=r.role;log(`${p.nombre}: renovación con papel de ${r.role.toLowerCase()}; se conservan las promesas, participación y confianza.`,p.id)}
   function startMentoring(mentorId,youngId){
     const mentor=selected(mentorId),young=selected(youngId),s=ensure();if(!mentor||!young||!s||locked())return false;
     const mr=s.players[mentor.id];
@@ -194,5 +195,5 @@ window.FM_DRESSING_ROOM=(()=>{
     else if(e.target.hasAttribute('data-social-conversation'))ui.conversation=e.target.value;
     else if(e.target.hasAttribute('data-social-captain'))setCaptain(e.target.value);
   });
-  return {ensure,render:renderRoom,talk,promiseMinutes,setRole,setCaptain,onSigning,onDayAdvance,onMatchResult,teamMeeting,startMentoring,cancelMentoring,hierarchy,summary,participation,matchModifier,developmentModifier,ui};
+  return {ensure,render:renderRoom,talk,promiseMinutes,setRole,setCaptain,onSigning,onRenewal,onDayAdvance,onMatchResult,teamMeeting,startMentoring,cancelMentoring,hierarchy,summary,participation,matchModifier,developmentModifier,ui};
 })();

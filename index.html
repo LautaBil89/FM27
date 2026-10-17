@@ -138,6 +138,7 @@
 .fm-viewport #details:has(.nw-form){width:min(760px,96vw);max-height:calc(100dvh - 24px);padding:15px;display:flex;flex-direction:column;gap:9px;overflow:hidden}.fm-viewport #details:not([open]){display:none!important}.nw-heading{flex:none}.nw-heading h2{font-size:22px;margin:4px 0}.nw-heading p{font-size:12px;margin:0;color:#c6bbd5}.nw-steps{display:flex;list-style:none;gap:8px;margin:0;padding:0;flex:none}.nw-steps li{flex:1;padding:7px 10px;background:#272739;border-radius:5px;color:#a9a3b9;font-size:11px}.nw-steps .active{background:#514160;color:#fff;border:1px solid #bba0d5}.nw-steps .complete{color:#89d4b1}.nw-form{display:flex;flex-direction:column;min-height:0;gap:9px}.nw-form .world-offer-resources{margin:0;padding:9px;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;flex:none}.nw-form .world-offer-resources strong{font-size:13px}.nw-form .world-offer-resources small,.nw-form .world-offer-resources span{font-size:10px}.nw-body{min-height:0;display:flex;flex-direction:column;gap:8px}.nw-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.nw-fields[hidden],.nw-feedback[hidden]{display:none!important}.nw-fields>.field{margin:0;font-size:11px;gap:4px}.nw-fields input,.nw-fields select{min-width:0;max-width:100%;padding:8px;font-size:12px}.nw-note{font-size:11px;line-height:1.45;margin:3px 0;color:#c4bbcf;grid-column:1/-1}.nw-tabs{display:flex;gap:6px;flex:none}.nw-tabs button{padding:7px 11px;font-size:11px}.nw-tabs .selected{background:#514160;border-color:#bba0d5}.nw-footer{display:flex;gap:8px;flex:none;padding-top:6px;border-top:1px solid #51445d}.nw-feedback{flex:none;margin:0;padding:10px}.nw-feedback p{font-size:11px;margin:5px 0}.nw-feedback button{font-size:11px;padding:6px 9px}.nw-footer button{padding:8px 12px;font-size:12px}
 @media(max-width:650px){.fm-viewport #details:has(.nw-form){padding:11px;gap:7px}.nw-heading h2{font-size:18px}.nw-heading p{font-size:11px}.nw-form .world-offer-resources{grid-template-columns:1fr 1fr;padding:7px;gap:5px}.nw-form .world-offer-resources small{font-size:9px}.nw-fields{gap:7px}.nw-fields input,.nw-fields select{font-size:11px;padding:7px}.nw-footer button{font-size:11px;padding:8px}.nw-note{font-size:10px}.nw-feedback{font-size:11px}.nw-steps li{font-size:10px;padding:6px}.nw-form{gap:7px}}
 .nw-registration-note{flex:none;margin:0;padding:7px 10px;background:#25372f;color:#b5e4cc;border:1px solid #446c55;border-radius:5px;font-size:11px}.nw-project{display:grid;grid-template-columns:1fr 1fr;gap:9px;min-height:0;overflow:auto}.nw-project[hidden]{display:none!important}.nw-project>div{display:flex;flex-direction:column;gap:5px;background:#242432;border:1px solid #454054;padding:10px;border-radius:6px;min-width:0}.nw-project span,.nw-project small{font-size:11px;color:#c4bbcf;overflow-wrap:anywhere}.nw-project strong{font-size:13px;color:#f2ebfa}.nw-project .nw-note{padding:7px 0}.nw-body{overflow:auto;overscroll-behavior:contain}.nw-tabs button{min-width:0;white-space:normal}@media(max-width:650px){.nw-project{gap:7px}.nw-project>div{padding:8px}.nw-project strong{font-size:11px}.nw-project span,.nw-project small,.nw-registration-note{font-size:10px}.nw-tabs button{font-size:10px;padding:7px}}
+#contract-renewal .nw-footer{flex-wrap:wrap}#contract-renewal [data-renew-section="history"]{font-size:12px;line-height:1.5}#contract-renewal [data-renew-section][hidden]{display:none!important}
 
 html:has(.fm-viewport){height:100%;overflow:hidden}body.fm-viewport,#app{margin:0}.fm-viewport{height:100dvh;min-height:0;overflow:hidden;background:#171a28}.fm-viewport #app{height:100dvh;overflow:hidden}
 .fm-viewport #toast{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);z-index:30;display:none;max-width:92vw;padding:10px 15px;background:#30263f;border:1px solid #9b80b7;border-radius:6px}
@@ -313,7 +314,7 @@ function tick(){const m=GameState?.match;if(!m||m.paused||m.done)return;m.minute
  if(Math.random()<.15*intensity){const id=pick(active),p=player(id);if(p){m.stats[side].fouls++;if(Math.random()<.30*intensity+(style==='Garra/Huevo'&&side===m.userSide?.12:0)){m.yellow[id]=(m.yellow[id]||0)+1;m.stats[side].yellow++;m.ratings[id]-=.3;if(m.yellow[id]>=2||Math.random()<.035*intensity){m.red.push(id);m.stats[side].red++;p.ban=1;log(`🟥 ¡Expulsado ${p.nombre}! ${m.yellow[id]>=2?'Segunda amarilla.':'Roja directa; el banco reclama.'}`)}else log(`🟨 Amarilla para ${p.nombre}. El árbitro marca territorio.`)}}}
  if(Math.random()<.006*intensity&&active.length){const id=pick(active),p=player(id);if(!m.injured.includes(id)){p.injury=rnd(7,28);m.injured.push(id);log(`🚑 ${p.nombre} no puede continuar: lesión de ${p.injury} días.`)}}
  if(Math.random()<.14+(m.minute>78?.045:0)){const attackers=active.filter(id=>player(id).posicion!=='POR'&&!m.red.includes(id)&&!m.injured.includes(id));if(attackers.length){const id=pick(attackers),p=player(id);m.stats[side].shots++;const boost=side===m.userSide?(style==='Salida de Contragolpe'?.025:style==='Gegenpress'?.015:0):0, goalChance=clamp(.12+(strength(side)-strength(opp))*.002+p.tiro*.001+boost,.07,.38);if(Math.random()<goalChance){if(Math.random()<.09){log(`📺 VAR: anulan el gol de ${p.nombre} por posición adelantada. ¡Polémica en el estadio!`)}else{m.score[side]++;p.goals++;m.ratings[id]=clamp(m.ratings[id]+1.1,1,10);log(`⚽ ¡GOOOOL de ${p.nombre}! ${club(side===0?m.home:m.away).nombre} grita con el alma.`);m.ball={x:50,y:side===m.userSide?3:97}}}else{m.ratings[id]=clamp(m.ratings[id]+.05,1,10);log(`${m.minute>78?'🔥 Pelotazo al área. ':''}${p.nombre}: ${pick(['¡el arquero la saca al córner!','remate que roza el palo.','la defensa bloquea el disparo.','¡atajadón! La tribuna no lo puede creer.'])}`)}}}
- if(m.minute===45)log('⏸ Entretiempo. Ajustá el planteo o mové el banco.');if(m.minute%15===0)saveGame(true);
+ if(m.minute===45)log('⏸ Entretiempo. Ajustá el planteo o mové el banco.');if(m.minute%15===0)WORLD_STORAGE.scheduleSave();
  if(m.minute>=90){m.done=true;m.paused=true;clearInterval(timer);if(currentEvent().type==='LIB'&&m.score[0]===m.score[1]){m.pen=penalties();log(`🎯 Penales: ${m.pen.home}–${m.pen.away}.`)}log('🏁 Final del partido. Se prepara el informe de la jornada.');saveGame(true)}
  if(view==='match')render();
 }
@@ -18057,7 +18058,7 @@ const MANAGEMENT = (() => {
       }
       log('🏁 Final. El árbitro termina el partido y los jugadores saludan a la tribuna.');
       saveGame(true);
-    } else if (m.minute % 15 === 0) saveGame(true);
+    } else if (m.minute % 15 === 0) WORLD_STORAGE.scheduleSave();
     if (view === 'match') render();
   };
 
@@ -20569,14 +20570,14 @@ const WORLD_STORAGE = (() => {
     if(typeof Worker==='undefined'||typeof Blob==='undefined'){workerFailed=true;return null}
     try{
       const definitions={own,object,same,copy,fail,string,integer,finite,validDate,mask,playerReference,identity,residual,packRecords,table,result,cupNodes,validateWorld,encode,serialize};
-      const source=`const FORMAT='${FORMAT}',COMPRESSED_FORMAT='${COMPRESSED_FORMAT}',CODEC_VERSION=${CODEC_VERSION},alphabet=${JSON.stringify(alphabet)},missing=Symbol('absent'),identityTemplates=new Map();let dbPlayers,dbClubs,dbLeagues,FORMATIONS;const WORLD_ENGINE={hydratePlayerIdentity:${WORLD_ENGINE.hydratePlayerIdentity.toString()}};const f=String.fromCharCode,LZString={_compress:${LZString._compress.toString()},compressToUTF16:${LZString.compressToUTF16.toString()}};`+Object.entries(definitions).map(([name,fn])=>`const ${name}=${fn.toString()};`).join('\n')+`self.onmessage=({data})=>{if(data.init){dbPlayers=new Map(data.init.players.map(p=>[p.playerId,p]));dbClubs=new Map(data.init.clubs.map(c=>[c.id,c]));dbLeagues=new Map(data.init.leagues.map(l=>[l.id,l]));FORMATIONS=data.init.formations;return}try{self.postMessage({id:data.id,text:serialize(data.state)})}catch(error){self.postMessage({id:data.id,error:error.message})}};`;
+      const source=`const FORMAT='${FORMAT}',COMPRESSED_FORMAT='${COMPRESSED_FORMAT}',CODEC_VERSION=${CODEC_VERSION},alphabet=${JSON.stringify(alphabet)},missing=Symbol('absent'),identityTemplates=new Map();let dbPlayers,dbClubs,dbLeagues,FORMATIONS;const WORLD_ENGINE={hydratePlayerIdentity:${WORLD_ENGINE.hydratePlayerIdentity.toString()}};const f=String.fromCharCode,LZString={_compress:${LZString._compress.toString()},compressToUTF16:${LZString.compressToUTF16.toString()}};`+Object.entries(definitions).map(([name,fn])=>`const ${name}=${fn.toString()};`).join('\n')+`self.onmessage=({data})=>{if(data.init){dbPlayers=new Map(data.init.players.map(p=>[p.playerId,p]));dbClubs=new Map(data.init.clubs.map(c=>[c.id,c]));dbLeagues=new Map(data.init.leagues.map(l=>[l.id,l]));FORMATIONS=data.init.formations;return}try{self.postMessage({id:data.id,text:serialize(data.state),snapshot:{manager:data.state.manager,today:data.state.today,year:data.state.year,userClub:{id:data.state.userClub.id,nombre:data.state.userClub.nombre}}})}catch(error){self.postMessage({id:data.id,error:error.message})}};`;
       const url=URL.createObjectURL(new Blob([source],{type:'text/javascript'}));
       try{saveWorker=new Worker(url)}finally{URL.revokeObjectURL(url)}
       saveWorker.onmessage=({data})=>{
         workerBusy=false;
         if(data.id===saveRevision&&workerState===GameState){
           if(data.error)saveError(new Error(data.error));
-          else try{localStorage.setItem(KEY,data.text)}catch(error){saveError(error)}
+          else try{localStorage.setItem(KEY,data.text);window.FM_INTEGRITY?.onSaved?.(data.text,data.snapshot)}catch(error){saveError(error)}
         }
         workerState=null;
         if(saveDirty){clearTimeout(saveTimer);saveTimer=setTimeout(runAutosave,0)}
@@ -20606,7 +20607,7 @@ const WORLD_STORAGE = (() => {
     invalidateAutosave();
     if (!GameState) return false;
     try {
-      localStorage.setItem(KEY, serialize(GameState));
+      const raw=serialize(GameState);localStorage.setItem(KEY,raw);window.FM_INTEGRITY?.onSaved?.(raw,GameState);
       if (!silent) toast('Carrera guardada');
       return true;
     } catch (error) {
@@ -21131,12 +21132,13 @@ window.WORLD_STORAGE = WORLD_STORAGE;
     const obligations = state.payments.filter(row=>row.fromClub===id&&row.status!=='paid').reduce((sum,row)=>sum+row.amount,0);
     const offers = GameState.offers.filter(o=>pending(o)&&o.type==='buy'&&(o.toClub||GameState.userClub.id)===id&&o.id!==excludingId);
     const purchases=state.loans.filter(l=>l.status==='active'&&l.borrowerClub===id&&['mandatory','conditional'].includes(l.purchaseMode)).reduce((n,l)=>n+amount(l.purchaseFee),0);
-    return obligations+purchases+offers.reduce((sum,o)=>sum+amount(o.fee)+amount(o.bonus)+(['mandatory','conditional'].includes(o.purchaseMode)?amount(o.purchaseFee):0),0);
+    const renewals=(state.renewals||[]).filter(r=>r.status==='pending'&&r.fromClub===id&&r.id!==excludingId).reduce((sum,r)=>sum+amount(r.bonus),0);
+    return obligations+purchases+renewals+offers.reduce((sum,o)=>sum+amount(o.fee)+amount(o.bonus)+(['mandatory','conditional'].includes(o.purchaseMode)?amount(o.purchaseFee):0),0);
   }
   function pendingWages(id=GameState?.userClub.id, excludingId=null) {
     if (!world()) return 0;
     return GameState.offers.filter(o=>pending(o)&&o.type==='buy'&&o.stage!=='club'&&!o.awaitingPlayerTerms&&(o.toClub||GameState.userClub.id)===id&&o.id!==excludingId)
-      .reduce((sum,o)=>sum+(o.dealType==='loan'?amount((player(o.playerId)?.salario||o.wage)*Number(o.wageShare??100)/100):amount(o.wage)),0);
+      .reduce((sum,o)=>sum+(o.dealType==='loan'?amount((player(o.playerId)?.salario||o.wage)*Number(o.wageShare??100)/100):amount(o.wage)),0)+(ensure().renewals||[]).filter(r=>r.status==='pending'&&r.fromClub===id&&r.id!==excludingId).reduce((sum,r)=>sum+Math.max(0,r.wage-(player(r.playerId)?.salario||0)),0);
   }
   function activeLoan(p) { return ensure()?.loans.find(row=>row.playerId===p.id&&row.status==='active'); }
   function loanWageFor(p,id) {
@@ -21294,7 +21296,7 @@ window.WORLD_STORAGE = WORLD_STORAGE;
   }
   function processOffers() {
     if (!world()) return;
-    ensure();expireOffers(GameState.today);processSaleCounters();
+    ensure();window.FM_RENEWALS?.process();expireOffers(GameState.today);processSaleCounters();
     for (const offer of GameState.offers.filter(o=>pending(o)&&o.type==='buy'&&!o.awaitingUser&&!o.awaitingRegistration&&responseDue(o))) {
       const p=player(offer.playerId);Object.assign(offer,normalise(offer));
       let reason=termsReason(offer,p);
@@ -21462,7 +21464,7 @@ window.WORLD_STORAGE = WORLD_STORAGE;
   }
   function requestPrecontractConsent(pid,to=GameState.userClub.id){const p=player(Number(pid)),state=ensure();if(!p?.clubId||p.clubId===to||locked())return{ok:false,reason:'El jugador no está disponible'};if(state.consentRequests.some(row=>row.playerId===p.id&&row.toClub===to&&row.status==='pending'))return{ok:false,reason:'Ya se solicitó permiso al propietario'};const row={id:nextId('consent'),playerId:p.id,fromClub:p.clubId,toClub:to,status:'pending',createdDate:GameState.today,responseDate:nextDay(GameState.today)};state.consentRequests.push(row);message('Permiso de negociación solicitado',`${clubName(p.clubId)} responderá a partir del ${date(row.responseDate)} si permite negociar anticipadamente con ${p.nombre}.`,{playerId:p.id},'mercado');saveGame(true);render();return{ok:true}}
   function terminationQuote(p,day=GameState.today){if(!p||p.clubId!==GameState.userClub.id||activeLoan(p))return {ok:false,reason:'Sólo se puede rescindir un contrato propio sin cesión'};const weeks=Math.max(0,Math.ceil((Date.parse(contractEnd(p))-Date.parse(day))/(7*86400000))),fee=Math.round(p.salario*Math.min(weeks,52)*.5);return{ok:true,fee,weeks,remainingWages:weeks*p.salario,reason:'Acuerdo mutuo simulado: 50% de hasta 52 semanas pendientes; el jugador puede rechazarlo'} }
-  function terminateContract(pid,confirmTerms=false){const p=player(Number(pid)),q=terminationQuote(p);if(!q.ok)return q;if(locked())return {ok:false,reason:'Terminá el partido antes de rescindir'};if(!confirmTerms)return{...q,ok:false,reason:'Confirmá la indemnización antes de rescindir'};if(!ai().canRelease(p).ok)return{ok:false,reason:ai().canRelease(p).reason};if(ai().availableBudget()<q.fee)return{ok:false,reason:'No hay fondos disponibles para la indemnización'};if(p.personalidad==='Ambicioso'&&p.moral>85)return{ok:false,reason:'El representante rechazó una rescisión de mutuo acuerdo'};const state=ensure(),id='termination-'+p.id+'-'+GameState.today;if(state.terminations.some(row=>row.id===id))return{ok:false,reason:'La rescisión ya fue liquidada'};const from=p.clubId;if(!ai().transaction(from,-q.fee,`Indemnización por rescisión: ${p.nombre}`,'indemnizaciones'))return{ok:false,reason:'La caja no alcanza'};state.terminations.push({id,playerId:p.id,clubId:from,date:GameState.today,fee:q.fee});p.clubId=null;p.registered=false;p.contractEnd=GameState.today;p.contract=Number(GameState.today.slice(0,4));window.FM_REGISTRATION?.onTransfer(p,from,null);window.FM_FINANCES?.onTermination(p,q.fee,from);WORLD_ENGINE.reindex();autoLineup();message('Rescisión acordada',`${p.nombre} queda libre. Indemnización liquidada: ${cash(q.fee)}.`,{playerId:p.id},'contratos');saveGame(true);render();return{ok:true,fee:q.fee}}
+  function terminateContract(pid,confirmTerms=false){const p=player(Number(pid)),q=terminationQuote(p);if(!q.ok)return q;if(locked())return {ok:false,reason:'Terminá el partido antes de rescindir'};if(!confirmTerms)return{...q,ok:false,reason:'Confirmá la indemnización antes de rescindir'};if(!ai().canRelease(p).ok)return{ok:false,reason:ai().canRelease(p).reason};if(ai().availableBudget(GameState.userClub.id,window.FM_RENEWALS?.current(p.id)?.id)<q.fee)return{ok:false,reason:'No hay fondos disponibles para la indemnización'};if(p.personalidad==='Ambicioso'&&p.moral>85)return{ok:false,reason:'El representante rechazó una rescisión de mutuo acuerdo'};const state=ensure(),id='termination-'+p.id+'-'+GameState.today;if(state.terminations.some(row=>row.id===id))return{ok:false,reason:'La rescisión ya fue liquidada'};const from=p.clubId;if(!ai().transaction(from,-q.fee,`Indemnización por rescisión: ${p.nombre}`,'indemnizaciones'))return{ok:false,reason:'La caja no alcanza'};state.terminations.push({id,playerId:p.id,clubId:from,date:GameState.today,fee:q.fee});p.clubId=null;p.registered=false;p.contractEnd=GameState.today;window.FM_RENEWALS?.invalidatePlayer(p.id,'Se rescindió el contrato vigente');p.contract=Number(GameState.today.slice(0,4));window.FM_REGISTRATION?.onTransfer(p,from,null);window.FM_FINANCES?.onTermination(p,q.fee,from);WORLD_ENGINE.reindex();autoLineup();message('Rescisión acordada',`${p.nombre} queda libre. Indemnización liquidada: ${cash(q.fee)}.`,{playerId:p.id},'contratos');saveGame(true);render();return{ok:true,fee:q.fee}}
   function recallLoan(id){const loan=ensure()?.loans.find(l=>l.id===id&&l.status==='active'),p=loan&&player(loan.playerId);if(!loan||!p||loan.ownerClub!==GameState.userClub.id||!loan.recallAllowed)return{ok:false,reason:'El préstamo no incluye derecho de regreso'};if(locked()||GameState.today<loan.recallFrom||!registrationOpen(GameState.today,loan.ownerClub))return{ok:false,reason:'El regreso requiere tres meses cumplidos y ventana abierta del propietario'};if(['mandatory','conditional'].includes(loan.purchaseMode))return{ok:false,reason:'No puede revocarse una obligación de compra pactada'};loan.endDate=GameState.today;loan.recalled=true;returnLoans(GameState.today);saveGame(true);render();return{ok:true}}
   function royaltyFor(p,fromClub) {
     const clause=p.sellOnClause;
@@ -21498,7 +21500,7 @@ window.WORLD_STORAGE = WORLD_STORAGE;
       const remaining=offer.fee-initialFee,base=Math.floor(remaining/installments);
       for (let n=1;n<=installments;n++) ensure().payments.push({id:nextId('payment'),offerId:offer.id||nextId('transfer'),playerId:p.id,fromClub:offer.toClub,toClub:before,amount:n===installments?remaining-base*(installments-1):base,dueDate:addMonths(GameState.today,n),status:'pending',...(royalty?{royalty}:{} )});
     }
-    p.clubId=offer.toClub;p.registered=true;p.moral=85;window.FM_REGISTRATION?.onTransfer(p,before,offer.toClub);
+    p.clubId=offer.toClub;window.FM_RENEWALS?.invalidatePlayer(p.id,'El jugador cambió de club');p.registered=true;p.moral=85;window.FM_REGISTRATION?.onTransfer(p,before,offer.toClub);
     if (offer.dealType==='loan') {
       const loan={id:nextId('loan'),playerId:p.id,ownerClub:before,borrowerClub:offer.toClub,startDate:GameState.today,endDate:addMonths(GameState.today,offer.loanMonths),wageShare:offer.wageShare,ownerWage:p.salario,ownerRole:p.squadRole||null,ownerBonuses:structuredClone(p.contractBonuses||{}),status:'active',purchaseMode:offer.purchaseMode||'none',purchaseFee:offer.purchaseFee||0,playingTime:offer.playingTime||'Rotación',recallAllowed:offer.recallAllowed,recallFrom:addMonths(GameState.today,Math.min(3,offer.loanMonths)),purchaseAppearances:offer.purchaseAppearances||10,startAppearances:p.appearances||0,ownerContractEnd:contractEnd(p)};
       ensure().loans.push(loan);p.loanId=loan.id;
@@ -21555,7 +21557,7 @@ window.WORLD_STORAGE = WORLD_STORAGE;
   }
   function settle(day=GameState.today) {
     if (!world()||!validDay(day)) return;
-    const state=ensure();progressContracts(day);registerAgreements(day);expireOffers(day);
+    const state=ensure();progressContracts(day);window.FM_RENEWALS?.process();registerAgreements(day);expireOffers(day);
     for (const row of state.payments.filter(row=>row.status!=='paid'&&row.dueDate<=day).sort((a,b)=>a.dueDate.localeCompare(b.dueDate))) {
       const p=player(row.playerId),label=p?.nombre||'Traspaso';
       if (!ai().transaction(row.fromClub,-row.amount,`Cuota de traspaso: ${label} (${row.dueDate})`,'cuotas')) {
@@ -21610,7 +21612,7 @@ window.WORLD_STORAGE = WORLD_STORAGE;
     const loanRows=loans.length?`<details class="card"><summary>Préstamos activos (${loans.length})</summary>${loans.map(row=>`<div class="fm-list-row"><strong>${esc(player(row.playerId)?.nombre||'Jugador')}</strong><p class="small muted">${esc(clubName(row.ownerClub))} → ${esc(clubName(row.borrowerClub))} · regreso ${esc(row.endDate)} · tu parte salarial ${cash(loanWageFor(player(row.playerId),user))}/semana${row.purchaseMode&&row.purchaseMode!=='none'?` · ${row.purchaseMode==='mandatory'?'Obligación':row.purchaseMode==='conditional'?'Compra a '+row.purchaseAppearances+' partidos':'Opción'} de compra: ${cash(row.purchaseFee)}`:''}</p>${row.recallAllowed&&row.ownerClub===user?`<button data-contract-recall="${esc(row.id)}">Solicitar regreso</button>`:''}${row.purchaseMode==='option'&&row.borrowerClub===user?`<button data-depth-purchase="${esc(row.id)}">Ejecutar opción de compra</button>`:''}</div>`).join('')}</details>`:'';
     const movements=GameState.world.ai.log?.filter(row=>row.type==='transfer'||row.type==='renewal').slice(0,12)||[],battles=GameState.world.ai.competition?.slice(0,4)||[];
     const activity=`<details class="card"><summary>Mercado entre clubes · ${movements.length} operaciones recientes</summary>${movements.length?`<div class="scroll"><table><thead><tr><th>Fecha</th><th>Jugador</th><th>Clubes / contrato</th><th>Operación</th><th>Importe</th></tr></thead><tbody>${movements.map(row=>`<tr><td>${esc(row.date)}</td><td><button class="fm-player-link" data-player="${row.playerId}">${esc(player(row.playerId)?.nombre||row.playerName||'Jugador')}</button></td><td>${row.type==='renewal'?`${clubLink(row.clubId)} · hasta ${row.until}`:`${clubLink(row.fromClub)} → ${clubLink(row.toClub)}`}</td><td>${row.type==='renewal'?'Renovación':row.dealType==='loan'?'Préstamo':'Compra'}${row.installments?` · ${row.installments} cuotas`:''}</td><td>${cash(row.fee)}${row.type==='renewal'?'<span class="fm-player-sub">Prima de firma</span>':''}</td></tr>`).join('')}</tbody></table></div>`:'<p class="small muted">Los clubes buscan refuerzos y negocian durante el mercado. El registro se actualiza al avanzar el calendario.</p>'}${battles.length?`<h3>Disputas por jugadores</h3>${battles.map(row=>`<div class="fm-list-row"><button class="fm-player-link" data-player="${row.playerId}">${esc(player(row.playerId)?.nombre||'Jugador')}</button><p class="small muted">${esc((row.bidders||[]).map(clubName).join(' · '))}${row.winner?` · destino elegido: ${esc(clubName(row.winner))}`:' · propuesta en evaluación'}</p></div>`).join('')}`:''}</details>`;
-    return numbers+offers+schedule+loanRows+activity;
+    return (window.FM_RENEWALS?.summary()||'')+numbers+offers+schedule+loanRows+activity;
   }
   function updateForm(form) {
     const loan=form.elements.dealType.value==='loan';
@@ -21648,20 +21650,7 @@ window.WORLD_STORAGE = WORLD_STORAGE;
     else reason+=' Ingresá un número válido.';
     offerFeedback(form,reason);
   },true);
-  function renewContract(pid,terms={}) {
-    const p=player(Number(pid)),years=Number(terms.years??3),wage=Number(terms.wage??Math.round((p?.salario||0)*1.15)),bonus=Number(terms.bonus??(p?.salario||0)*12),annualIncrease=Number(terms.annualIncrease??0),releaseClause=Number(terms.releaseClause??p?.clausula_rescision??0);
-    if(!p||p.clubId!==GameState.userClub.id||activeLoan(p)||locked())return{ok:false,reason:'No se puede renovar este contrato ahora'};
-    if(!Number.isInteger(years)||years<1||years>(p.edad<18?3:5)||![wage,bonus,annualIncrease,releaseClause].every(Number.isFinite)||wage<100||wage>1e7||bonus<0||bonus>1e9||annualIncrease<0||annualIncrease>15||releaseClause<0)return{ok:false,reason:'Revisá duración, salario, prima y aumento anual'};
-    const country=club(p.clubId)?.country,cross=['Inglaterra','España','Italia','Alemania','Francia'].includes(country),newEnd=`${Number(GameState.today.slice(0,4))+years}-${cross?'06-30':'12-31'}`;
-    if(newEnd<contractEnd(p))return{ok:false,reason:'Una renovación debe mantener o ampliar el vencimiento actual'};
-    if(wage<Math.round(p.salario*1.05))return{ok:false,reason:'El representante pide al menos un 5% de mejora salarial'};
-    if(ai().wageBill()-loanWageFor(p,p.clubId)+wage>GameState.userClub.wageBudget)return{ok:false,reason:'La renovación supera el presupuesto salarial'};
-    if(ai().availableBudget()<bonus)return{ok:false,reason:'No hay fondos disponibles para la prima'};
-    if(!terms.confirmed)return{ok:false,reason:'Confirmá las condiciones para renovar',quote:{years,wage,bonus,annualIncrease,releaseClause,newEnd}};
-    if(!ai().transaction(p.clubId,-bonus,`Prima de renovación: ${p.nombre}`,'contratos'))return{ok:false,reason:'La caja no alcanza para la prima'};
-    p.salario=Math.round(wage);setContract(p,years,GameState.today,{annualIncrease,releaseClause});p.moral=clamp(p.moral+8);window.FM_FINANCES?.onRenewal(p,years,Math.round(bonus));
-    message('Renovación firmada',`${p.nombre} renovó hasta el ${date(p.contractEnd)}. Salario ${cash(p.salario)}/semana, prima ${cash(bonus)}${annualIncrease?', aumento anual '+annualIncrease+'%':''}.`,{playerId:p.id},'contratos');saveGame(true);return{ok:true,player:p};
-  }
+  function renewContract(pid,terms={}) {return window.FM_RENEWALS?FM_RENEWALS.submit(pid,terms):{ok:false,reason:'La negociación de renovación no está disponible'}}
   const legacyRenew=renew;renew=function(pid){if(!world())return legacyRenew(pid);if(typeof MARKET_CONTRACTS.openRenewal==='function')return MARKET_CONTRACTS.openRenewal(pid);return legacyRenew(pid)};
   window.MARKET_CONTRACTS={ensure,contractEnd,setContract,migrateContracts,renewContract,precontractEligibility,requestPrecontractConsent,progressContracts,terminationQuote,terminateContract,recallLoan,submitOffer,submitPlayerTerms,processOffers,settle,returnLoans,purchaseLoan,executeTransfer,agreeTransfer,registerAgreements,restoreAgreements,registrationOpen,nextRegistrationDate,negotiationProfile,committed,futureSlots,onResale,reserved,pendingWages,loanWageFor,returnSlots,respondCounter,counterOffer,clubNegotiation,processSaleCounters,cancelOffer,expireOffers,summary,addMonths,offerFeedback,offerResources};
 })();
@@ -22673,7 +22662,7 @@ window.FM_INBOX = (() => {
   const active = () => !!GameState?.world && GameState.version === 3;
   const owned = p => !!p && p.clubId === GameState.userClub.id;
   const lookup = id => Number.isSafeInteger(Number(id)) ? player(Number(id)) : null;
-  const offerFor = message => GameState.offers.find(o => String(o.id) === String(message.offerId));
+  const offerFor = message => GameState.offers.find(o => String(o.id) === String(message.offerId))||window.FM_RENEWALS?.byId(String(message.offerId));
   const clubName = id => GameState.world.clubs.find(c => c.id === id)?.nombre || 'Club';
   const category = m => ['medico','médico','lesion','lesión','entrenamiento'].includes(m.type) ? 'plantel' : m.action==='match' ? 'partidos' : categories[m.type] ? m.type : 'prensa';
   const identifier = m => `message-${m.id}`;
@@ -22699,7 +22688,7 @@ window.FM_INBOX = (() => {
     if(supported.has(message.action))m.action=message.action;
     if(lookup(message.playerId))m.playerId=Number(message.playerId);
     if(typeof message.offerId==='string'||Number.isSafeInteger(message.offerId))m.offerId=String(message.offerId).slice(0,160);
-    for(const key of ['contractAtCreation','issue','matchDate'])if(typeof message[key]==='string'||Number.isSafeInteger(message[key]))m[key]=message[key];
+    for(const key of ['contractAtCreation','contractEndAtCreation','issue','matchDate'])if(typeof message[key]==='string'||Number.isSafeInteger(message[key]))m[key]=message[key];
     GameState.inbox.unshift(m);GameState.inbox=GameState.inbox.slice(0,150);return m;
   }
   function onMessage(message) {
@@ -22716,10 +22705,10 @@ window.FM_INBOX = (() => {
     if(!force&&settings.lastAlertDay===GameState.today)return;
     settings.lastAlertDay=GameState.today;
     const members=mine(),month=GameState.today.slice(0,7);
-    const important=members.filter(p=>!p.loanId&&Number.isInteger(p.contract)&&p.contract<=GameState.year+1).sort((a,b)=>a.contract-b.contract||overall(b)-overall(a)).slice(0,8);
+    const important=members.filter(p=>!p.loanId&&!window.FM_RENEWALS?.current(p.id)&&Number.isInteger(p.contract)&&MARKET_CONTRACTS.contractEnd(p)<=MARKET_CONTRACTS.addMonths(GameState.today,12)).sort((a,b)=>a.contract-b.contract||overall(b)-overall(a)).slice(0,8);
     for(const p of important) {
-      if(GameState.inbox.some(m=>m.action==='contract'&&m.playerId===p.id&&m.contractAtCreation===p.contract&&!m.dismissed))continue;
-      push({title:`Revisar contrato: ${p.nombre}`,body:`El vínculo termina en diciembre de ${p.contract}. Su salario es ${money(p.salario)} por semana. Podés renovar desde este mensaje; revisá la prima y el margen salarial antes de firmar.`,type:'contratos',action:'contract',playerId:p.id,contractAtCreation:p.contract,sourceKey:`contract:${p.id}:${p.contract}:${month}`});
+      if(GameState.inbox.some(m=>m.action==='contract'&&m.playerId===p.id&&m.contractAtCreation===p.contract&&(!m.contractEndAtCreation||m.contractEndAtCreation===MARKET_CONTRACTS.contractEnd(p))&&!m.dismissed))continue;
+      push({title:`Revisar contrato: ${p.nombre}`,body:`El vínculo termina el ${date(MARKET_CONTRACTS.contractEnd(p))}. Su salario es ${money(p.salario)} por semana. Podés renovar desde este mensaje; revisá la prima y el margen salarial antes de firmar.`,type:'contratos',action:'contract',playerId:p.id,contractAtCreation:p.contract,contractEndAtCreation:MARKET_CONTRACTS.contractEnd(p),sourceKey:`contract:${p.id}:${MARKET_CONTRACTS.contractEnd(p)}:${month}`});
     }
     for(const p of members.filter(p=>p.injury>0||p.condicion_fisica<65).sort((a,b)=>b.injury-a.injury||a.condicion_fisica-b.condicion_fisica).slice(0,4)) {
       if(GameState.inbox.some(m=>m.action==='medical'&&m.playerId===p.id&&!m.dismissed&&isPending(m)))continue;
@@ -22746,10 +22735,11 @@ window.FM_INBOX = (() => {
     if(pushing)return true;
     pushing=true;
     try {
-      for(const o of GameState.offers.filter(o=>o.status==='pending')) {
+      for(const o of [...GameState.offers,...(window.FM_RENEWALS?.all()||[])].filter(o=>o.status==='pending')) {
         const p=lookup(o.playerId);if(!p)continue;
-        if(GameState.inbox.some(m=>String(m.offerId)===String(o.id)))continue;
-        push({title:o.type==='sell'?`Oferta por ${p.nombre}`:`Negociación por ${p.nombre}`,body:o.type==='sell'?`${clubName(o.toClub)} ofrece ${money(o.fee)}. La venta necesita tu decisión y debe respetar la cobertura del plantel y el presupuesto del comprador.`:`La propuesta está en evaluación. Podés revisar sus condiciones o retirarla antes de que se cierre.`,type:'mercado',action:o.type==='sell'?'sale':'offer',offerId:o.id,playerId:p.id,sourceKey:`offer:${o.id}`});
+        if(GameState.inbox.some(m=>String(m.offerId)===String(o.id)&&(o.type!=='renewal'||!o.lastMessageId||m.id===o.lastMessageId)))continue;
+        const notice=push({title:o.type==='sell'?`Oferta por ${p.nombre}`:`Negociación por ${p.nombre}`,body:o.type==='renewal'?(o.awaitingUser?'El representante presentó una contraoferta. Revisá las condiciones actuales y su plazo.':'Tu propuesta de renovación sigue en evaluación. La respuesta estará disponible desde el '+date(o.responseDate)+'.'):o.type==='sell'?`${clubName(o.toClub)} ofrece ${money(o.fee)}. La venta necesita tu decisión y debe respetar la cobertura del plantel y el presupuesto del comprador.`:`La propuesta está en evaluación. Podés revisar sus condiciones o retirarla antes de que se cierre.`,type:o.type==='renewal'?'contratos':'mercado',action:o.type==='sell'?'sale':'offer',offerId:o.id,playerId:p.id,sourceKey:o.type==='renewal'?`renewal:${o.id}:${GameState.today}`:`offer:${o.id}`});
+        if(o.type==='renewal'&&notice)o.lastMessageId=notice.id;
       }
       refreshAlerts();
     } finally {pushing=false;}
@@ -22758,9 +22748,9 @@ window.FM_INBOX = (() => {
   function isPending(m) {
     if(!active()||m.dismissed)return false;
     const p=lookup(m.playerId),o=m.offerId?offerFor(m):null;
-    if(m.offerId)return !!o&&!o.awaitingRegistration&&!o.saleResponsePending&&o.status==='pending'&&(o.type!=='sell'||owned(p));
+    if(m.offerId)return !!o&&!o.awaitingRegistration&&!o.saleResponsePending&&o.status==='pending'&&(o.type!=='renewal'||o.awaitingUser&&(!o.lastMessageId||o.lastMessageId===m.id))&&(o.type!=='sell'||owned(p));
     if(m.action==='career')return m.date.slice(0,4)===String(GameState.year)&&!!GameState.world.depth?.jobs?.some(j=>j.status==='open');
-    if(m.action==='contract')return owned(p)&&!p.loanId&&p.contract<=GameState.year+1&&(!Number.isInteger(m.contractAtCreation)||p.contract===m.contractAtCreation);
+    if(m.action==='contract')return owned(p)&&!p.loanId&&!window.FM_RENEWALS?.current(p.id)&&MARKET_CONTRACTS.contractEnd(p)<=MARKET_CONTRACTS.addMonths(GameState.today,12)&&(!m.contractEndAtCreation||m.contractEndAtCreation===MARKET_CONTRACTS.contractEnd(p))&&(!Number.isInteger(m.contractAtCreation)||p.contract===m.contractAtCreation);
     if(m.action==='medical')return owned(p)&&(p.injury>0||p.condicion_fisica<65)&&p.trainingFocus!=='Recuperación';
     if(m.action==='recovery'){const members=mine();return GameState.training.focus!=='Recuperación'&&members.length>0&&members.reduce((sum,p)=>sum+p.condicion_fisica,0)/members.length<73;}
     if(m.action==='tactics')return m.issue==='lineup'&&lineupNeedsAttention();
@@ -22769,7 +22759,7 @@ window.FM_INBOX = (() => {
   }
   function status(m) {
     if(m.offerId) {
-      const o=offerFor(m);if(!o)return 'Oferta archivada';if(o.awaitingRegistration)return 'Inscripción el '+date(o.registrationDate);if(o.saleResponsePending)return 'Esperando al comprador';
+      const o=offerFor(m);if(!o)return 'Oferta archivada';if(o.awaitingRegistration)return 'Inscripción el '+date(o.registrationDate);if(o.saleResponsePending)return 'Esperando al comprador';if(o.type==='renewal'&&o.lastMessageId&&o.lastMessageId!==m.id)return 'Propuesta anterior · ver estado actual';
       return ({pending:o.type==='sell'||o.awaitingUser?'Tu decisión':'En negociación',accepted:'Acuerdo cerrado',rejected:'Oferta rechazada',expired:'Oferta vencida',cancelled:'Oferta retirada',canceled:'Oferta retirada'})[o.status]||'Negociación finalizada';
     }
     if(m.dismissed)return 'Revisado';
@@ -22782,7 +22772,8 @@ window.FM_INBOX = (() => {
     const result=[],p=lookup(m.playerId),o=m.offerId?offerFor(m):null,blocked=locked();
     const add=(id,label,disabled=false,primary=false)=>result.push({id,label,disabled,primary});
     if(o?.status==='pending'&&!o.awaitingRegistration) {
-      if(o.type==='sell'&&owned(p)&&!o.saleResponsePending){add('negotiate-counter','Contraofertar',blocked);add('sale-accept','Aceptar oferta',blocked,true);add('sale-reject','Rechazar oferta',blocked);}
+      if(o.type==='renewal'&&owned(p)){add('renewal-open',o.counter?'Contraofertar renovación':'Ver renovación',blocked);if(!o.lastMessageId||o.lastMessageId===m.id){if(o.counter)add('renewal-accept','Aceptar condiciones',blocked,true);add('renewal-cancel','Retirar propuesta',blocked);}}
+      else if(o.type==='sell'&&owned(p)&&!o.saleResponsePending){add('negotiate-counter','Contraofertar',blocked);add('sale-accept','Aceptar oferta',blocked,true);add('sale-reject','Rechazar oferta',blocked);}
       else if(o.type==='buy'){if(o.awaitingUser&&o.counter){add('negotiate-counter','Contraofertar',blocked);add('counter-accept','Aceptar contraoferta',blocked,true);add('counter-reject','Rechazar contraoferta',blocked);}add('offer-cancel','Retirar oferta',blocked);}
       if(o.type==='buy'&&o.awaitingPlayerTerms)add('personal-contract','Negociar contrato',blocked,true);
     }
@@ -22819,17 +22810,19 @@ window.FM_INBOX = (() => {
   function offerInfo(m) {
     const o=offerFor(m);if(!o)return '';
     const terms=o.awaitingUser&&o.counter?{...o,...o.counter}:o;
-    const parts=[['Traspaso',money(terms.fee||0)],['Salario semanal',money(terms.wage||lookup(o.playerId)?.salario||0)]];
+    const parts=[...(o.type==='renewal'?[]:[['Traspaso',money(terms.fee||0)]]),['Salario semanal',money(terms.wage||lookup(o.playerId)?.salario||0)]];
     if(o.awaitingRegistration)parts.unshift(['Etapa','Acuerdo firmado · inscripción el '+date(o.registrationDate)]);else if(o.awaitingPlayerTerms)parts.unshift(['Etapa','Club de acuerdo · falta negociar con el jugador']);else if(o.awaitingUser&&o.counter)parts.unshift(['Etapa',o.stage==='player'?'Contraoferta del representante pendiente':'Contraoferta del club pendiente']);else if(o.status==='pending')parts.unshift(['Etapa',o.type==='sell'?(o.saleResponsePending?'Comprador evaluando contraoferta':'Propuesta recibida · tu decisión'):o.stage==='player'?'Representante evaluando contrato':'Club evaluando el pase']);
+    if(terms.playingTime)parts.push(['Papel en el plantel',terms.playingTime]);
+    if(terms.annualIncrease)parts.push(['Aumento anual',terms.annualIncrease+'%']);
     if(terms.releaseClause)parts.push(['Cláusula de rescisión',money(terms.releaseClause)]);
-    if(o.bonus)parts.push(['Prima',money(o.bonus)]);
-    if(o.years)parts.push(['Duración',`${o.years} años`]);
-    if(o.kind==='loan'||o.dealType==='loan')parts.push(['Modalidad','Préstamo']);
-    if(o.installments)parts.push(['Cuotas',typeof o.installments==='number'?String(o.installments):String(o.installments.count||'Acordadas')]);
-    if(o.sellOnPercent||o.sellOnPct||o.futureSalePct)parts.push(['Venta futura',`${o.sellOnPercent||o.sellOnPct||o.futureSalePct}%`]);
-    if(o.dealType==='loan'&&o.wageShare!=null)parts.push(['Salario a cargo',`${o.wageShare}%`]);
-    if(o.loanMonths)parts.push(['Duración del préstamo',`${o.loanMonths} meses`]);
-    if(o.upfrontPercent!=null&&o.installments)parts.push(['Pago inicial',`${o.upfrontPercent}%`]);
+    if(terms.bonus)parts.push(['Prima',money(terms.bonus)]);
+    if(terms.years)parts.push(['Duración',`${terms.years} años`]);
+    if(terms.kind==='loan'||terms.dealType==='loan')parts.push(['Modalidad','Préstamo']);
+    if(terms.installments)parts.push(['Cuotas',typeof terms.installments==='number'?String(terms.installments):String(terms.installments.count||'Acordadas')]);
+    if(terms.sellOnPercent||terms.sellOnPct||terms.futureSalePct)parts.push(['Venta futura',`${terms.sellOnPercent||terms.sellOnPct||terms.futureSalePct}%`]);
+    if(terms.dealType==='loan'&&terms.wageShare!=null)parts.push(['Salario a cargo',`${terms.wageShare}%`]);
+    if(terms.loanMonths)parts.push(['Duración del préstamo',`${terms.loanMonths} meses`]);
+    if(terms.upfrontPercent!=null&&terms.installments)parts.push(['Pago inicial',`${terms.upfrontPercent}%`]);
     return `<div class="fm-inbox-facts">${parts.map(([label,value])=>`<div><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`).join('')}</div>${o.reason?`<p class="fm-inbox-note">${esc(o.reason)}</p>`:''}`;
   }
   function reportInfo(m) {
@@ -22843,7 +22836,7 @@ window.FM_INBOX = (() => {
   }
   function messageContext(m){
     const o=m.offerId?offerFor(m):null,p=lookup(m.playerId),pending=isPending(m),r=p&&window.FM_DEPTH?FM_DEPTH.ensure()?.reports?.[p.id]:null;
-    const sender=o?clubName(o.type==='sell'?o.toClub:o.fromClub):r?.staffName&&category(m)==='ojeo'?r.staffName:({ojeo:'Secretaría técnica',contratos:'Secretaría técnica',directiva:'Directiva del club',plantel:'Cuerpo técnico y servicios médicos',partidos:'Analista de rendimiento',mercado:'Departamento de fichajes',prensa:'Resumen de prensa',sistema:'Secretaría del club'})[category(m)]||'Secretaría del club';
+    const sender=o?(o.type==='renewal'?MARKET_CONTRACTS.negotiationProfile(p,o).name+' · representante simulado':clubName(o.type==='sell'?o.toClub:o.fromClub)):r?.staffName&&category(m)==='ojeo'?r.staffName:({ojeo:'Secretaría técnica',contratos:'Secretaría técnica',directiva:'Directiva del club',plantel:'Cuerpo técnico y servicios médicos',partidos:'Analista de rendimiento',mercado:'Departamento de fichajes',prensa:'Resumen de prensa',sistema:'Secretaría del club'})[category(m)]||'Secretaría del club';
     const deadline=o?.status==='pending'?(o.expiresAt||o.expiresDate):null;
     const next=o?.awaitingRegistration?'El acuerdo está firmado. El jugador permanece en su club hasta la fecha de inscripción; los fondos y la plaza quedan comprometidos.':o?.status==='pending'?(o.type==='sell'?(o.saleResponsePending?'El comprador está evaluando tu contraoferta. Avanzá el tiempo para recibir respuesta.':'Evaluá las condiciones: podés aceptar, rechazar o enviar una contraoferta.'):o.awaitingPlayerTerms?'El pase está acordado. Abrí la negociación del contrato con el jugador.':o.awaitingUser&&o.counter?'Revisá la contraoferta del club.':'La contraparte está evaluando la propuesta; avanzá el tiempo para recibir respuesta.'):pending?'Revisá el informe y elegí una de las acciones disponibles.':'Mensaje informativo; no requiere una decisión pendiente.';
     return `<section class="office-inbox-context"><p><b>De:</b> ${esc(sender)} · <b>${pending?'Requiere atención':'Información'}</b></p>${deadline?`<p><b>Vencimiento:</b> ${date(deadline)}</p>`:''}<p><b>Próximo paso:</b> ${esc(next)}</p>${r&&category(m)==='ojeo'?`<p>Observación: ${r.level}% · ${r.status==='active'?'en curso':r.status==='cancelled'?'cancelada':'finalizada'}${r.duration?' · plazo '+r.duration+' días':''}${r.status==='active'&&r.dueDate?' · fecha prevista '+date(r.dueDate):''}.</p>`:''}</section>`;
@@ -22865,6 +22858,8 @@ window.FM_INBOX = (() => {
     const p=lookup(m.playerId);m.read=true;
     if(action==='scout-cancel')return window.FM_OFFICE?.cancelObservation(p.id);
     if(action==='profile'){WORLD_STORAGE.scheduleSave();return details(p.id);}
+    if(action==='renewal-open')return FM_RENEWALS.open(p.id);
+    if(action==='renewal-accept'||action==='renewal-cancel'){const result=FM_RENEWALS.respond(m.offerId,action==='renewal-accept');if(!result.ok)toast(result.reason);return}
     if(action==='negotiate-counter')return MARKET_CONTRACTS.openCounterNegotiation(m.offerId);
     if(action==='personal-contract')return MARKET_CONTRACTS.openPlayerNegotiation(m.offerId);
     if(action==='sale-accept'||action==='sale-reject'){return window.CLUB_AI.respondToSaleOffer(m.offerId,action==='sale-accept');}
@@ -23003,6 +22998,7 @@ window.FM_DRESSING_ROOM=(()=>{
     GameState.tactics.captain=p.id;s.players[p.id].trust=clamp(s.players[p.id].trust+2);s.lastCaptainChange=GameState.today;log(`${p.nombre} asume la capitanía con liderazgo simulado ${s.players[p.id].leadership}/20.`,p.id);return reply(`${p.nombre} es el nuevo capitán. El liderazgo se gana también con participación y confianza.`);
   }
   function onSigning(p,role){if(!current()||p.clubId!==GameState.userClub.id)return;WORLD_ENGINE.reindex();const s=ensure();s.players[p.id]=relationship(p,true);s.players[p.id].role=Object.hasOwn(roles,role)?role:'Rotación';ensure()}
+  function onRenewal(p,role){const r=ensure()?.players[p.id];if(!r)return;r.role=Object.hasOwn(roles,role)?role:r.role;p.squadRole=r.role;log(`${p.nombre}: renovación con papel de ${r.role.toLowerCase()}; se conservan las promesas, participación y confianza.`,p.id)}
   function startMentoring(mentorId,youngId){
     const mentor=selected(mentorId),young=selected(youngId),s=ensure();if(!mentor||!young||!s||locked())return false;
     const mr=s.players[mentor.id];
@@ -23098,7 +23094,7 @@ window.FM_DRESSING_ROOM=(()=>{
     else if(e.target.hasAttribute('data-social-conversation'))ui.conversation=e.target.value;
     else if(e.target.hasAttribute('data-social-captain'))setCaptain(e.target.value);
   });
-  return {ensure,render:renderRoom,talk,promiseMinutes,setRole,setCaptain,onSigning,onDayAdvance,onMatchResult,teamMeeting,startMentoring,cancelMentoring,hierarchy,summary,participation,matchModifier,developmentModifier,ui};
+  return {ensure,render:renderRoom,talk,promiseMinutes,setRole,setCaptain,onSigning,onRenewal,onDayAdvance,onMatchResult,teamMeeting,startMentoring,cancelMentoring,hierarchy,summary,participation,matchModifier,developmentModifier,ui};
 })();
 
 /* Visual reconstruction uses real shot records; it never rolls another result. */
@@ -23136,7 +23132,7 @@ window.FM_DRESSING_ROOM=(()=>{
     m.keyPlays=m.keyPlays.slice(-60);const changed=adaptAI(m);
     // The result engine saves before this wrapper attaches recorded plays and decisions.
     // Complete that same checkpoint, including the five-minute extra-time checkpoints.
-    if(m.paused||m.done||m.minute%15===0||(m.extraTime&&m.minute%5===0))saveGame(true);
+    if(m.paused||m.done)saveGame(true);else if(m.minute%15===0||(m.extraTime&&m.minute%5===0))WORLD_STORAGE.scheduleSave();
     if((chances.length||changed)&&view==='match')render();
   };
   function decorate(){
@@ -23233,6 +23229,135 @@ window.FM_DRESSING_ROOM=(()=>{
   document.addEventListener('change',e=>{const f=e.target.closest('#negotiation');if(f?.dataset.stage==='club'&&['dealType','installments','activateClause'].includes(e.target.name))refresh(f);if(f?.dataset.stage==='player'&&['playingTime','years','appearanceBonus'].includes(e.target.name)){const o=GameState.offers.find(o=>o.id===f.dataset.offerId),p=player(Number(f.dataset.playerId)),panel=f.querySelector('[data-nw-pane="project"]');if(panel){panel.outerHTML=projectPanel(p,{...o,playingTime:f.elements.playingTime.value,years:Number(f.elements.years?.value||1),appearanceBonus:Number(f.elements.appearanceBonus.value)});refresh(f)}}});
   document.addEventListener('click',e=>{const consent=e.target.closest('[data-precontract-consent]');if(consent){const result=MARKET_CONTRACTS.requestPrecontractConsent(consent.dataset.precontractConsent);toast(result.ok?'Solicitud enviada al club propietario':result.reason);if(result.ok)$('#details').close()}const tab=e.target.closest('[data-nw-tab]');if(tab){ui.tab=tab.dataset.nwTab;refresh(tab.closest('form'))}const button=e.target.closest('[data-contract-player]');if(button)openPlayerNegotiation(button.dataset.contractPlayer)});
   document.addEventListener('invalid',e=>{const panel=e.target.closest('[data-nw-pane]');if(panel){ui.tab=panel.dataset.nwPane;refresh(panel.closest('form'))}},true);
+})();
+
+/* Existing contracts change only after both sides agree. Agency expectations are simulated. */
+window.FM_RENEWALS=(()=>{
+  const DAY=86400000,roles=['Titular','Rotación','Proyecto'];
+  const fields=['years','wage','bonus','annualIncrease','releaseClause','playingTime','appearanceBonus','goalBonus','cleanSheetBonus','titleBonus'];
+  const active=()=>GameState?.worldVersion===1;
+  const addDays=(day,n)=>new Date(Date.parse(day+'T12:00:00Z')+n*DAY).toISOString().slice(0,10);
+  const state=()=>{const s=MARKET_CONTRACTS.ensure();if(s){s.renewals??=[];s.renewalCooldown??={}}return s};
+  const all=()=>state()?.renewals||[];
+  const byId=id=>all().find(r=>r.id===id);
+  const current=pid=>all().find(r=>r.playerId===Number(pid)&&r.status==='pending');
+  function notify(r,title,body){MANAGEMENT.addMessage(title,body,'contratos',{playerId:r.playerId,offerId:r.id,action:'offer'});r.lastMessageId=GameState.inbox.find(m=>m.offerId===r.id)?.id}
+  function contractEnd(p,years,day=GameState.today){
+    const cross=['Inglaterra','España','Italia','Alemania','Francia'].includes(club(p.clubId)?.country);
+    return `${Number(day.slice(0,4))+years}-${cross?'06-30':'12-31'}`;
+  }
+  function termsFor(p,raw={}){
+    const prior=p.contractBonuses||{},role=GameState.world.dressingRoom?.players?.[p.id]?.role||p.squadRole||'Rotación';
+    const defaults={years:Math.max(1,Math.min(p.edad<18?3:5,p.contract-Number(GameState.today.slice(0,4))+1)),wage:Math.ceil(p.salario*1.1/100)*100,bonus:p.salario*6,annualIncrease:p.contractWageEscalator?.percent||0,releaseClause:p.clausula_rescision,playingTime:role,appearanceBonus:prior.appearance||0,goalBonus:prior.goal||0,cleanSheetBonus:prior.cleanSheet||0,titleBonus:prior.title||0};
+    return {...Object.fromEntries(fields.map(k=>[k,k==='playingTime'?String(raw[k]??defaults[k]):Number(raw[k]??defaults[k])])),endDate:contractEnd(p,Number(raw.years??defaults.years))};
+  }
+  function reason(p,t,id=null){
+    if(!active()||!p||p.clubId!==GameState.userClub.id||p.loanId||locked())return 'No se puede renovar este contrato ahora';
+    if(MARKET_CONTRACTS.committed(p.id))return 'El jugador ya firmó su salida para la próxima ventana';
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(MARKET_CONTRACTS.contractEnd(p)||''))return 'No se pudo verificar el vencimiento del contrato';
+    if(MARKET_CONTRACTS.contractEnd(p)<GameState.today)return 'El contrato ya venció; debe negociarse una incorporación como agente libre';
+    if(!Number.isInteger(t.years)||t.years<1||t.years>(p.edad<18?3:5))return 'Revisá la duración del contrato';
+    if(!fields.filter(k=>k!=='playingTime').every(k=>Number.isFinite(t[k]))||!Number.isInteger(t.wage)||t.wage<100||t.wage>1e7||!Number.isInteger(t.bonus)||t.bonus<0||t.bonus>1e9||t.annualIncrease<0||t.annualIncrease>15||t.releaseClause<0||t.releaseClause>1e10)return 'Revisá salario, prima, cláusula y aumento anual';
+    if(!roles.includes(t.playingTime)||!['appearanceBonus','goalBonus','cleanSheetBonus'].every(k=>Number.isInteger(t[k])&&t[k]>=0&&t[k]<=100000)||!Number.isInteger(t.titleBonus)||t.titleBonus<0||t.titleBonus>500000)return 'Revisá el rol y las primas por rendimiento';
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(t.endDate||'')||!Number.isFinite(Date.parse(t.endDate)))return 'Revisá la fecha propuesta de vencimiento';
+    if(t.endDate<MARKET_CONTRACTS.contractEnd(p))return 'Una renovación debe mantener o ampliar el vencimiento actual';
+    if(CLUB_AI.wageBill()+CLUB_AI.reservedWages(GameState.userClub.id,id)-p.salario+t.wage>GameState.userClub.wageBudget)return 'La renovación supera el presupuesto salarial, incluyendo otras negociaciones';
+    if(CLUB_AI.availableBudget(GameState.userClub.id,id)<t.bonus)return 'No hay fondos disponibles para la prima';
+    return '';
+  }
+  function expectations(p,t){
+    const profile=MARKET_CONTRACTS.negotiationProfile(p,{stage:'player',toClub:p.clubId,...t}),room=GameState.world.dressingRoom?.players?.[p.id];
+    const peers=squad(p.clubId).filter(q=>q.id!==p.id&&q.posicion===p.posicion).sort((a,b)=>a.salario-b.salario),median=peers.length?peers[Math.floor(peers.length/2)].salario:p.salario;
+    const established=t.playingTime==='Titular'&&p.edad>=23,reference=Math.min(p.salario*1.55,Math.max(p.salario,established?median*.75:0));
+    const roleCut=t.playingTime==='Proyecto'&&p.edad>=27?1.08:1;
+    const incentive=Math.min(.06,t.bonus/Math.max(1,p.salario*104)*.08+t.appearanceBonus/Math.max(100,p.salario)*.03+t.annualIncrease*.002);
+    const wage=Math.max(100,Math.ceil(Math.max(profile.wage,reference*1.04)*roleCut*(1-incentive)/100)*100);
+    const minYears=Math.max(MARKET_CONTRACTS.contractEnd(p).slice(0,4)-Number(GameState.today.slice(0,4)),p.edad<=23?3:1);
+    return {wage,bonus:Math.round(p.salario*(p.edad>=33?2:4)),years:Math.min(p.edad<18?3:5,minYears),maxClause:Math.round(Math.max(p.valor_mercado*2.5,p.clausula_rescision||0,10000)),patience:Math.max(4,Math.floor(profile.patience/2)),reasons:[...profile.reasons,...(established&&reference>p.salario?['Compara su salario con el de otros jugadores del puesto']:[]),...(p.edad<=23?['Busca estabilidad para su desarrollo']:[])],refuse:room?.trust<25&&p.moral<35?'La relación con el DT está demasiado deteriorada para renovar ahora':profile.refuse};
+  }
+  function record(r,actor,t=r){r.negotiationHistory.push({date:GameState.today,actor,terms:{...Object.fromEntries(fields.map(k=>[k,t[k]])),endDate:t.endDate||r.endDate}});r.negotiationHistory=r.negotiationHistory.slice(-24)}
+  function finish(r,status,why,cooldown=7){
+    r.status=status;r.reason=why;r.resolvedDate=GameState.today;r.awaitingUser=false;delete r.counter;
+    state().renewalCooldown[r.playerId]=addDays(GameState.today,cooldown);
+    notify(r,status==='expired'?'Renovación vencida':status==='cancelled'?'Renovación retirada':'El jugador no renueva',`${player(r.playerId)?.nombre||'Jugador'}: ${why}. La renovación no se ejecutó ni cobró una prima.`);
+  }
+  function submit(pid,raw={}){
+    const p=player(Number(pid));if(!p||!active())return {ok:false,reason:'Jugador no disponible'};
+    const r=current(p.id),previous=r?.counter||r,t=termsFor(p,{...(previous||{}),...raw});
+    if(previous&&previous.years===t.years&&previous.endDate)t.endDate=previous.endDate;
+    const error=reason(p,t,r?.id);
+    if(error)return {ok:false,reason:error};
+    if(!raw.confirmed)return {ok:false,reason:'Enviá la propuesta para que el jugador la evalúe',quote:t};
+    if(r&&(!r.awaitingUser||!r.counter))return {ok:false,reason:'El representante todavía está evaluando tu propuesta'};
+    if(r&&r.expiresDate<GameState.today)return {ok:false,reason:'Venció el plazo para negociar esta renovación'};
+    if(!r&&state().renewalCooldown[p.id]>GameState.today)return {ok:false,reason:'El representante retomará las conversaciones desde el '+date(state().renewalCooldown[p.id])};
+    if(r&&fields.every(k=>t[k]===r.counter[k]))return {ok:false,reason:'Modificá una condición o aceptá la contraoferta del representante'};
+    let row=r;
+    if(!row){const s=state();row={id:`renewal-${GameState.year}-${s.nextId++}`,type:'renewal',stage:'player',playerId:p.id,fromClub:p.clubId,toClub:p.clubId,fee:0,status:'pending',createdDate:GameState.today,expiresDate:addDays(GameState.today,MARKET_CONTRACTS.negotiationProfile(p,{...t,toClub:p.clubId}).patience),counterRounds:0,negotiationHistory:[],baselineEnd:MARKET_CONTRACTS.contractEnd(p)};s.renewals.unshift(row)}else row.counterRounds++;
+    Object.assign(row,t,{awaitingUser:false,responseDate:addDays(GameState.today,1),acceptedCounter:false});delete row.counter;record(row,'DT');
+    notify(row,r?'Nueva propuesta de renovación':'Renovación propuesta',`${p.nombre}: salario ${money(t.wage)}/semana, prima ${money(t.bonus)}, hasta ${date(t.endDate)} y papel de ${t.playingTime.toLowerCase()}. El representante responderá desde el ${date(row.responseDate)}. Se reserva la prima y sólo el incremento salarial; todavía no se paga ni se cambia el vínculo.`);
+    saveGame(true);return {ok:true,negotiation:row};
+  }
+  function respond(id,accept){
+    const r=byId(id),p=r&&player(r.playerId);if(!r||r.status!=='pending'||locked())return {ok:false,reason:'La renovación ya no está disponible'};
+    if(!accept){finish(r,'cancelled','Retiraste la propuesta',3);saveGame(true);render();return {ok:true}}
+    if(!r.awaitingUser||!r.counter||r.expiresDate<GameState.today)return {ok:false,reason:'La contraoferta no está disponible o venció'};
+    const error=reason(p,r.counter,r.id);if(error)return {ok:false,reason:error};
+    Object.assign(r,r.counter,{awaitingUser:false,acceptedCounter:true,responseDate:addDays(GameState.today,1)});delete r.counter;record(r,'DT acepta');
+    notify(r,'Condiciones de renovación aceptadas',`${p.nombre}: aceptaste las condiciones del representante. Se revalidarán y firmarán desde el ${date(r.responseDate)}; el contrato vigente continúa hasta entonces.`);saveGame(true);render();return {ok:true};
+  }
+  function process(){
+    if(!active())return;
+    for(const r of all().filter(r=>r.status==='pending')){
+      const p=player(r.playerId);
+      if(!p||r.fromClub!==GameState.userClub.id||p.clubId!==r.fromClub||p.loanId||MARKET_CONTRACTS.committed(r.playerId)){finish(r,'cancelled','Cambió la situación contractual o el jugador dejó el club',0);continue}
+      if(r.baselineEnd!==MARKET_CONTRACTS.contractEnd(p)){finish(r,'cancelled','El contrato fue modificado por otro acuerdo',0);continue}
+      if(r.expiresDate<GameState.today){finish(r,'expired','El representante dio por terminado el plazo');continue}
+      if(r.awaitingUser||r.responseDate>GameState.today)continue;
+      const error=reason(p,r,r.id);if(error){finish(r,'rejected',error);continue}
+      const wanted=expectations(p,r),round=r.counterRounds||0;
+      if(wanted.refuse){finish(r,'rejected',wanted.refuse);continue}
+      if(round>wanted.patience){finish(r,'rejected','Las posiciones no se acercaron y el representante se retiró');continue}
+      const wage=Math.ceil(wanted.wage*(1-Math.min(.06,round*.015))/100)*100,bonus=Math.round(wanted.bonus*(1-Math.min(.15,round*.035)));
+      const credit=Math.max(0,r.wage-wage)*Math.min(104,r.years*52),bonusNeeded=Math.max(0,bonus-credit);
+      if(!r.acceptedCounter&&(r.wage<wage||r.bonus<bonusNeeded||r.years<wanted.years||r.releaseClause>wanted.maxClause)){
+        r.counter={...Object.fromEntries(fields.map(k=>[k,r[k]])),wage:Math.max(r.wage,wage),bonus:Math.max(r.bonus,bonusNeeded),years:Math.max(r.years,wanted.years),releaseClause:Math.min(r.releaseClause,wanted.maxClause),endDate:contractEnd(p,Math.max(r.years,wanted.years),`${Number(r.endDate.slice(0,4))-r.years}-01-01`)};r.awaitingUser=true;r.counterDate=GameState.today;r.expectations=wanted;record(r,'Representante',r.counter);
+        notify(r,'Contraoferta de renovación',`${p.nombre} propone ${money(r.counter.wage)}/semana, prima ${money(r.counter.bonus)}, ${r.counter.years} años y papel de ${r.counter.playingTime.toLowerCase()}. ${wanted.reasons.join('. ')}. Podés aceptar, contraofertar o retirarte antes del ${date(r.expiresDate)}.`);continue;
+      }
+      if(!CLUB_AI.transaction(p.clubId,-r.bonus,`Prima de renovación: ${p.nombre}`,'contratos')){finish(r,'rejected','La caja no alcanza para la prima');continue}
+      p.salario=r.wage;MARKET_CONTRACTS.setContract(p,r.years,GameState.today,{annualIncrease:r.annualIncrease,releaseClause:r.releaseClause});
+      p.contractEnd=r.endDate;p.contract=Number(r.endDate.slice(0,4));
+      p.contractBonuses={appearance:r.appearanceBonus,goal:r.goalBonus,cleanSheet:r.cleanSheetBonus,title:r.titleBonus};p.squadRole=r.playingTime;p.moral=clamp(p.moral+4);
+      window.FM_DRESSING_ROOM?.onRenewal?.(p,r.playingTime);window.FM_FINANCES?.onRenewal(p,r.years,r.bonus);
+      r.status='accepted';r.resolvedDate=GameState.today;r.awaitingUser=false;record(r,'Firma');state().renewalCooldown[p.id]=addDays(GameState.today,30);
+      for(const o of GameState.offers.filter(o=>o.status==='pending'&&o.playerId===p.id&&o.type==='sell'&&!o.awaitingRegistration)){o.status='cancelled';o.reason='El jugador renovó y cambiaron las condiciones del contrato';MANAGEMENT.addMessage('Oferta anterior sin efecto',`${p.nombre} renovó. La propuesta de ${club(o.toClub)?.nombre||'otro club'} debe negociarse de nuevo con las condiciones actuales.`,'mercado',{playerId:p.id,offerId:o.id,action:'offer'})}
+      notify(r,'Renovación firmada',`${p.nombre} aceptó y renovó hasta el ${date(p.contractEnd)}. Salario ${money(p.salario)}/semana, prima ${money(r.bonus)} y papel de ${r.playingTime.toLowerCase()}. Se conservan la confianza, las promesas y la participación de su etapa en el club.`);
+    }
+    const s=state();s.renewals=[...s.renewals.filter(r=>r.status==='pending'),...s.renewals.filter(r=>r.status!=='pending').slice(0,80)];
+  }
+  function invalidatePlayer(pid,why='El jugador dejó de estar disponible para renovar'){const r=current(pid);if(r)finish(r,'cancelled',why,0)}
+  const input=(key,label,value,min=0,max=1e9)=>`<label class="field">${label}<input name="${key}" type="number" min="${min}" max="${max}" step="1" value="${Math.round(value)}" required></label>`;
+  function open(pid){
+    const p=player(Number(pid));if(!p||p.clubId!==GameState.userClub.id||p.loanId||locked())return toast('El contrato no está disponible para renovar');
+    const r=current(p.id),t=r?(r.counter||r):termsFor(p),waiting=r&&!r.awaitingUser;
+    const history=(r?.negotiationHistory||[]).slice(-8).map(h=>`<li>${date(h.date)} · ${esc(h.actor)} · ${money(h.terms.wage)}/sem. · prima ${money(h.terms.bonus)} · ${h.terms.years} años · ${h.terms.endDate?date(h.terms.endDate):''} · ${esc(h.terms.playingTime)}</li>`).join('');
+    $('#details').innerHTML=`<div class="nw-heading"><span class="fm-kicker">RENOVACIÓN · ${r?'RONDA '+(r.counterRounds+1):'PROPUESTA AL JUGADOR'}</span><h2>${esc(p.nombre)}</h2><p>Vínculo actual: ${date(MARKET_CONTRACTS.contractEnd(p))} · ${money(p.salario)}/semana</p></div><form id="contract-renewal" class="nw-form" data-player-id="${p.id}" data-original-years="${t.years}" data-original-end="${esc(t.endDate)}"><nav class="nw-tabs"><button type="button" data-renew-pane="terms" class="selected">Contrato y rol</button><button type="button" data-renew-pane="bonuses">Primas</button><button type="button" data-renew-pane="history">Negociación</button></nav><div class="nw-body"><section class="nw-fields" data-renew-section="terms">${input('years','Duración pactada (años)',t.years,1,p.edad<18?3:5)}${input('wage','Salario semanal (USD)',t.wage,100,1e7)}${input('bonus','Prima de firma (USD)',t.bonus)}<label class="field">Papel prometido<select name="playingTime">${roles.map(role=>`<option ${t.playingTime===role?'selected':''}>${role}</option>`).join('')}</select></label>${input('annualIncrease','Aumento anual (%)',t.annualIncrease,0,15)}${input('releaseClause','Cláusula bilateral (USD)',t.releaseClause,0,1e10)}</section><section class="nw-fields" data-renew-section="bonuses" hidden>${input('appearanceBonus','Prima por aparición (USD)',t.appearanceBonus,0,100000)}${input('goalBonus','Prima por gol (USD)',t.goalBonus,0,100000)}${input('cleanSheetBonus','Prima por valla invicta (USD)',t.cleanSheetBonus,0,100000)}${input('titleBonus','Prima por título (USD)',t.titleBonus,0,500000)}<p class="nw-note">El nuevo contrato sustituye las primas anteriores. Se liquidan cuando ocurre el hecho deportivo.</p></section><section data-renew-section="history" hidden><p class="nw-note">${r?'Plazo: '+date(r.expiresDate):'El jugador evalúa salario, estabilidad, rol y primas. Las preferencias del representante son simuladas.'}</p>${r?.expectations?.reasons.length?`<p class="nw-note">${esc(r.expectations.reasons.join('. '))}</p>`:''}${history?`<ol>${history}</ol>`:'Todavía no hay propuestas enviadas.'}</section><p class="nw-note" data-renew-end>Nuevo vencimiento propuesto: ${date(t.endDate)}</p><p class="nw-note" role="status">${waiting?'El representante está evaluando la propuesta. Respuesta desde el '+date(r.responseDate)+'.':r?.counter?'Contraoferta recibida. Podés aceptarla o cambiar las condiciones para proponer otra alternativa.':'La propuesta se evalúa desde el día siguiente; el vínculo y el salario actual se mantienen hasta la firma.'} La prima y el incremento salarial quedan reservados.</p></div><div class="world-offer-feedback nw-feedback" data-offer-feedback role="alert" tabindex="-1" hidden><strong data-offer-error></strong><p data-offer-hint hidden></p><button type="button" data-contract-help hidden></button></div><div class="nw-footer">${r?.counter?`<button type="button" data-renew-decision="accept" data-renew-id="${esc(r.id)}">Aceptar condiciones</button>`:''}<button class="primary" type="submit" ${waiting?'disabled':''}>${r?'Enviar contraoferta':'Enviar propuesta'}</button>${r?`<button type="button" data-renew-decision="cancel" data-renew-id="${esc(r.id)}">Retirar</button>`:`<button type="button" data-contract-termination-review="${p.id}">Rescisión</button>`}<button type="button" data-action="close">Cerrar</button></div></form>`;
+    if(waiting)for(const node of $('#contract-renewal').querySelectorAll('input,select'))node.disabled=true;
+    $('#details').showModal();
+  }
+  function summary(){
+    return all().filter(r=>r.status==='pending').map(r=>`<div class="fm-list-row row between"><div><strong>${esc(player(r.playerId)?.nombre||'Jugador')} · Renovación</strong><div class="small muted">${r.awaitingUser?'Contraoferta del representante':'Evaluando · respuesta desde '+date(r.responseDate)} · ${money((r.counter||r).wage)}/sem. · prima ${money((r.counter||r).bonus)}</div></div><button data-renew-open="${r.playerId}">${r.awaitingUser?'Negociar renovación':'Ver propuesta'}</button></div>`).join('');
+  }
+  document.addEventListener('submit',e=>{if(e.target.id!=='contract-renewal')return;e.preventDefault();e.stopImmediatePropagation();const form=e.target,result=submit(form.dataset.playerId,{...Object.fromEntries(new FormData(form).entries()),confirmed:true});if(!result.ok)return MARKET_CONTRACTS.offerFeedback(form,result.reason);$('#details').close();render();toast('Propuesta enviada al representante')},true);
+  document.addEventListener('click',e=>{
+    const pane=e.target.closest('[data-renew-pane]');if(pane){const form=pane.closest('form');for(const node of form.querySelectorAll('[data-renew-section]'))node.hidden=node.dataset.renewSection!==pane.dataset.renewPane;for(const node of form.querySelectorAll('[data-renew-pane]'))node.classList.toggle('selected',node===pane)}
+    const button=e.target.closest('[data-renew-open]');if(button)open(button.dataset.renewOpen);
+    const choice=e.target.closest('[data-renew-decision]');if(choice){const result=respond(choice.dataset.renewId,choice.dataset.renewDecision==='accept');if(!result.ok)return MARKET_CONTRACTS.offerFeedback(choice.closest('form'),result.reason);$('#details')?.close()}
+  });
+  document.addEventListener('input',e=>{const form=e.target.closest('#contract-renewal');if(form&&e.target.name==='years'){const p=player(Number(form.dataset.playerId)),years=Number(e.target.value),end=years===Number(form.dataset.originalYears)?form.dataset.originalEnd:contractEnd(p,years);if(Number.isInteger(years)&&years>0)form.querySelector('[data-renew-end]').textContent='Nuevo vencimiento propuesto: '+date(end)}});
+  document.addEventListener('invalid',e=>{const panel=e.target.closest('[data-renew-section]');if(!panel)return;const form=panel.closest('form');form.querySelector(`[data-renew-pane="${panel.dataset.renewSection}"]`)?.click();MARKET_CONTRACTS.offerFeedback(form,'Revisá el valor de '+(e.target.closest('label')?.firstChild?.textContent||'este campo'))},true);
+  MARKET_CONTRACTS.openRenewal=open;
+  return {all,byId,current,submit,respond,process,invalidatePlayer,open,summary,expectations,termsFor,reason};
 })();
 
 /* Career-only estimates and decisions. All real identities remain in the embedded database. */
@@ -23575,7 +23700,7 @@ window.FM_OFFICE=(()=>{
   function onDay(day){const o=office(),s=ensure();if(!o||o.lastDay>=day)return;o.lastDay=day;const members=mine(),stats=s.profile.stats;
     if(o.responsibilities.training!=='DT'){const average=members.reduce((n,p)=>n+p.condicion_fisica,0)/Math.max(1,members.length);GameState.training.focus=average<80?'Recuperación':s.profile.style==='Tiki-Taka'?'Posesión':s.profile.style==='Salida de Contragolpe'?'Defensa':'Físico';GameState.training.intensity=average<80?'Baja':'Normal'}
     // A bounded daily coaching effect, independent of rendering and clock speed.
-    const coach=members.filter(p=>p.edad<=24&&available(p));if(stats.entrenamiento>10&&coach.length&&hash(day+GameState.userClub.id)%Math.max(4,24-stats.entrenamiento)===0){const p=coach[hash(day)%coach.length],key=s.profile.style==='Tiki-Taka'?'pase':'fisico';if(p[key]<Math.min(99,p.potential||99))p[key]++}
+    const coach=members.filter(p=>p.edad<=24&&available(p));if(stats.entrenamiento>10&&coach.length&&hash(day+GameState.userClub.id)%Math.max(4,24-stats.entrenamiento)===0){const p=coach[hash(day)%coach.length],key=s.profile.style==='Tiki-Taka'?'pase':'fisico';if(p[key]<Math.min(99,p.potential||99))p[key]=Math.min(99,p[key]+1)}
     if(hash(day)%7===0){for(const p of members)p.moral=clamp(p.moral+(stats.motivacion-10)*.12+(stats.disciplina-10)*.05)}
     if(GameState.tactics.style===s.profile.style&&stats.tactica>10)FM_TACTICS.trainFamiliarity((stats.tactica-10)*.04);
     delegatedScouting(day);
@@ -23584,7 +23709,7 @@ window.FM_OFFICE=(()=>{
   }
   function page(){const s=ensure(),o=office(),reports=FM_DEPTH.ensure().reports,a=o.assignment;return `<div class="fm-page-intro"><div><h2>Oficina técnica</h2><p>${esc(GameState.manager)} · objetivo de la directiva: ${esc(GameState.userClub.objective)}</p></div></div><div class="card">${creationHTML(s.profileConfigured?s.profile:(s.profileDraft??=structuredClone(s.profile)),!s.profileConfigured)}${s.profileConfigured?'<p class="small muted">Perfil definido para esta carrera.</p>':'<button class="primary" data-office-profile-save>Confirmar perfil del DT</button>'}</div><div class="card"><h2>Empleados y observaciones</h2><p>Personal generado para esta carrera. Salarios: ${money(o.staff.reduce((n,e)=>n+e.salary,0))} por semana; se cargan a caja cada siete días.</p><label class="field">Asignar próximas observaciones a<select data-office-scout><option value="auto">Mejor ojeador disponible</option>${o.staff.filter(e=>e.role==='Ojeador').map(e=>`<option value="${esc(e.id)}" ${o.scoutChoice===e.id?'selected':''}>${esc(e.name)} · evaluación ${e.ability} · ${e.region}</option>`).join('')}</select></label><div class="scroll"><table><thead><tr><th>Empleado</th><th>Función</th><th>Evaluación</th><th>Adaptación</th><th>Conocimiento</th><th>Trabajo actual</th></tr></thead><tbody>${o.staff.map(e=>{const pair=Object.entries(reports).find(([,r])=>r.status==='active'&&r.staffId===e.id),p=pair?player(Number(pair[0])):null;return `<tr><td>${esc(e.name)}<small>${money(e.salary)}/sem.</small></td><td>${e.role}</td><td>${e.ability}/99</td><td>${e.adaptability}/99</td><td>${e.region}</td><td>${p?`${esc(p.nombre)} · ${pair[1].level}% · previsto ${esc(pair[1].dueDate||new Date(Date.parse(pair[1].started)+(pair[1].duration||7)*DAY).toISOString().slice(0,10))}<br><button data-office-cancel-scout="${p.id}">Cancelar observación · sin reintegro</button>`:'Disponible'}</td></tr>`}).join('')}</tbody></table></div></div><div class="card"><h2>Responsabilidades</h2><p>La delegación se ejecuta al avanzar los días. El DT conserva la firma de contratos y transferencias.</p>${[['training','Planificar entrenamiento diario','Ayudante'],['scouting','Buscar y observar un candidato por semana','Secretaría técnica'],['contracts','Revisar vencimientos cada mes','Secretaría técnica']].map(([key,label,staff])=>`<label class="field">${label}<select data-office-responsibility="${key}"><option value="DT">DT</option><option value="staff" ${o.responsibilities[key]!=='DT'?'selected':''}>${staff}</option></select></label>`).join('')}</div><div class="card"><h2>Encargo de búsqueda delegado</h2>${o.assignmentStatus?`<p role="status">${esc(o.assignmentStatus)}</p>`:''}<div class="office-stats"><label>Puesto<select data-office-assignment="position"><option value="ALL">Todos</option>${Object.entries(positions).map(([k,v])=>`<option value="${k}" ${a.position===k?'selected':''}>${v}</option>`).join('')}</select></label><label>Nacionalidad<select data-office-assignment="nationality"><option value="ALL">Todas</option>${[...new Set(GameState.players.flatMap(p=>p.nationalities||[p.nacionalidad]))].filter(Boolean).sort().map(n=>`<option ${n===a.nationality?'selected':''}>${esc(n)}</option>`).join('')}</select></label><label>Edad máxima<input data-office-assignment="age" type="number" min="16" max="45" value="${a.age}"></label><label>Valor máximo USD<input data-office-assignment="budget" type="number" min="0" step="100000" value="${a.budget}"></label></div><p>El encargo utiliza identidades reales de la base, la disponibilidad de empleados y el presupuesto actual.</p></div><div class="card"><h2>Lista de préstamos</h2><div class="scroll"><table><thead><tr><th>Jugador</th><th>Puesto</th><th>Situación</th><th>Disponibilidad</th></tr></thead><tbody>${mine().map(p=>`<tr><td><button data-player="${p.id}">${esc(p.nombre)}</button></td><td>${FM_PLAYER.naturalPositions(p).join(' / ')}</td><td>${p.loanId?'Ya está cedido':isLoanListed(p.id)?'Ofrecido para préstamo':'No listado'}</td><td><button data-office-loan="${p.id}" ${p.loanId?'disabled':''}>${isLoanListed(p.id)?'Quitar de préstamos':'Añadir a préstamos'}</button></td></tr>`).join('')}</tbody></table></div></div>`}
   function stop(reason='Avance detenido por el DT'){if(running.timer)clearTimeout(running.timer);running.timer=null;running.active=false;running.reason=reason;if(active()){WORLD_STORAGE.scheduleSave();render()}}
-  function start(){if(running.active){stop();return}if(!active())return;if(GameState.match||GameState.finished||WORLD_CLOCK.ready()){view=GameState.match||WORLD_CLOCK.ready()?'match':'dashboard';render();return}ensure();FM_INBOX.ensure();const state=GameState,injured=new Set(mine().filter(p=>p.injury>0).map(p=>p.id)),ids=new Set(GameState.inbox.map(m=>m.id));running.active=true;running.turns=0;running.reason='';render();const step=()=>{if(!running.active)return;if(GameState!==state){stop('Cambió la carrera');return}try{WORLD_CLOCK.advance({silent:true});running.turns++;const recovered=mine().filter(p=>injured.has(p.id)&&!p.injury);if(recovered.length){notify('Alta médica del plantel',recovered.map(p=>p.nombre).join(', ')+': completó la recuperación. Revisá condición y convocatoria antes de volver a darle minutos.','plantel');for(const p of recovered)injured.delete(p.id)}FM_INBOX.ensure();const message=GameState.inbox.find(m=>!ids.has(m.id));if(message){stop('Novedad: '+message.title);return}if(GameState.match||WORLD_CLOCK.ready()||GameState.finished){if(WORLD_CLOCK.ready())view='match';stop(GameState.finished?'Temporada terminada':'Llegó el próximo partido');return}render();running.timer=setTimeout(step,140)}catch(error){stop('El avance se detuvo por un error');console.error(error)}};running.timer=setTimeout(step,140)}
+  function start(){if(running.active){stop();return}if(!active())return;if(GameState.match||GameState.finished||WORLD_CLOCK.ready()){view=GameState.match||WORLD_CLOCK.ready()?'match':'dashboard';render();return}ensure();FM_INBOX.ensure();const state=GameState,injured=new Set(mine().filter(p=>p.injury>0).map(p=>p.id)),ids=new Set(GameState.inbox.map(m=>m.id));running.active=true;running.turns=0;running.reason='';render();const step=()=>{if(!running.active)return;if(GameState!==state){stop('Cambió la carrera');return}try{WORLD_CLOCK.advance({silent:true});WORLD_STORAGE.scheduleSave();running.turns++;const recovered=mine().filter(p=>injured.has(p.id)&&!p.injury);if(recovered.length){notify('Alta médica del plantel',recovered.map(p=>p.nombre).join(', ')+': completó la recuperación. Revisá condición y convocatoria antes de volver a darle minutos.','plantel');for(const p of recovered)injured.delete(p.id)}FM_INBOX.ensure();const message=GameState.inbox.find(m=>!ids.has(m.id));if(message){stop('Novedad: '+message.title);return}if(GameState.match||WORLD_CLOCK.ready()||GameState.finished){if(WORLD_CLOCK.ready())view='match';stop(GameState.finished?'Temporada terminada':'Llegó el próximo partido');return}render();running.timer=setTimeout(step,140)}catch(error){stop('El avance se detuvo por un error');console.error(error)}};running.timer=setTimeout(step,140)}
   function decorate(){if(!active())return;ensure();const b=document.querySelector('.fm-continue');if(b&&(!GameState.match||GameState.match.done)){b.dataset.action=running.active?'office-stop':'continue';b.textContent=running.active?'■ Parar · '+WORLD_CLOCK.info().date:'Continuar ▶';b.title=running.active?'Detener la simulación':'Avanzar turnos hasta una novedad o el próximo partido'}const top=document.querySelector('.fm-topbar');if(top&&running.reason){const n=document.createElement('span');n.className='office-stop-reason';n.setAttribute('role','status');n.textContent=running.reason;top.append(n)}if(view==='player'){const p=player(Number(FM_PLAYER.state.id||FM_PLAYER.state.playerId));if(p?.clubId===GameState.userClub.id){const host=document.querySelector('.fp-back-row');if(host){const n=document.createElement('button');n.dataset.officeLoan=p.id;n.textContent=isLoanListed(p.id)?'Quitar de préstamos':'Añadir a lista de préstamos';host.append(n)}}}}
   function onTurn(){const c=WORLD_CLOCK.ensure(),key=GameState.today+':'+c.slot,s=ensure();if(s.lastContact===key)return;s.lastContact=key;if(c.slot===1+hash(GameState.today)%3&&hash('approach:'+GameState.today)%4===0)CLUB_AI.makeSaleOffers(GameState.today)}
   const originalNew=actions.new;actions.new=()=>{const values=Object.values(draft.stats);if(values.some(n=>!Number.isInteger(n)||n<1||n>20)||values.reduce((a,b)=>a+b,0)>60){toast('El DT dispone de 60 puntos; cada atributo debe estar entre 1 y 20');return}stopQuiet();originalNew();if(active()){const s=ensure();s.profile=structuredClone(draft);s.profileConfigured=true;GameState.tactics.style=draft.style;saveGame(true);render()}};
@@ -24247,9 +24372,9 @@ window.FM_INTEGRITY=(()=>{
   }
   async function checkpoint(reason='Copia manual',options={}){
     if(!active()||writing)return null;writing=true;
-    const state=GameState,createdAt=Date.now(),label=String(reason).slice(0,100),id=createdAt+'-'+Math.random().toString(36).slice(2,9);
+    const state=options.snapshot?.state||GameState,createdAt=Date.now(),label=String(reason).slice(0,100),id=createdAt+'-'+Math.random().toString(36).slice(2,9);
     try{
-      const raw=options.primary?localStorage.getItem(KEY):WORLD_STORAGE.serialize(state);
+      const raw=options.snapshot?.raw||(options.primary?localStorage.getItem(KEY):WORLD_STORAGE.serialize(state));
       if(!raw)throw Error('Todavía no hay una carrera guardada');
       const meta={id,createdAt,clubId:state.userClub.id,clubName:state.userClub.nombre,manager:state.manager,date:state.today,year:state.year,reason:label};
       const db=await open();
@@ -24262,10 +24387,11 @@ window.FM_INTEGRITY=(()=>{
     }catch(error){ui.status='unavailable';ui.notice=error.name==='QuotaExceededError'?'No hay espacio para otra copia local. Exportá la carrera a JSON.':error.message;return null}
     finally{writing=false}
   }
-  function schedule(){
-    if(!active()||!window.indexedDB||lastAutomatic===GameState.userClub.id+':'+GameState.today)return;
+  function schedule(snapshot=null){
+    const source=snapshot?.state||GameState;
+    if(!active()||!window.indexedDB||lastAutomatic===source.userClub.id+':'+source.today)return;
     if(scheduled)clearTimeout(scheduled);
-    scheduled=setTimeout(()=>{scheduled=null;checkpoint('Guardado del día',{primary:true})},350);
+    scheduled=setTimeout(()=>{scheduled=null;checkpoint('Guardado del día',{primary:true,snapshot})},350);
   }
   async function restore(id,options={}){
     try{
@@ -24278,8 +24404,7 @@ window.FM_INTEGRITY=(()=>{
     }catch(error){ui.notice='No se pudo recuperar la carrera: '+error.message;return false}
   }
   function page(){const s=ensure();if(!s)return '';return `<div class="card integrity-panel"><h2>Guardados y recuperación</h2><p>El guardado principal sigue en este navegador. Se conservan hasta seis puntos de recuperación locales; exportá una copia para trasladar o proteger tu carrera fuera de este dispositivo.</p><div class="row"><button data-integrity-save class="primary">Crear punto de recuperación</button><button data-action="export">Exportar JSON</button><button data-integrity-refresh>Actualizar copias</button></div><p class="small" role="status">${esc(ui.notice||'Las copias automáticas se crean después de guardar, como máximo una por fecha de juego.')}</p><div class="scroll"><table><thead><tr><th>Fecha de carrera</th><th>Club / DT</th><th>Punto de recuperación</th><th>Acción</th></tr></thead><tbody>${ui.entries.map(r=>`<tr><td>${date(r.date)}</td><td>${esc(r.clubName)}<small>${esc(r.manager)}</small></td><td>${esc(r.reason)}<small>${esc(new Date(r.createdAt).toLocaleString('es-AR',{timeZone:'America/Argentina/Buenos_Aires'}))}</small></td><td><button data-integrity-restore="${esc(r.id)}">Restaurar esta copia</button></td></tr>`).join('')||'<tr><td colspan="4">No hay copias cargadas. Usá Actualizar copias para consultarlas.</td></tr>'}</tbody></table></div></div><div class="card integrity-panel"><h2>Historial de decisiones</h2><p>Registros de la carrera: decisiones, acuerdos y novedades, con su fecha y contexto. No representan hechos históricos reales.</p><div class="scroll"><table><thead><tr><th>Fecha</th><th>Área</th><th>Decisión / evidencia</th></tr></thead><tbody>${s.journal.map(r=>`<tr><td>${date(r.date)}</td><td>${esc(r.kind)}</td><td><strong>${esc(r.title)}</strong><p>${esc(r.detail)}</p></td></tr>`).join('')||'<tr><td colspan="3">Las próximas decisiones y novedades quedarán registradas aquí.</td></tr>'}</tbody></table></div></div>`}
-  const previousSave=saveGame;
-  saveGame=function(silent=false){const ok=previousSave(silent);if(ok)schedule();return ok};window.saveGame=saveGame;
+  function onSaved(raw,source=GameState){schedule({raw,state:{manager:source.manager,today:source.today,year:source.year,userClub:{id:source.userClub.id,nombre:source.userClub.nombre}}})}
   const previousMessage=MANAGEMENT.addMessage;
   MANAGEMENT.addMessage=function(title,body,type,metadata={}){const result=previousMessage.apply(this,arguments);if(['mercado','contratos','directiva','ojeo'].includes(type))record(type,title,body,metadata);return result};
   document.addEventListener('click',async e=>{
@@ -24287,7 +24412,7 @@ window.FM_INTEGRITY=(()=>{
     const b=save||refresh||restoreButton;b.disabled=true;
     try{if(save){await checkpoint();render()}else if(refresh){await list();render()}else{await restore(restoreButton.dataset.integrityRestore);render()}}finally{if(b.isConnected)b.disabled=false}
   });
-  return {ensure,record,checkpoint,list,restore,page,ui};
+  return {ensure,record,checkpoint,list,restore,page,ui,onSaved};
 })();
 
 /* Viewport-sized workspaces: navigation stays fixed; long records scroll locally. */

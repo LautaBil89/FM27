@@ -35,6 +35,13 @@ class CareerIntegrity(unittest.TestCase):
         self.page.evaluate("Object.defineProperty(window,'indexedDB',{value:undefined,configurable:true})");self.career()
         r=self.page.evaluate('''async()=>({saved:saveGame(true),copy:await FM_INTEGRITY.checkpoint(),primary:!!localStorage.getItem(KEY),status:FM_INTEGRITY.ui.status})''')
         self.assertTrue(r['saved']);self.assertTrue(r['primary']);self.assertIsNone(r['copy']);self.assertEqual(r['status'],'unavailable')
+    def test_05_background_save_creates_checkpoint_with_matching_payload_date(self):
+        self.career()
+        self.page.evaluate("""()=>{GameState.today=new Date(Date.parse(GameState.today)+86400000).toISOString().slice(0,10);GameState.manager='Respaldo desde worker';WORLD_STORAGE.scheduleSave()}""")
+        self.page.wait_for_function('!WORLD_STORAGE.pending()',timeout=30000)
+        r=self.page.evaluate("""async()=>{const until=Date.now()+10000;let row;while(Date.now()<until){row=(await FM_INTEGRITY.list()).find(r=>r.manager==='Respaldo desde worker');if(row)break;await new Promise(resolve=>setTimeout(resolve,100))}if(!row)throw Error('El autoguardado no creó punto de recuperación');const db=await new Promise((resolve,reject)=>{const q=indexedDB.open('fm27-career-checkpoints',1);q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error)});const stored=await new Promise((resolve,reject)=>{const q=db.transaction('checkpoints','readonly').objectStore('checkpoints').get(row.id);q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error)});db.close();const decoded=WORLD_STORAGE.decode(JSON.parse(stored.raw));return {date:row.date,payloadDate:decoded.today,manager:decoded.manager}}""")
+        self.assertEqual(r['date'],r['payloadDate']);self.assertEqual(r['manager'],'Respaldo desde worker')
+
     def test_04_decision_history_is_bounded_and_survives_reload(self):
         self.career()
         r=self.page.evaluate('''()=>{for(let n=0;n<180;n++)FM_INTEGRITY.record('decision','Decisión '+n,'Evidencia registrada '+n);saveGame(true);return FM_INTEGRITY.ensure().journal.length}''')

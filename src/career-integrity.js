@@ -29,9 +29,9 @@ window.FM_INTEGRITY=(()=>{
   }
   async function checkpoint(reason='Copia manual',options={}){
     if(!active()||writing)return null;writing=true;
-    const state=GameState,createdAt=Date.now(),label=String(reason).slice(0,100),id=createdAt+'-'+Math.random().toString(36).slice(2,9);
+    const state=options.snapshot?.state||GameState,createdAt=Date.now(),label=String(reason).slice(0,100),id=createdAt+'-'+Math.random().toString(36).slice(2,9);
     try{
-      const raw=options.primary?localStorage.getItem(KEY):WORLD_STORAGE.serialize(state);
+      const raw=options.snapshot?.raw||(options.primary?localStorage.getItem(KEY):WORLD_STORAGE.serialize(state));
       if(!raw)throw Error('Todavía no hay una carrera guardada');
       const meta={id,createdAt,clubId:state.userClub.id,clubName:state.userClub.nombre,manager:state.manager,date:state.today,year:state.year,reason:label};
       const db=await open();
@@ -44,10 +44,11 @@ window.FM_INTEGRITY=(()=>{
     }catch(error){ui.status='unavailable';ui.notice=error.name==='QuotaExceededError'?'No hay espacio para otra copia local. Exportá la carrera a JSON.':error.message;return null}
     finally{writing=false}
   }
-  function schedule(){
-    if(!active()||!window.indexedDB||lastAutomatic===GameState.userClub.id+':'+GameState.today)return;
+  function schedule(snapshot=null){
+    const source=snapshot?.state||GameState;
+    if(!active()||!window.indexedDB||lastAutomatic===source.userClub.id+':'+source.today)return;
     if(scheduled)clearTimeout(scheduled);
-    scheduled=setTimeout(()=>{scheduled=null;checkpoint('Guardado del día',{primary:true})},350);
+    scheduled=setTimeout(()=>{scheduled=null;checkpoint('Guardado del día',{primary:true,snapshot})},350);
   }
   async function restore(id,options={}){
     try{
@@ -60,8 +61,7 @@ window.FM_INTEGRITY=(()=>{
     }catch(error){ui.notice='No se pudo recuperar la carrera: '+error.message;return false}
   }
   function page(){const s=ensure();if(!s)return '';return `<div class="card integrity-panel"><h2>Guardados y recuperación</h2><p>El guardado principal sigue en este navegador. Se conservan hasta seis puntos de recuperación locales; exportá una copia para trasladar o proteger tu carrera fuera de este dispositivo.</p><div class="row"><button data-integrity-save class="primary">Crear punto de recuperación</button><button data-action="export">Exportar JSON</button><button data-integrity-refresh>Actualizar copias</button></div><p class="small" role="status">${esc(ui.notice||'Las copias automáticas se crean después de guardar, como máximo una por fecha de juego.')}</p><div class="scroll"><table><thead><tr><th>Fecha de carrera</th><th>Club / DT</th><th>Punto de recuperación</th><th>Acción</th></tr></thead><tbody>${ui.entries.map(r=>`<tr><td>${date(r.date)}</td><td>${esc(r.clubName)}<small>${esc(r.manager)}</small></td><td>${esc(r.reason)}<small>${esc(new Date(r.createdAt).toLocaleString('es-AR',{timeZone:'America/Argentina/Buenos_Aires'}))}</small></td><td><button data-integrity-restore="${esc(r.id)}">Restaurar esta copia</button></td></tr>`).join('')||'<tr><td colspan="4">No hay copias cargadas. Usá Actualizar copias para consultarlas.</td></tr>'}</tbody></table></div></div><div class="card integrity-panel"><h2>Historial de decisiones</h2><p>Registros de la carrera: decisiones, acuerdos y novedades, con su fecha y contexto. No representan hechos históricos reales.</p><div class="scroll"><table><thead><tr><th>Fecha</th><th>Área</th><th>Decisión / evidencia</th></tr></thead><tbody>${s.journal.map(r=>`<tr><td>${date(r.date)}</td><td>${esc(r.kind)}</td><td><strong>${esc(r.title)}</strong><p>${esc(r.detail)}</p></td></tr>`).join('')||'<tr><td colspan="3">Las próximas decisiones y novedades quedarán registradas aquí.</td></tr>'}</tbody></table></div></div>`}
-  const previousSave=saveGame;
-  saveGame=function(silent=false){const ok=previousSave(silent);if(ok)schedule();return ok};window.saveGame=saveGame;
+  function onSaved(raw,source=GameState){schedule({raw,state:{manager:source.manager,today:source.today,year:source.year,userClub:{id:source.userClub.id,nombre:source.userClub.nombre}}})}
   const previousMessage=MANAGEMENT.addMessage;
   MANAGEMENT.addMessage=function(title,body,type,metadata={}){const result=previousMessage.apply(this,arguments);if(['mercado','contratos','directiva','ojeo'].includes(type))record(type,title,body,metadata);return result};
   document.addEventListener('click',async e=>{
@@ -69,5 +69,5 @@ window.FM_INTEGRITY=(()=>{
     const b=save||refresh||restoreButton;b.disabled=true;
     try{if(save){await checkpoint();render()}else if(refresh){await list();render()}else{await restore(restoreButton.dataset.integrityRestore);render()}}finally{if(b.isConnected)b.disabled=false}
   });
-  return {ensure,record,checkpoint,list,restore,page,ui};
+  return {ensure,record,checkpoint,list,restore,page,ui,onSaved};
 })();

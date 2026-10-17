@@ -15,7 +15,7 @@ class MatchPersistence(unittest.TestCase):
 
     def checkpoint(self, target, extra_time=False):
         self.career(); self.match()
-        state = self.page.evaluate("""({target,extraTime})=>{
+        state = self.page.evaluate("""async({target,extraTime})=>{
           const m=GameState.match;
           view='dashboard';m.minute=target-1;m.paused=false;m.addedTime=2;
           m.halfTimeTaken=target>45;m.aiAdjustments=[];
@@ -23,7 +23,7 @@ class MatchPersistence(unittest.TestCase):
           GameState.tactics.tempo=100;
           const s=FM_SIMULATION.ensure(m);s.owner=m.userSide;s.carrier=m.lineups[m.userSide].find(id=>player(id).posicion==='DEL');s.progress=90;s.lateral=50;
           Math.random=()=>.04;
-          tick();clearInterval(timer);timer=null;
+          tick();clearInterval(timer);timer=null;const waiting=Date.now();while(WORLD_STORAGE.pending()){if(Date.now()-waiting>30000)throw Error('Autoguardado del partido sin completar');await new Promise(resolve=>setTimeout(resolve,25))}
           const snapshot=match=>({minute:match.minute,score:match.score,chances:match.chances,keyPlays:match.keyPlays,chains:match.simulation.chains,decisions:match.simulation.aiDecisions,adjustments:match.aiAdjustments,aiTactics:match.aiTactics});
           const live=snapshot(m),saved=snapshot(WORLD_STORAGE.decode(JSON.parse(localStorage.getItem(KEY))).match);
           return {live,saved,paused:m.paused,done:m.done};

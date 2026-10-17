@@ -312,14 +312,14 @@ const WORLD_STORAGE = (() => {
     if(typeof Worker==='undefined'||typeof Blob==='undefined'){workerFailed=true;return null}
     try{
       const definitions={own,object,same,copy,fail,string,integer,finite,validDate,mask,playerReference,identity,residual,packRecords,table,result,cupNodes,validateWorld,encode,serialize};
-      const source=`const FORMAT='${FORMAT}',COMPRESSED_FORMAT='${COMPRESSED_FORMAT}',CODEC_VERSION=${CODEC_VERSION},alphabet=${JSON.stringify(alphabet)},missing=Symbol('absent'),identityTemplates=new Map();let dbPlayers,dbClubs,dbLeagues,FORMATIONS;const WORLD_ENGINE={hydratePlayerIdentity:${WORLD_ENGINE.hydratePlayerIdentity.toString()}};const f=String.fromCharCode,LZString={_compress:${LZString._compress.toString()},compressToUTF16:${LZString.compressToUTF16.toString()}};`+Object.entries(definitions).map(([name,fn])=>`const ${name}=${fn.toString()};`).join('\n')+`self.onmessage=({data})=>{if(data.init){dbPlayers=new Map(data.init.players.map(p=>[p.playerId,p]));dbClubs=new Map(data.init.clubs.map(c=>[c.id,c]));dbLeagues=new Map(data.init.leagues.map(l=>[l.id,l]));FORMATIONS=data.init.formations;return}try{self.postMessage({id:data.id,text:serialize(data.state)})}catch(error){self.postMessage({id:data.id,error:error.message})}};`;
+      const source=`const FORMAT='${FORMAT}',COMPRESSED_FORMAT='${COMPRESSED_FORMAT}',CODEC_VERSION=${CODEC_VERSION},alphabet=${JSON.stringify(alphabet)},missing=Symbol('absent'),identityTemplates=new Map();let dbPlayers,dbClubs,dbLeagues,FORMATIONS;const WORLD_ENGINE={hydratePlayerIdentity:${WORLD_ENGINE.hydratePlayerIdentity.toString()}};const f=String.fromCharCode,LZString={_compress:${LZString._compress.toString()},compressToUTF16:${LZString.compressToUTF16.toString()}};`+Object.entries(definitions).map(([name,fn])=>`const ${name}=${fn.toString()};`).join('\n')+`self.onmessage=({data})=>{if(data.init){dbPlayers=new Map(data.init.players.map(p=>[p.playerId,p]));dbClubs=new Map(data.init.clubs.map(c=>[c.id,c]));dbLeagues=new Map(data.init.leagues.map(l=>[l.id,l]));FORMATIONS=data.init.formations;return}try{self.postMessage({id:data.id,text:serialize(data.state),snapshot:{manager:data.state.manager,today:data.state.today,year:data.state.year,userClub:{id:data.state.userClub.id,nombre:data.state.userClub.nombre}}})}catch(error){self.postMessage({id:data.id,error:error.message})}};`;
       const url=URL.createObjectURL(new Blob([source],{type:'text/javascript'}));
       try{saveWorker=new Worker(url)}finally{URL.revokeObjectURL(url)}
       saveWorker.onmessage=({data})=>{
         workerBusy=false;
         if(data.id===saveRevision&&workerState===GameState){
           if(data.error)saveError(new Error(data.error));
-          else try{localStorage.setItem(KEY,data.text)}catch(error){saveError(error)}
+          else try{localStorage.setItem(KEY,data.text);window.FM_INTEGRITY?.onSaved?.(data.text,data.snapshot)}catch(error){saveError(error)}
         }
         workerState=null;
         if(saveDirty){clearTimeout(saveTimer);saveTimer=setTimeout(runAutosave,0)}
@@ -349,7 +349,7 @@ const WORLD_STORAGE = (() => {
     invalidateAutosave();
     if (!GameState) return false;
     try {
-      localStorage.setItem(KEY, serialize(GameState));
+      const raw=serialize(GameState);localStorage.setItem(KEY,raw);window.FM_INTEGRITY?.onSaved?.(raw,GameState);
       if (!silent) toast('Carrera guardada');
       return true;
     } catch (error) {
