@@ -153,20 +153,8 @@ window.FM_INBOX = (() => {
   }
   function offerInfo(m) {
     const o=offerFor(m);if(!o)return '';
-    const terms=o.awaitingUser&&o.counter?{...o,...o.counter}:o;
-    const parts=[...(o.type==='renewal'?[]:[['Traspaso',money(terms.fee||0)]]),['Salario semanal',money(terms.wage||lookup(o.playerId)?.salario||0)]];
-    if(o.awaitingRegistration)parts.unshift(['Etapa','Acuerdo firmado · inscripción el '+date(o.registrationDate)]);else if(o.awaitingPlayerTerms)parts.unshift(['Etapa','Club de acuerdo · falta negociar con el jugador']);else if(o.awaitingUser&&o.counter)parts.unshift(['Etapa',o.stage==='player'?'Contraoferta del representante pendiente':'Contraoferta del club pendiente']);else if(o.status==='pending')parts.unshift(['Etapa',o.type==='sell'?(o.saleResponsePending?'Comprador evaluando contraoferta':'Propuesta recibida · tu decisión'):o.stage==='player'?'Representante evaluando contrato':'Club evaluando el pase']);
-    if(terms.playingTime)parts.push(['Papel en el plantel',terms.playingTime]);
-    if(terms.annualIncrease)parts.push(['Aumento anual',terms.annualIncrease+'%']);
-    if(terms.releaseClause)parts.push(['Cláusula de rescisión',money(terms.releaseClause)]);
-    if(terms.bonus)parts.push(['Prima',money(terms.bonus)]);
-    if(terms.years)parts.push(['Duración',`${terms.years} años`]);
-    if(terms.kind==='loan'||terms.dealType==='loan')parts.push(['Modalidad','Préstamo']);
-    if(terms.installments)parts.push(['Cuotas',typeof terms.installments==='number'?String(terms.installments):String(terms.installments.count||'Acordadas')]);
-    if(terms.sellOnPercent||terms.sellOnPct||terms.futureSalePct)parts.push(['Venta futura',`${terms.sellOnPercent||terms.sellOnPct||terms.futureSalePct}%`]);
-    if(terms.dealType==='loan'&&terms.wageShare!=null)parts.push(['Salario a cargo',`${terms.wageShare}%`]);
-    if(terms.loanMonths)parts.push(['Duración del préstamo',`${terms.loanMonths} meses`]);
-    if(terms.upfrontPercent!=null&&terms.installments)parts.push(['Pago inicial',`${terms.upfrontPercent}%`]);
+    const parts=MARKET_CONTRACTS.offerPresentation(o).facts;
+    if(o.awaitingRegistration)parts.unshift(['Etapa','Acuerdo firmado · inscripción el '+date(o.registrationDate)]);else if(o.awaitingPlayerTerms)parts.unshift(['Etapa','Club de acuerdo · falta negociar con el jugador']);else if(o.awaitingUser&&o.counter)parts.unshift(['Etapa',o.stage==='player'?'Contraoferta del representante pendiente':'Contraoferta del club pendiente']);else if(o.status==='pending')parts.unshift(['Etapa',o.type==='sell'?(o.saleResponsePending?'Comprador evaluando contraoferta':'Propuesta recibida · tu decisión'):o.stage==='player'?'Representante evaluando contrato':o.dealType==='loan'?'Club evaluando la cesión':'Club evaluando el pase']);
     return `<div class="fm-inbox-facts">${parts.map(([label,value])=>`<div><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`).join('')}</div>${o.reason?`<p class="fm-inbox-note">${esc(o.reason)}</p>`:''}`;
   }
   function reportInfo(m) {

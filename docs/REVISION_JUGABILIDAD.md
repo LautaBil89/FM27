@@ -4,6 +4,10 @@
 
 El problema recurrente es que algunas acciones terminaban al pulsar un botón cuando deberían abrir una negociación o producir una decisión posterior. Añadir campos a un formulario no alcanza: el jugador o empleado debe poder responder; los acuerdos deben llegar al presupuesto, el vestuario, el calendario y la bandeja.
 
+## Coherencia de ofertas
+
+La bandeja y el mercado comparten la presentación de condiciones por modalidad. Los traspasos definitivos no muestran plazos de cesión; los préstamos distinguen cargo, duración, reparto salarial y compra futura. Las contraofertas muestran sus valores vigentes. Los campos de compra futura se habilitan únicamente cuando corresponden, también en carreras guardadas con valores por defecto de otras modalidades.
+
 ## Cambios de esta entrega
 
 1. **Renovaciones con respuesta del jugador.** La propuesta se evalúa desde el día siguiente. El representante puede contraofertar salario, prima, duración y cláusula; el DT puede proponer otras condiciones, aceptar o retirarse. Hay historial, plazo, concesiones limitadas, pérdida de paciencia y espera antes de reabrir conversaciones. Una oferta baja ya no se bloquea por un aumento mínimo universal del 5%: el jugador la evalúa.

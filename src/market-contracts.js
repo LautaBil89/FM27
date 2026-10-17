@@ -274,7 +274,7 @@
         if (offer.counterAccepted) {rejectOffer(offer,'Las condiciones cambiaron antes de la firma');continue}
         offer.counter={fee:offer.clubAccepted?offer.fee:Math.max(offer.fee,requested.fee),wage:Math.max(offer.wage,requested.wage),releaseClause:Math.max(offer.releaseClause,requested.releaseClause||0),wageShare:offer.clubAccepted?offer.wageShare:Math.max(offer.wageShare,requested.wageShare||0)};
         offer.awaitingUser=true;offer.counterDate=GameState.today;
-        message('Contraoferta recibida',`${p.nombre}: ${cash(offer.counter.fee)} de pase${offer.dealType==='loan'?` y ${offer.counter.wageShare}% del salario`:`, ${cash(offer.counter.wage)} semanales y cláusula ${cash(offer.counter.releaseClause)}`}. Podés aceptar, hacer otra contraoferta o retirar la propuesta.`,offer);
+        message('Contraoferta recibida',`${p.nombre}: ${cash(offer.counter.fee)} ${offer.dealType==='loan'?'de cargo de cesión':'de pase'}${offer.dealType==='loan'?` y ${offer.counter.wageShare}% del salario`:`, ${cash(offer.counter.wage)} semanales y cláusula ${cash(offer.counter.releaseClause)}`}. Podés aceptar, hacer otra contraoferta o retirar la propuesta.`,offer);
         continue;
       }
       const alternative=offer.stage==='player'?window.FM_DEPTH?.chooseRival(p,offer):null;if(alternative){rejectOffer(offer,alternative);continue}
@@ -335,8 +335,8 @@
       const equivalent=o.fee*(o.installments?1-(1-o.upfrontPercent/100)*.08:1)+p.valor_mercado*o.sellOnPercent*.002+(o.dealType==='loan'?p.salario*o.wageShare/100*(o.loanMonths/6)*26:0);
       const totalCeiling=ceiling+(o.dealType==='loan'?p.salario*26*(o.loanMonths/6):0);
       if(o.counterRounds>profile.patience||o.fee>Math.max(ceiling*2,10000)){rejectOffer(o,'El comprador se retiró: la distancia entre las posiciones es demasiado grande');continue}
-      if(equivalent<=totalCeiling&&o.fee<=budget){o.awaitingUser=true;logNegotiation(o,'Club acepta');message('El comprador acepta tu contraoferta',`${clubName(o.toClub)} acepta ${cash(o.fee)} por ${p.nombre}. Confirmá la venta o volvé a negociar antes del vencimiento.`,o)}
-      else {const previous=amount(o.previousBid?.fee),fee=Math.min(ceiling,Math.round(previous+(ceiling-previous)*(1-profile.resistance)*.7));o.fee=Math.max(0,fee);o.installments=0;o.upfrontPercent=100;o.sellOnPercent=0;o.awaitingUser=true;logNegotiation(o,'Club');message('Nueva propuesta del comprador',`${clubName(o.toClub)} ofrece ${cash(o.fee)} al contado por ${p.nombre}. Podés aceptar, rechazar o contraofertar.`,o)}
+      if(equivalent<=totalCeiling&&o.fee<=budget){o.awaitingUser=true;logNegotiation(o,'Club acepta');message('El comprador acepta tu contraoferta',`${clubName(o.toClub)} acepta ${cash(o.fee)} ${o.dealType==='loan'?'de cargo por la cesión de':'por'} ${p.nombre}. Confirmá ${o.dealType==='loan'?'el préstamo':'la venta'} o volvé a negociar antes del vencimiento.`,o)}
+      else {const previous=amount(o.previousBid?.fee),fee=Math.min(ceiling,Math.round(previous+(ceiling-previous)*(1-profile.resistance)*.7));o.fee=Math.max(0,fee);o.installments=0;o.upfrontPercent=100;o.sellOnPercent=0;o.awaitingUser=true;logNegotiation(o,'Club');message('Nueva propuesta del comprador',`${clubName(o.toClub)} ofrece ${cash(o.fee)} ${o.dealType==='loan'?'de cargo por la cesión de':'al contado por'} ${p.nombre}. Podés aceptar, rechazar o contraofertar.`,o)}
     }
   }
   function respondCounter(id,accept) {
@@ -552,11 +552,47 @@
     state.loans=[...state.loans.filter(row=>row.status==='active'),...state.loans.filter(row=>row.status!=='active').slice(-80)];
     GameState.offers=[...GameState.offers.filter(pending),...GameState.offers.filter(o=>!pending(o)).slice(0,100)];
   }
+  // Display only terms that belong to this operation; legacy saves retain defaults.
+  function offerPresentation(o) {
+    const t=o.awaitingUser&&o.counter?{...o,...o.counter}:o,p=player(o.playerId);
+    const renewal=o.type==='renewal',loan=!renewal&&t.dealType==='loan',free=!renewal&&!loan&&(t.precontract||!t.fromClub);
+    const label=renewal?'Renovación':loan?'Préstamo':t.precontract?'Precontrato':free?'Incorporación libre':o.type==='sell'?'Venta definitiva':'Compra definitiva';
+    const facts=[['Modalidad',label]],personal=renewal||(!loan&&(o.stage==='player'||o.type==='sell'||o.awaitingRegistration||o.status==='accepted'||free));
+    if(!renewal)facts.push([loan?'Cargo de cesión':'Importe del pase',money(free?0:t.fee||0)]);
+    if(loan){
+      facts.push(['Duración del préstamo',`${t.loanMonths||6} meses`]);
+      const share=Number(t.wageShare??100),wage=p?.salario||t.wage||0;
+      facts.push(['Salario vigente del propietario',`${money(wage)} / semana`]);
+      facts.push([o.type==='sell'?'Salario a cargo del club receptor':'Salario a tu cargo',`${share}% · ${money(Math.round(wage*share/100))} / semana`]);
+      facts.push([o.type==='sell'?'Salario que conserva tu club':'Salario a cargo del propietario',`${100-share}% · ${money(Math.round(wage*(100-share)/100))} / semana`]);
+      const modes={option:'Opción de compra',mandatory:'Obligación de compra',conditional:'Obligación por partidos'};
+      facts.push(['Compra futura',modes[t.purchaseMode]||'Sin opción ni obligación']);
+      if(modes[t.purchaseMode])facts.push(['Precio de compra futura',money(t.purchaseFee||0)]);
+      if(t.purchaseMode==='conditional')facts.push(['Partidos para activar compra',String(t.purchaseAppearances||10)]);
+    }else{
+      if(!renewal&&!free){
+        facts.push(['Forma de pago',t.installments?`${typeof t.installments==='number'?t.installments:t.installments.count||''} cuotas mensuales`:'Al contado']);
+        if(t.installments&&t.upfrontPercent!=null)facts.push(['Pago inicial',`${t.upfrontPercent}%`]);
+        const future=t.sellOnPercent||t.sellOnPct||t.futureSalePct;if(future)facts.push(['Venta futura para el vendedor',`${future}%`]);
+      }
+      if(personal){
+        facts.push(['Salario semanal',money(t.wage||p?.salario||0)]);
+        if(t.years)facts.push(['Duración del contrato',`${t.years} años`]);
+        if(t.annualIncrease)facts.push(['Aumento anual',`${t.annualIncrease}%`]);
+        if(t.releaseClause)facts.push(['Cláusula de rescisión',money(t.releaseClause)]);
+        if(t.bonus)facts.push(['Prima de firma',money(t.bonus)]);
+      }
+    }
+    if(t.playingTime&&(personal||loan&&o.stage==='player'))facts.push(['Papel en el plantel',t.playingTime]);
+    if(t.precontract&&t.registrationDate)facts.push(['Incorporación',date(t.registrationDate)]);
+    const compact=facts.filter(([key])=>!['Modalidad','Salario vigente del propietario','Salario a cargo del propietario','Salario que conserva tu club'].includes(key)).map(([key,value])=>`${key}: ${value}`).join(' · ');
+    return {terms:t,label,facts,compact,loan};
+  }
   function summary() {
     if (!world()) return legacySummary?legacySummary():'';
     const user=GameState.userClub.id,rows=GameState.offers.filter(pending),obligations=ensure().payments.filter(row=>row.fromClub===user&&row.status!=='paid'),receivables=ensure().payments.filter(row=>row.toClub===user&&row.status!=='paid');
     const numbers=`<div class="fm-offer-summary"><strong>${cash(ai().availableBudget(user))} disponibles para nuevos pases</strong><span class="small muted">${cash(reserved(user))} reservados · ${cash(obligations.reduce((s,r)=>s+r.amount,0))} en cuotas por pagar · ${cash(receivables.reduce((s,r)=>s+r.amount,0))} por cobrar</span></div>`;
-    const offers=rows.map(o=>{const p=player(o.playerId);if(!p)return '';const loan=o.dealType==='loan';return `<div class="fm-list-row row between"><div><strong>${esc(p.nombre)}</strong><div class="small muted">${o.awaitingRegistration?'Acuerdo firmado · inscripción '+esc(date(o.registrationDate)):o.type==='buy'?(o.awaitingPlayerTerms?'Club aceptó · falta negociar el contrato':o.awaitingUser?'Contraoferta recibida':dailyClock()&&validDay(o.responseDate)?'Oferta enviada · respuesta a partir del '+esc(date(o.responseDate)):'Oferta enviada · respuesta próxima jornada'):'Oferta de '+esc(clubName(o.toClub))} · ${loan?'Préstamo':'Compra'} · ${cash(o.counter?.fee??o.fee)}${loan?` · ${o.loanMonths||6} meses · ${o.counter?.wageShare??o.wageShare??100}% del salario`:o.installments?` · ${o.installments} cuotas`:''}</div></div>${o.awaitingRegistration?`<span class="badge">${esc(date(o.registrationDate))} · fondos comprometidos</span>`:o.awaitingPlayerTerms?`<div class="row"><button class="primary" data-contract-player="${esc(o.id)}" ${locked()?'disabled':''}>Negociar contrato</button><button data-contract-cancel="${esc(o.id)}">Retirar</button></div>`:o.type==='sell'&&o.saleResponsePending?`<span class="badge">Esperando respuesta del comprador</span>`:o.type==='buy'&&o.awaitingUser?`<div class="row"><button data-negotiate-counter="${esc(o.id)}">Contraofertar</button><button data-contract-counter="${esc(o.id)}" data-decision="accept" ${locked()?'disabled':''}>Aceptar condiciones</button><button data-contract-counter="${esc(o.id)}" data-decision="reject" ${locked()?'disabled':''}>Retirar oferta</button></div>`:o.type==='sell'?`<div class="row"><button data-negotiate-counter="${esc(o.id)}">Contraofertar</button><button data-sale="${esc(o.id)}" data-decision="accept" ${locked()?'disabled':''}>Aceptar</button><button data-sale="${esc(o.id)}" data-decision="reject" ${locked()?'disabled':''}>Rechazar</button></div>`:`<div class="row"><span class="badge">En negociación</span><button data-contract-cancel="${esc(o.id)}" ${locked()?'disabled':''}>Retirar</button></div>`}</div>`}).join('');
+    const offers=rows.map(o=>{const p=player(o.playerId);if(!p)return '';const presentation=offerPresentation(o),loan=presentation.loan;return `<div class="fm-list-row row between"><div><strong>${esc(p.nombre)}</strong><div class="small muted">${o.awaitingRegistration?'Acuerdo firmado · inscripción '+esc(date(o.registrationDate)):o.type==='buy'?(o.awaitingPlayerTerms?(loan?'Club aceptó · falta acordar con el jugador':'Club aceptó · falta negociar el contrato'):o.awaitingUser?'Contraoferta recibida':dailyClock()&&validDay(o.responseDate)?'Oferta enviada · respuesta a partir del '+esc(date(o.responseDate)):'Oferta enviada · respuesta próxima jornada'):'Oferta de '+esc(clubName(o.toClub))} · ${esc(presentation.label)} · ${esc(presentation.compact)}</div></div>${o.awaitingRegistration?`<span class="badge">${esc(date(o.registrationDate))} · fondos comprometidos</span>`:o.awaitingPlayerTerms?`<div class="row"><button class="primary" data-contract-player="${esc(o.id)}" ${locked()?'disabled':''}>Negociar contrato</button><button data-contract-cancel="${esc(o.id)}">Retirar</button></div>`:o.type==='sell'&&o.saleResponsePending?`<span class="badge">Esperando respuesta del comprador</span>`:o.type==='buy'&&o.awaitingUser?`<div class="row"><button data-negotiate-counter="${esc(o.id)}">Contraofertar</button><button data-contract-counter="${esc(o.id)}" data-decision="accept" ${locked()?'disabled':''}>Aceptar condiciones</button><button data-contract-counter="${esc(o.id)}" data-decision="reject" ${locked()?'disabled':''}>Retirar oferta</button></div>`:o.type==='sell'?`<div class="row"><button data-negotiate-counter="${esc(o.id)}">Contraofertar</button><button data-sale="${esc(o.id)}" data-decision="accept" ${locked()?'disabled':''}>Aceptar</button><button data-sale="${esc(o.id)}" data-decision="reject" ${locked()?'disabled':''}>Rechazar</button></div>`:`<div class="row"><span class="badge">En negociación</span><button data-contract-cancel="${esc(o.id)}" ${locked()?'disabled':''}>Retirar</button></div>`}</div>`}).join('');
     const schedule=obligations.length?`<details class="card"><summary>Calendario de cuotas (${obligations.length})</summary><div class="scroll"><table><thead><tr><th>Jugador</th><th>Vencimiento</th><th>Importe</th><th>Estado</th></tr></thead><tbody>${obligations.sort((a,b)=>a.dueDate.localeCompare(b.dueDate)).slice(0,36).map(row=>`<tr><td>${esc(player(row.playerId)?.nombre||'Traspaso')}</td><td>${esc(row.dueDate)}</td><td>${cash(row.amount)}</td><td class="${row.dueDate<GameState.today?'red':'muted'}">${row.dueDate<GameState.today?'Vencida':'Programada'}</td></tr>`).join('')}</tbody></table></div></details>`:'';
     const loans=ensure().loans.filter(row=>row.status==='active'&&(row.borrowerClub===user||row.ownerClub===user));
     const loanRows=loans.length?`<details class="card"><summary>Préstamos activos (${loans.length})</summary>${loans.map(row=>`<div class="fm-list-row"><strong>${esc(player(row.playerId)?.nombre||'Jugador')}</strong><p class="small muted">${esc(clubName(row.ownerClub))} → ${esc(clubName(row.borrowerClub))} · regreso ${esc(row.endDate)} · tu parte salarial ${cash(loanWageFor(player(row.playerId),user))}/semana${row.purchaseMode&&row.purchaseMode!=='none'?` · ${row.purchaseMode==='mandatory'?'Obligación':row.purchaseMode==='conditional'?'Compra a '+row.purchaseAppearances+' partidos':'Opción'} de compra: ${cash(row.purchaseFee)}`:''}</p>${row.recallAllowed&&row.ownerClub===user?`<button data-contract-recall="${esc(row.id)}">Solicitar regreso</button>`:''}${row.purchaseMode==='option'&&row.borrowerClub===user?`<button data-depth-purchase="${esc(row.id)}">Ejecutar opción de compra</button>`:''}</div>`).join('')}</details>`:'';
@@ -602,5 +638,5 @@
   },true);
   function renewContract(pid,terms={}) {return window.FM_RENEWALS?FM_RENEWALS.submit(pid,terms):{ok:false,reason:'La negociación de renovación no está disponible'}}
   const legacyRenew=renew;renew=function(pid){if(!world())return legacyRenew(pid);if(typeof MARKET_CONTRACTS.openRenewal==='function')return MARKET_CONTRACTS.openRenewal(pid);return legacyRenew(pid)};
-  window.MARKET_CONTRACTS={ensure,contractEnd,setContract,migrateContracts,renewContract,precontractEligibility,requestPrecontractConsent,progressContracts,terminationQuote,terminateContract,recallLoan,submitOffer,submitPlayerTerms,processOffers,settle,returnLoans,purchaseLoan,executeTransfer,agreeTransfer,registerAgreements,restoreAgreements,registrationOpen,nextRegistrationDate,negotiationProfile,committed,futureSlots,onResale,reserved,pendingWages,loanWageFor,returnSlots,respondCounter,counterOffer,clubNegotiation,processSaleCounters,cancelOffer,expireOffers,summary,addMonths,offerFeedback,offerResources};
+  window.MARKET_CONTRACTS={offerPresentation,ensure,contractEnd,setContract,migrateContracts,renewContract,precontractEligibility,requestPrecontractConsent,progressContracts,terminationQuote,terminateContract,recallLoan,submitOffer,submitPlayerTerms,processOffers,settle,returnLoans,purchaseLoan,executeTransfer,agreeTransfer,registerAgreements,restoreAgreements,registrationOpen,nextRegistrationDate,negotiationProfile,committed,futureSlots,onResale,reserved,pendingWages,loanWageFor,returnSlots,respondCounter,counterOffer,clubNegotiation,processSaleCounters,cancelOffer,expireOffers,summary,addMonths,offerFeedback,offerResources};
 })();
