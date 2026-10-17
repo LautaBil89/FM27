@@ -44,7 +44,7 @@
   function reservation(id=userId(),excludeOfferId=null){
     if(!active())return 0;
     const contractReserved=window.MARKET_CONTRACTS?window.MARKET_CONTRACTS.reserved(id,excludeOfferId):GameState.offers.filter(o=>o.type==='buy'&&o.status==='pending'&&(o.toClub||userId())===id&&o.id!==excludeOfferId).reduce((n,o)=>n+positive(o.fee)+positive(o.bonus),0);
-    const sales=GameState.offers.filter(o=>o.type==='sell'&&o.status==='pending'&&o.toClub===id&&o.id!==excludeOfferId).reduce((n,o)=>n+positive(o.fee)+positive(o.bonus)+(['mandatory','conditional'].includes(o.purchaseMode)?positive(o.purchaseFee):0),0);
+    const sales=GameState.offers.filter(o=>o.type==='sell'&&o.status==='pending'&&o.toClub===id&&o.id!==excludeOfferId).reduce((n,o)=>n+positive(o.fee)+positive(o.bonus)+(o.dealType==='loan'&&['mandatory','conditional'].includes(o.purchaseMode)?positive(o.purchaseFee):0),0);
     return contractReserved+sales;
   }
   let marketEvaluation=null;

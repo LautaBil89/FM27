@@ -8,6 +8,16 @@ El problema recurrente es que algunas acciones terminaban al pulsar un botón cu
 
 La bandeja y el mercado comparten la presentación de condiciones por modalidad. Los traspasos definitivos no muestran plazos de cesión; los préstamos distinguen cargo, duración, reparto salarial y compra futura. Las contraofertas muestran sus valores vigentes. Los campos de compra futura se habilitan únicamente cuando corresponden, también en carreras guardadas con valores por defecto de otras modalidades.
 
+## Segunda revisión: validación y continuidad de negociaciones
+
+- Las contraofertas validan rol y primas por partido, gol, valla invicta y título con los mismos límites que la propuesta inicial. Un error conserva oferta, contrato y caja.
+- El préstamo conserva salario, duración y cláusulas del propietario. En la conversación personal sólo se negocian rol y primas durante la cesión; ni aceptar ni contraofertar modifica cargo, reparto salarial o compra futura ya acordados con el club.
+- Cambiar de modalidad conserva borradores separados del importe de compra y del cargo de préstamo. El formulario moderno ya no recibe cambios simultáneos del manejador anterior.
+- Los campos inactivos de un traspaso no agregan reservas de compra de cedido; las cláusulas permanentes inactivas no bloquean una cesión.
+- Aceptar condiciones personales vuelve a comprobar su plazo de vencimiento.
+
+La comprobación incluye guardado y restauración, turnos diarios, liquidaciones semanales y aplicación de lesiones/fatiga en el partido. Es una revisión de esos recorridos, no de todas las temporadas y combinaciones del juego.
+
 ## Cambios de esta entrega
 
 1. **Renovaciones con respuesta del jugador.** La propuesta se evalúa desde el día siguiente. El representante puede contraofertar salario, prima, duración y cláusula; el DT puede proponer otras condiciones, aceptar o retirarse. Hay historial, plazo, concesiones limitadas, pérdida de paciencia y espera antes de reabrir conversaciones. Una oferta baja ya no se bloquea por un aumento mínimo universal del 5%: el jugador la evalúa.
