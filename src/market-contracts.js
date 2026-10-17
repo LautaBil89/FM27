@@ -263,7 +263,7 @@
       const firstTeam=rank<Math.min(2,position.length-2);
       return {fee:Math.max(p.salario*4,Math.round(p.valor_mercado*(firstTeam?.09:.025))),wage:p.salario,wageShare:firstTeam?100:50,refuse:firstTeam&&overall(p)>=(selling?.rating||65)+4?'El club considera al jugador esencial y no acepta cederlo':offer.stage==='player'&&window.FM_DEPTH?FM_DEPTH.personal(p,offer).refuse:''};
     }
-    const competition=ai().interestFor?.(p.id),interestCount=Array.isArray(competition)?competition.length:0;
+    const interestCount=window.FM_DEPTH?.rivalOffers(p,offer).length||0;
     const clause=offer.activateClause;
     const basePrice=typeof ai().askingPrice==='function'?ai().askingPrice(p):transferCost(p)*.9;
     const fee=!p.clubId||offer.precontract?0:clause?p.clausula_rescision:Math.round(basePrice*clubNegotiation(p,offer).priceFactor*(1+Math.min(.12,interestCount*.03))*(1-offer.sellOnPercent*.003)+(offer.installments?basePrice*(.015+offer.installments*.003)*(1-offer.upfrontPercent/100):0));

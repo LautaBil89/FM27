@@ -15,6 +15,8 @@ class NegotiationRounds(unittest.TestCase):
 
     def test_buy_counter_twice_then_personal_counter_preserves_agreed_fee(self):
         self.vacancy()
+        # The personal proposal must be below his wage even when no rival club bids.
+        self.page.evaluate('player(1068088).salario=1000')
         result=self.page.evaluate("""()=>MARKET_CONTRACTS.submitOffer({stage:'club',playerId:1068088,fee:1,installments:0,upfrontPercent:100})""")
         self.assertTrue(result['ok']);oid=result['offer']['id']
         self.tomorrow()

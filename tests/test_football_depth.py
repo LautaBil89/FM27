@@ -120,9 +120,9 @@ class FootballDepth(unittest.TestCase):
         self.page.reload();self.page.wait_for_selector('aside');self.assertEqual(self.page.evaluate('GameState.userClub.id'),r['target'])
 
     def test_08_filters_and_comparison_persist(self):
-        self.career();self.nav('market');self.page.select_option('#worldMarketCountry',label='España');self.page.select_option('#worldMarketLeague','ES1');self.page.select_option('#worldMarketAge','25')
+        self.career();self.nav('market');self.page.click('[data-market-filters-open="market"]');self.page.select_option('[data-mf-key="country"]',label='España');self.page.select_option('[data-mf-key="league"]','ES1');self.page.fill('[data-mf-key="ageMax"]','25');self.page.locator('#market-filter-form button[type="submit"]').click();self.page.evaluate('saveGame(true)')
         self.page.reload();self.page.wait_for_selector('aside');self.nav('market')
-        self.assertEqual(self.page.locator('#worldMarketCountry').input_value(),'España');self.assertEqual(self.page.locator('#worldMarketLeague').input_value(),'ES1');self.assertEqual(self.page.locator('#worldMarketAge').input_value(),'25')
+        self.page.click('[data-market-filters-open="market"]');self.assertEqual(self.page.locator('[data-mf-key="country"]').input_value(),'España');self.assertEqual(self.page.locator('[data-mf-key="league"]').input_value(),'ES1');self.assertEqual(self.page.locator('[data-mf-key="ageMax"]').input_value(),'25');self.page.click('[data-mf-close]')
         self.page.evaluate('()=>{GameState.scouting.shortlist=[1068088];view="scouting";render()}');self.page.click('[data-depth-compare]');self.assertIn('1068088',str(self.page.evaluate('FM_DEPTH.ui.compare')))
         self.page.reload();self.page.wait_for_selector('aside');self.nav('scouting');self.assertIn(1068088,self.page.evaluate('FM_DEPTH.ui.compare'))
 

@@ -201,10 +201,10 @@ class ManagementScenarios(unittest.TestCase):
                 if(target>0)return {source,target,sourcePlayer:p.id,targetPlayer:all[target],all};
             }throw Error('Sin intercambio compatible');
         }""")
-        self.page.click('[data-ws-key="tactics"][data-ws-tab="bench"]')
+        self.assertTrue(self.page.locator('.tw-selection-roster .tw-bench').is_visible())
         self.page.locator('[data-tw-slot="' + str(pair['source']) + '"]').focus()
         self.page.keyboard.press('Space')
-        self.page.click('[data-ws-key="tactics"][data-ws-tab="pitch"]')
+        self.assertTrue(self.page.locator('.tw-selection-board .tw-pitch').is_visible())
         self.page.locator('[data-tw-slot="' + str(pair['target']) + '"]').focus()
         self.page.keyboard.press('Enter')
         swapped = self.page.evaluate('[...GameState.tactics.xi,...GameState.tactics.bench]')

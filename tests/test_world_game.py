@@ -437,8 +437,10 @@ class WorldGameScenarios(unittest.TestCase):
         self.assertIn('Transfermarkt', self.page.locator('.fp-tab-content').inner_text())
         self.assertTrue(self.page.locator('.fp-tab-content a[href*="transfermarkt"]').first.get_attribute('href').startswith('https://'))
         self.nav('market')
-        self.page.locator('#worldMarketCountry').select_option(label='España')
-        self.page.locator('#worldMarketLeague').select_option('ES1')
+        self.page.click('[data-market-filters-open="market"]')
+        self.page.select_option('[data-mf-key="country"]',label='España')
+        self.page.select_option('[data-mf-key="league"]','ES1')
+        self.page.locator('#market-filter-form button[type="submit"]').click()
         self.assertEqual(self.page.locator('#content tbody tr').count(), 25)
         self.assertLessEqual(self.page.evaluate('document.documentElement.scrollWidth'), 391)
 

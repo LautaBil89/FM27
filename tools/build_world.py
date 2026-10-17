@@ -174,9 +174,9 @@ def embed(db):
     scripts = [ROOT / 'src' / name for name in
                ('world-engine.js', 'competition-formats.js', 'domestic-regulations.js', 'football-pyramid.js', 'season-calendar.js', 'world-ui.js', 'vendor/lz-string.js', 'world-storage.js',
                 'club-ai.js', 'registration-rules.js', 'market-contracts.js', 'player-profile.js',
-                'tactics-workbench.js', 'match-simulation.js', 'match-calibration.js', 'action-inbox.js', 'dressing-room.js', 'match-realism.js', 'negotiation-workspace.js', 'renewal-negotiations.js', 'football-depth.js', 'match-centre.js', 'management-office.js', 'scouting-network.js', 'sports-medicine.js', 'development-centre.js', 'club-finances.js', 'career-integrity.js', 'unexpected-events.js', 'viewport-workspace.js')]
+                'tactics-workbench.js', 'match-simulation.js', 'match-calibration.js', 'action-inbox.js', 'dressing-room.js', 'match-realism.js', 'negotiation-workspace.js', 'renewal-negotiations.js', 'football-depth.js', 'match-centre.js', 'management-office.js', 'scouting-network.js', 'sports-medicine.js', 'development-centre.js', 'club-finances.js', 'career-integrity.js', 'unexpected-events.js', 'market-filters.js', 'viewport-workspace.js')]
     styles = [ROOT / 'src' / name for name in
-              ('world-ui.css', 'player-profile.css', 'tactics-workbench.css', 'action-inbox.css', 'dressing-room.css', 'match-realism.css', 'negotiation-workspace.css', 'viewport-workspace.css', 'football-depth.css', 'match-centre.css', 'management-office.css', 'development-centre.css', 'career-integrity.css', 'football-pyramid.css', 'season-calendar.css', 'registration-rules.css', 'sports-medicine.css', 'club-finances.css', 'scouting-network.css')]
+              ('world-ui.css', 'player-profile.css', 'tactics-workbench.css', 'action-inbox.css', 'dressing-room.css', 'match-realism.css', 'negotiation-workspace.css', 'viewport-workspace.css', 'football-depth.css', 'match-centre.css', 'management-office.css', 'development-centre.css', 'career-integrity.css', 'football-pyramid.css', 'season-calendar.css', 'registration-rules.css', 'sports-medicine.css', 'club-finances.css', 'scouting-network.css', 'market-filters.css')]
     for path in scripts + styles:
         if not path.exists():
             raise FileNotFoundError('Implementation not ready: ' + str(path))

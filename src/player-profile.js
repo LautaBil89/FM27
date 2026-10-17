@@ -39,10 +39,10 @@
     ['Mentales',[['anticipacion','Anticipación'],['decisiones','Decisiones'],['concentracion','Concentración'],['colocacion','Colocación'],['vision','Visión'],['desmarques','Desmarques'],['trabajo_equipo','Trabajo en equipo'],['determinacion','Determinación'],['valentia','Valentía'],['serenidad','Serenidad']]],
     ['Físicos',[['aceleracion','Aceleración'],['velocidad','Velocidad'],['agilidad','Agilidad'],['equilibrio','Equilibrio'],['resistencia','Resistencia'],['fuerza','Fuerza'],['salto','Salto'],['recuperacion','Recuperación']]]
   ];
-  function attributes(p) {
+  function attributes(p,{observed=true}={}) {
     const seed = number(p.transfermarkt?.playerId || p.id) >>> 0;
     const mix = (key,weights,index) => {
-      const weighted = Object.entries(weights).reduce((sum,[name,weight])=>sum+skill(p,name)*weight,0);
+      const weighted = Object.entries(weights).reduce((sum,[name,weight])=>sum+(observed?skill(p,name):clamp(number(p[name])||50,1,99))*weight,0);
       const jitter = (((Math.imul(seed ^ Math.imul(index+7,2654435761),1597334677) >>> 0) % 11) - 5);
       return Math.round(clamp(weighted + jitter,1,99));
     };

@@ -40,18 +40,23 @@ class ManagementOffice(unittest.TestCase):
         self.page.reload(wait_until='domcontentloaded');self.assertEqual(self.page.evaluate('FM_OFFICE.ensure().profile.stats.tactica'),20)
     def test_02_exact_position_and_dual_nationality_filters_persist(self):
         self.career();self.nav('market')
-        self.page.select_option('[data-office-filter="position"]','LD');self.page.select_option('[data-office-filter="nationality"]','Argentina')
+        self.page.click('[data-market-filters-open="market"]')
+        self.page.select_option('[data-mf-key="position"]','LD');self.page.select_option('[data-mf-key="nationality"]','Argentina')
+        self.page.click('#market-filter-form [type="submit"]')
         r=self.page.evaluate('''()=>{const f=FM_OFFICE.filters.market,rows=GameState.players.filter(p=>p.clubId!==GameState.userClub.id&&FM_OFFICE.matches(p,f));return {count:rows.length,valid:rows.every(p=>FM_PLAYER.naturalPositions(p).includes('LD')&&p.nationalities.includes('Argentina')),dual:GameState.players.some(p=>p.nationalities.length>1&&FM_OFFICE.matches(p,{position:'ALL',nationality:p.nationalities[1]}))}}''')
         self.assertGreater(r['count'],0);self.assertTrue(r['valid']);self.assertTrue(r['dual'])
-        self.page.reload(wait_until='domcontentloaded');self.nav('market');self.assertEqual(self.page.locator('[data-office-filter="position"]').input_value(),'LD')
-        self.nav('scouting');self.page.select_option('[data-office-filter="position"]','LI');self.assertEqual(self.page.evaluate('FM_OFFICE.filters.scouting.position'),'LI')
+        self.page.evaluate('saveGame(true)');self.page.reload(wait_until='domcontentloaded');self.nav('market')
+        self.page.click('[data-market-filters-open="market"]');self.assertEqual(self.page.locator('[data-mf-key="position"]').input_value(),'LD')
+        self.page.keyboard.press('Escape');self.nav('scouting');self.page.click('[data-market-filters-open="scouting"]')
+        self.page.select_option('[data-mf-key="position"]','LI');self.page.click('#market-filter-form [type="submit"]')
+        self.assertEqual(self.page.evaluate('FM_OFFICE.filters.scouting.position'),'LI')
     def test_03_loan_listing_creates_real_loan_with_return_obligation(self):
         self.career()
-        r=self.page.evaluate('''()=>{const p=mine().find(p=>CLUB_AI.canRelease(p).ok&&CLUB_AI.interestFor(p.id).length);if(!p)throw Error('No eligible loan');FM_OFFICE.toggleLoan(p.id);CLUB_AI.makeSaleOffers(GameState.today);const o=GameState.offers.find(o=>o.playerId===p.id&&o.type==='sell');if(!o)throw Error('No loan offer');const before=GameState.userClub.presupuesto_dolares;CLUB_AI.respondToSaleOffer(o.id,true);return {type:o.dealType,status:o.status,loan:MARKET_CONTRACTS.ensure().loans.find(l=>l.playerId===p.id&&l.status==='active'),club:p.clubId,owner:GameState.userClub.id,before,after:GameState.userClub.presupuesto_dolares}}''')
+        r=self.page.evaluate('''()=>{const p=mine().find(p=>CLUB_AI.canRelease(p).ok&&CLUB_AI.interestFor(p.id).length);if(!p)throw Error('No eligible loan');FM_OFFICE.toggleLoan(p.id);const start=GameState.today;for(let n=0;n<35&&!GameState.offers.some(o=>o.playerId===p.id&&o.type==='sell');n++){GameState.today=new Date(Date.parse(start+'T12:00:00Z')+n*86400000).toISOString().slice(0,10);CLUB_AI.makeSaleOffers(GameState.today)}const o=GameState.offers.find(o=>o.playerId===p.id&&o.type==='sell');if(!o)throw Error('No loan contact during the month');const before=GameState.userClub.presupuesto_dolares;CLUB_AI.respondToSaleOffer(o.id,true);return {type:o.dealType,status:o.status,loan:MARKET_CONTRACTS.ensure().loans.find(l=>l.playerId===p.id&&l.status==='active'),club:p.clubId,owner:GameState.userClub.id,before,after:GameState.userClub.presupuesto_dolares}}''')
         self.assertEqual(r['type'],'loan');self.assertEqual(r['status'],'accepted');self.assertIsNotNone(r['loan']);self.assertEqual(r['loan']['ownerClub'],r['owner']);self.assertNotEqual(r['club'],r['owner']);self.assertGreater(r['after'],r['before'])
     def test_04_unsolicited_approaches_work_outside_transfer_window(self):
         self.career()
-        r=self.page.evaluate('''()=>{GameState.today='2026-04-10';GameState.transferListed=[];CLUB_AI.makeSaleOffers(GameState.today);const o=GameState.offers.find(o=>o.type==='sell');return {open:transferWindowOpen(),offer:o&&{unsolicited:o.unsolicited,from:o.fromClub},owned:GameState.userClub.id}}''')
+        r=self.page.evaluate('''()=>{GameState.transferListed=[];for(let n=0;n<45&&!GameState.offers.some(o=>o.type==='sell');n++){GameState.today=new Date(Date.parse('2026-04-10T12:00:00Z')+n*86400000).toISOString().slice(0,10);CLUB_AI.makeSaleOffers(GameState.today)}const o=GameState.offers.find(o=>o.type==='sell');return {open:transferWindowOpen(),offer:o&&{unsolicited:o.unsolicited,from:o.fromClub},owned:GameState.userClub.id}}''')
         self.assertFalse(r['open']);self.assertTrue(r['offer']['unsolicited']);self.assertEqual(r['offer']['from'],r['owned'])
     def test_05_automatic_continue_stops_on_news_and_manual_stop_is_stable(self):
         self.career();self.page.click('.fm-continue');self.page.wait_for_function('FM_OFFICE.running.turns>=1||!FM_OFFICE.running.active')

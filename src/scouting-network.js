@@ -21,8 +21,8 @@ window.FM_SCOUT_NETWORK=(()=>{
   }
   function familiarity(p,staff){return staff.region===club(p.clubId)?.country||(p.nationalities||[p.nacionalidad]).includes(staff.region)}
   function outlook(quality,p){const age=Number(p.edad)||25;return bound(quality+(age<=18?12:age<=21?9:age<=24?5:age<=27?2:0),1,97)}
-  function makeObservation(p,report={},day=GameState.today,id=GameState.userClub.id){
-    const d=dossier(p,id),staff=staffFor(report,id),coverage=bound(Number(report.level)||15,0,100),local=familiarity(p,staff),samples=d.matches.length;
+  function makeObservation(p,report={},day=GameState.today,id=GameState.userClub.id,transientDossier=null){
+    const d=transientDossier||dossier(p,id),staff=staffFor(report,id),coverage=bound(Number(report.level)||15,0,100),local=familiarity(p,staff),samples=d.matches.length;
     const confidence=Math.round(bound(14+coverage*.43+staff.ability*.24+(local?6:-3)+Math.min(12,samples*2),15,92));
     const spread=Math.ceil(Math.max(3,(100-confidence)/6+(local?0:1)-Math.min(2,samples*.25)));
     const publicSeed=id===GameState.userClub.id?null:Math.imul((Number(p.id)||hash(p.id))^staff.observationSeed,2654435761)>>>0,signed=((publicSeed??hash(p.id+':'+staff.id+':judgement'))%2001-1000)/1000;
@@ -64,6 +64,14 @@ window.FM_SCOUT_NETWORK=(()=>{
     return {low,high,estimate:center,confidence:Math.round(bound(o.confidence-stale*5,10,92)),coverage:k?.level??o.coverage,source:o.source,observedAt:o.date,staffId:o.staff.id,kind};
   }
   function observedPlayer(p,id=GameState.userClub.id){if(own(p,id))return p;const o=latest(p,id),attributes=Object.fromEntries(ATTRIBUTES.map(key=>[key,Number.isFinite(o.attributes?.[key])?o.attributes[key]:o.quality]));return {...p,...attributes,potential:o.potential}}
+  function filterSnapshot(p){
+    // Scanning the whole database must not create thousands of saved dossiers.
+    const d=GameState.world.scoutNetwork?.players?.[p.id]?.[GameState.userClub.id],r=GameState.world.depth?.reports?.[p.id],legacy=GameState.scouting?.reports?.[p.id],known=own(p),observations=d?.observations||[];
+    const o=(d?.preferredStaffId&&observations.findLast(o=>o.staff.id===d.preferredStaffId))||observations.at(-1)||d?.impression||makeObservation(p,{...(r||{}),level:known?100:r?.level||15},GameState.today,GameState.userClub.id,{matches:d?.matches||[]});
+    const preserved=!known&&((r?.completed&&!r.observationSchema)||(!r&&legacy)),stale=Math.min(45,Math.floor(ageDays(r?.updated||o.date)/30)*10),coverage=known?100:Math.max(15,(r?.level||legacy&&100||15)-(r?.completed?stale:0));
+    const oldQuality=Number(legacy?.rating),quality=known?overall(p):preserved&&coverage>=100?(d?.legacyQualitySnapshot??(Number.isFinite(oldQuality)&&oldQuality>=1&&oldQuality<=99?oldQuality:overall(p))):o.quality;
+    return {quality:bound(Math.round(quality)),potential:bound(Math.round(o.potential)),attributes:known?Object.fromEntries(ATTRIBUTES.map(k=>[k,p[k]])):Object.fromEntries(ATTRIBUTES.map(k=>[k,o.attributes?.[k]??o.quality])),coverage,confidence:Math.round(bound(o.confidence-Math.floor(ageDays(o.date)/30)*5,10,92))};
+  }
   function observedRange(p,value,scale=99){const o=latest(p),exact=own(p)||knowledge(p).legacy&&knowledge(p).level>=100,width=exact?0:Math.ceil((o.spread+Math.min(10,Math.floor(ageDays(o.date)/30)))*scale/99),center=bound(Math.round(Number(value)||1),1,scale),low=bound(center-width,1,scale),high=bound(center+width,1,scale);return low===high?String(center):`${low}–${high}`}
   function range(p,value,scale=99,kind='quality'){const a=assessment(p,{kind,value,scale});return a.low===a.high?String(a.estimate):`${a.low}–${a.high}`}
   const potentialRange=p=>range(p,undefined,99,'potential');
@@ -98,5 +106,5 @@ window.FM_SCOUT_NETWORK=(()=>{
     for(const id of new Set([...m.lineups.flat(),...Object.keys(m.ratings||{}).map(Number)])){const p=player(id);if(!p)continue;const r=window.FM_DEPTH?.ensure()?.reports[id];if(!own(p)&&r?.status!=='active')continue;const d=dossier(p);d.matches.push({id:key,date:m.date||GameState.today,minutes:Number(m.playerMinutes?.[id])||null});d.matches=d.matches.slice(-30);if(r?.status==='active')capture(p,r,m.date||GameState.today)}return true;
   }
   document.addEventListener('change',event=>{if(event.target.hasAttribute('data-sn-opinion'))prefer(event.target.dataset.snOpinion,event.target.value)});
-  return {ensure,dossier,staffFor,capture,knowledge,assessment,range,observedPlayer,observedRange,potentialRange,prefer,canReobserve,recommendation,risks,reportHTML,sourceHTML,observeMatch,publicQuality};
+  return {ensure,dossier,staffFor,capture,knowledge,assessment,range,observedPlayer,observedRange,potentialRange,prefer,canReobserve,recommendation,risks,reportHTML,sourceHTML,observeMatch,publicQuality,filterSnapshot};
 })();
