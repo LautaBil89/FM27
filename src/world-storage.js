@@ -230,6 +230,8 @@ const WORLD_STORAGE = (() => {
   function validateWorld(s, aliases = true) {
     if (!object(s) || s.version !== 3 || s.worldVersion !== 1 || !object(s.world) || !Array.isArray(s.world.clubs) || !Array.isArray(s.world.leagues) || !Array.isArray(s.players) || !Array.isArray(s.calendar) || !object(s.userClub) || !object(s.tactics) || !object(s.world.cups)) fail('estructura de carrera mundial incompatible');
     if (!string(s.manager, 100) || !integer(s.year, 2020, 2300) || !validDate(s.today) || !integer(s.eventIndex, 0, s.calendar.length) || !finite(s.userClub.presupuesto_dolares, -1e13) || !finite(s.userClub.presupuesto_pesos, -1e16, 1e16)) fail('datos de carrera no válidos');
+    if(own(s,'careerId')&&s.careerId!=null&&(!string(s.careerId,110)||!/^career-[a-zA-Z0-9-]{8,100}$/.test(s.careerId)))fail('identificador de carrera no válido');
+    if(own(s,'careerName')&&!string(s.careerName,80))fail('nombre de carrera no válido');
     if (own(s.world, 'clock')) {
       const clock=s.world.clock;
       if (!object(clock) || clock.version!==1 || !integer(clock.slot,0,3) || !integer(clock.ticks,0,1e9) || !validDate(clock.lastProcessedDay) || (clock.lastTrainingDate!==null&&!validDate(clock.lastTrainingDate)) || (clock.lastMatchNotice!==null&&!string(clock.lastMatchNotice,150)) || !Array.isArray(clock.recent) || clock.recent.length>32) fail('reloj de carrera no válido');
@@ -396,14 +398,14 @@ const WORLD_STORAGE = (() => {
     if(typeof Worker==='undefined'||typeof Blob==='undefined'){workerFailed=true;return null}
     try{
       const definitions={own,object,same,copy,fail,string,integer,finite,validDate,mask,playerReference,identity,residual,packRecords,table,result,cupNodes,validateIncidents,validateArchive,validateSearches,validatePurchaseClaims,validateExtraCompetitions,validateWorld,encode,serialize};
-      const source=`const FORMAT='${FORMAT}',COMPRESSED_FORMAT='${COMPRESSED_FORMAT}',CODEC_VERSION=${CODEC_VERSION},alphabet=${JSON.stringify(alphabet)},missing=Symbol('absent'),identityTemplates=new Map();let dbPlayers,dbClubs,dbLeagues,FORMATIONS;const WORLD_ENGINE={hydratePlayerIdentity:${WORLD_ENGINE.hydratePlayerIdentity.toString()}};const f=String.fromCharCode,LZString={_compress:${LZString._compress.toString()},compressToUTF16:${LZString.compressToUTF16.toString()}};`+Object.entries(definitions).map(([name,fn])=>`const ${name}=${fn.toString()};`).join('\n')+`self.onmessage=({data})=>{if(data.init){dbPlayers=new Map(data.init.players.map(p=>[p.playerId,p]));dbClubs=new Map(data.init.clubs.map(c=>[c.id,c]));dbLeagues=new Map(data.init.leagues.map(l=>[l.id,l]));FORMATIONS=data.init.formations;return}try{self.postMessage({id:data.id,text:serialize(data.state),snapshot:{manager:data.state.manager,today:data.state.today,year:data.state.year,userClub:{id:data.state.userClub.id,nombre:data.state.userClub.nombre}}})}catch(error){self.postMessage({id:data.id,error:error.message})}};`;
+      const source=`const FORMAT='${FORMAT}',COMPRESSED_FORMAT='${COMPRESSED_FORMAT}',CODEC_VERSION=${CODEC_VERSION},alphabet=${JSON.stringify(alphabet)},missing=Symbol('absent'),identityTemplates=new Map();let dbPlayers,dbClubs,dbLeagues,FORMATIONS;const WORLD_ENGINE={hydratePlayerIdentity:${WORLD_ENGINE.hydratePlayerIdentity.toString()}};const f=String.fromCharCode,LZString={_compress:${LZString._compress.toString()},compressToUTF16:${LZString.compressToUTF16.toString()}};`+Object.entries(definitions).map(([name,fn])=>`const ${name}=${fn.toString()};`).join('\n')+`self.onmessage=({data})=>{if(data.init){dbPlayers=new Map(data.init.players.map(p=>[p.playerId,p]));dbClubs=new Map(data.init.clubs.map(c=>[c.id,c]));dbLeagues=new Map(data.init.leagues.map(l=>[l.id,l]));FORMATIONS=data.init.formations;return}try{self.postMessage({id:data.id,text:serialize(data.state),snapshot:{careerId:data.state.careerId,careerName:data.state.careerName,careerMigrated:data.state.careerMigrated,manager:data.state.manager,today:data.state.today,year:data.state.year,userClub:{id:data.state.userClub.id,nombre:data.state.userClub.nombre}}})}catch(error){self.postMessage({id:data.id,error:error.message})}};`;
       const url=URL.createObjectURL(new Blob([source],{type:'text/javascript'}));
       try{saveWorker=new Worker(url)}finally{URL.revokeObjectURL(url)}
       saveWorker.onmessage=({data})=>{
         workerBusy=false;
         if(data.id===saveRevision&&workerState===GameState){
           if(data.error)saveError(new Error(data.error));
-          else try{localStorage.setItem(KEY,data.text);window.FM_INTEGRITY?.onSaved?.(data.text,data.snapshot)}catch(error){saveError(error)}
+          else try{localStorage.setItem(KEY,data.text);window.FM_INTEGRITY?.onSaved?.(data.text,data.snapshot);window.FM_CAREERS?.onSaved?.(data.text,data.snapshot)}catch(error){saveError(error)}
         }
         workerState=null;
         if(saveDirty){clearTimeout(saveTimer);saveTimer=setTimeout(runAutosave,0)}
@@ -417,7 +419,7 @@ const WORLD_STORAGE = (() => {
     saveTimer=null;if(!saveDirty)return;if(!GameState){invalidateAutosave();return}if(workerBusy)return;
     if(GameState.version!==3){save(true);return}
     const worker=backgroundWorker();if(!worker){save(true);return}
-    saveDirty=false;dirtySince=0;workerBusy=true;workerState=GameState;workerRevision=saveRevision;
+    window.FM_CAREERS?.ensureIdentity(GameState);saveDirty=false;dirtySince=0;workerBusy=true;workerState=GameState;workerRevision=saveRevision;
     try{worker.postMessage({id:saveRevision,state:GameState})}catch(error){workerBusy=false;workerState=null;save(true)}
   }
   function scheduleSave(){
@@ -433,7 +435,7 @@ const WORLD_STORAGE = (() => {
     invalidateAutosave();
     if (!GameState) return false;
     try {
-      const raw=serialize(GameState);localStorage.setItem(KEY,raw);window.FM_INTEGRITY?.onSaved?.(raw,GameState);
+      window.FM_CAREERS?.ensureIdentity(GameState);const raw=serialize(GameState);localStorage.setItem(KEY,raw);window.FM_INTEGRITY?.onSaved?.(raw,GameState);window.FM_CAREERS?.onSaved?.(raw,GameState);
       if (!silent) toast('Carrera guardada');
       return true;
     } catch (error) {
@@ -492,7 +494,7 @@ const WORLD_STORAGE = (() => {
   window.saveGame = save;
   window.loadGame = function () { if (!restore()) return false; view = GameState.match ? 'match' : 'dashboard'; render(); return true; };
   Object.assign(actions, {save: () => save(), export: exportGame, import: importGame});
-  return {scheduleSave,flushSave,pending:autosavePending,encode, decode, validate: s => s?.version === 3 ? validateWorld(s) : MANAGEMENT.validateImported(s), serialize, importState, exportGame, importGame, maxImportBytes: MAX_IMPORT_BYTES,
+  return {cancelPending:invalidateAutosave,scheduleSave,flushSave,pending:autosavePending,encode, decode, validate: s => s?.version === 3 ? validateWorld(s) : MANAGEMENT.validateImported(s), serialize, importState, exportGame, importGame, maxImportBytes: MAX_IMPORT_BYTES,
     inspect: s => { const text = serialize(s); return {players: s.players.length, characters: text.length, utf8Bytes: bytes(text), localStorageBytes: text.length * 2, hydratedBytes: bytes(JSON.stringify(s))}; }};
 })();
 window.WORLD_STORAGE = WORLD_STORAGE;

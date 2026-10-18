@@ -13,6 +13,18 @@ Las partidas anteriores conservan sus equipos, calendarios, jugadores y condicio
 
 También se puede servir en desarrollo con `python3 -m http.server 8000 --directory .`.
 
+
+## Varias carreras guardadas
+
+**Mis carreras** está disponible en la barra lateral, en el menú móvil y en la pantalla de nueva carrera. Cada partida tiene un identificador propio, aunque uses el mismo DT y club, y su autoguardado no reemplaza a las demás.
+
+- **Nueva carrera** guarda y archiva primero la actual; después abre la elección de DT y club.
+- **Cargar** recupera una carrera con su fecha, dinero, plantel, tácticas y, si corresponde, el partido pausado.
+- **Renombrar**, **Exportar** y **Eliminar** actúan sobre la carrera elegida. Eliminar requiere confirmación y conserva las demás.
+- **Importar carrera** agrega una partida independiente: incluso importar una copia de la actual crea otro registro.
+
+La partida del sistema anterior se incorpora automáticamente al archivo sin reiniciarla. IndexedDB conserva las carreras completas; localStorage mantiene la partida activa para compatibilidad y reapertura. Si el archivo de carreras no puede escribirse, no se abandona la partida actual al intentar crear otra. Los puntos de recuperación también se separan: hasta seis por carrera, sin permitir restaurar los de una sobre otra. Exportar JSON permite llevar una partida a otro navegador o dispositivo.
+
 ## Actualización de la auditoría
 
 Los [44 puntos revisados](docs/IMPLEMENTACION_AUDITORIA_2026-10-17.md) incorporan consentimiento personal en ventas, revisión médica antes de fichar, contratos futuros y renegociación de préstamos, 36 atributos individuales, tasaciones mensuales, retiros e inferiores con competiciones propias. Los empleados negocian contratos y responsabilidades, y la carrera del DT dispone de vacantes, entrevistas y fechas de incorporación.
@@ -59,7 +71,7 @@ En **Vestuario** podés revisar jerarquías, liderazgo, grupos de trabajo, adapt
 
 El **mercado** añade representantes con prioridades y plazos, propuesta deportiva y competencia entre proyectos. Los acuerdos firmados fuera del período de inscripción se incorporan al abrir la siguiente ventana: el jugador permanece en su club, y fondos, salario, plaza y cupos quedan comprometidos. La inscripción revalida la operación y evita cobrarla dos veces. Los períodos siguen la regla anual adaptada del simulador: enero–marzo y julio–agosto, común a las ligas incluidas. La reputación, actividad económica y planteos de los clubes evolucionan durante la carrera.
 
-En **Carrera y proyectos** hay puntos de recuperación e historial de decisiones. Las copias locales usan IndexedDB y conservan hasta seis estados; una recuperación valida la carrera antes de sustituirla. La falta de espacio o de IndexedDB no sustituye ni daña el guardado principal. **Exportar JSON** permite conservar una copia fuera del navegador y trasladar la carrera. El historial guarda los acuerdos y novedades con su fecha y evidencia, con un límite para evitar crecimiento indefinido.
+En **Carrera y proyectos** hay puntos de recuperación e historial de decisiones. Las copias locales usan IndexedDB y conservan hasta seis estados por carrera; una recuperación valida la carrera antes de sustituirla. La falta de espacio o de IndexedDB no sustituye ni daña el guardado principal. **Exportar JSON** permite conservar una copia fuera del navegador y trasladar la carrera. El historial guarda los acuerdos y novedades con su fecha y evidencia, con un límite para evitar crecimiento indefinido.
 
 ## Realismo de las carreras
 
@@ -290,6 +302,7 @@ python3 -m http.server 8000
 En otra terminal:
 
 ```bash
+python3 tests/test_career_library.py
 python3 tests/test_real_calendars.py
 python3 tests/test_football_pyramids.py
 python3 tests/test_pyramid_integration.py
