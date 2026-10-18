@@ -67,15 +67,15 @@ window.FM_RENEWALS=(()=>{
     if(!row){const s=state();row={id:`renewal-${GameState.year}-${s.nextId++}`,type:'renewal',stage:'player',playerId:p.id,fromClub:ownership(p),toClub:ownership(p),fee:0,status:'pending',createdDate:GameState.today,expiresDate:addDays(GameState.today,MARKET_CONTRACTS.negotiationProfile(p,{...t,toClub:ownership(p),renewal:true}).patience),counterRounds:0,negotiationHistory:[],baselineEnd:MARKET_CONTRACTS.contractEnd(p)};s.renewals.unshift(row)}else row.counterRounds++;
     Object.assign(row,t,{awaitingUser:false,responseDate:addDays(GameState.today,1),acceptedCounter:false});delete row.counter;record(row,'DT');
     notify(row,r?'Nueva propuesta de renovación':'Renovación propuesta',`${p.nombre}: salario ${money(t.wage)}/semana, prima ${money(t.bonus)}, hasta ${date(t.endDate)} y papel de ${t.playingTime.toLowerCase()}. El representante responderá desde el ${date(row.responseDate)}. Se reserva la prima y sólo el incremento salarial; todavía no se paga ni se cambia el vínculo.`);
-    saveGame(true);return {ok:true,negotiation:row};
+    WORLD_STORAGE.scheduleSave();return {ok:true,negotiation:row};
   }
   function respond(id,accept){
     const r=byId(id),p=r&&player(r.playerId);if(!r||r.status!=='pending'||locked())return {ok:false,reason:'La renovación ya no está disponible'};
-    if(!accept){finish(r,'cancelled','Retiraste la propuesta',3);saveGame(true);render();return {ok:true}}
+    if(!accept){finish(r,'cancelled','Retiraste la propuesta',3);WORLD_STORAGE.scheduleSave();render();return {ok:true}}
     if(!r.awaitingUser||!r.counter||r.expiresDate<GameState.today)return {ok:false,reason:'La contraoferta no está disponible o venció'};
     const error=reason(p,r.counter,r.id);if(error)return {ok:false,reason:error};
     Object.assign(r,r.counter,{awaitingUser:false,acceptedCounter:true,responseDate:addDays(GameState.today,1)});delete r.counter;record(r,'DT acepta');
-    notify(r,'Condiciones de renovación aceptadas',`${p.nombre}: aceptaste las condiciones del representante. Se revalidarán y firmarán desde el ${date(r.responseDate)}; el contrato vigente continúa hasta entonces.`);saveGame(true);render();return {ok:true};
+    notify(r,'Condiciones de renovación aceptadas',`${p.nombre}: aceptaste las condiciones del representante. Se revalidarán y firmarán desde el ${date(r.responseDate)}; el contrato vigente continúa hasta entonces.`);WORLD_STORAGE.scheduleSave();render();return {ok:true};
   }
   function process(){
     if(!active())return;

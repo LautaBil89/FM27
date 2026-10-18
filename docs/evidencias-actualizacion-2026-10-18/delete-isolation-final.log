@@ -1,0 +1,6 @@
+test_unavailable_recovery_archive_does_not_resurrect_deleted_career (test_professional_integration.ProfessionalIntegration.test_unavailable_recovery_archive_does_not_resurrect_deleted_career) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 16.178s
+
+OK

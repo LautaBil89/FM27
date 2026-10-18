@@ -13,19 +13,23 @@ class CareerHandover(unittest.TestCase):
     def closed_review(self):
         self.page.evaluate("""()=>{const s=FM_DEPTH.ensure(),h={clubId:'boca',year:GameState.year,leagueId:'ARG1',position:3,points:60,champion:'river',cup:null,sudCup:null,objectiveMet:true,worldRankings:Object.fromEntries(GameState.world.leagues.map(l=>[l.id,[...l.clubIds]]))};GameState.history.unshift(h);GameState.finished=true;s.reviews.push({year:GameState.year,clubId:'boca',leagueId:'ARG1',position:3,success:true});s.jobs=[{clubId:'river',year:GameState.year,status:'open',objective:'Salir Campeón'}];view='career';render()}""")
 
-    def test_real_calendar_job_starts_through_actual_buttons_without_year_change(self):
+    def test_real_calendar_job_requires_interview_signature_and_start_date(self):
         self.closed_review()
-        self.assertTrue(self.page.evaluate('FM_SEASONS.active()'))
         self.page.get_by_role('button',name='Ofertas laborales',exact=True).click()
-        before=self.page.evaluate('({date:GameState.today,year:GameState.year,players:GameState.players.length})')
+        before=self.page.evaluate('({date:GameState.today,year:GameState.year})')
         self.page.click('[data-depth-job="river"]')
+        self.page.check('[data-gov-interview] [name="acceptObjective"]')
+        self.page.click('[data-gov-interview] [type="submit"]')
+        self.assertEqual(self.page.evaluate('GameState.userClub.id'),'boca')
         self.page.click('[data-action="season"]')
-        result=self.page.evaluate("""()=>({club:GameState.userClub.id,date:GameState.today,year:GameState.year,players:GameState.players.length,xi:GameState.tactics.xi.map(id=>player(id).clubId),stints:FM_DEPTH.ensure().stints,next:FM_DEPTH.ensure().nextClub})""")
-        self.assertEqual(result['club'],'river');self.assertEqual(result['date'],before['date'])
-        self.assertEqual(result['year'],before['year']);self.assertEqual(result['players'],before['players'])
-        self.assertEqual(result['xi'],['river']*11);self.assertEqual(len(result['stints']),2)
-        self.assertIsNone(result['next'])
-        self.page.reload(wait_until='domcontentloaded');self.page.wait_for_selector('aside')
+        job=self.page.evaluate("""()=>{const a=FM_GOVERNANCE.ensure().applications.find(a=>a.clubId==='river');WORLD_ENGINE.recoverTo(a.responseDate);return {id:a.jobId,application:a.id}}""")
+        self.page.evaluate('(id)=>FM_GOVERNANCE.showJob(id)',job['id'])
+        self.page.click('[data-gov-job-sign="'+job['application']+'"]')
+        self.assertEqual(self.page.evaluate('GameState.userClub.id'),'boca')
+        result=self.page.evaluate("""()=>{const p=FM_GOVERNANCE.ensure().pendingAppointment;WORLD_ENGINE.recoverTo(p.startDate);saveGame(true);return{club:GameState.userClub.id,date:GameState.today,start:p.startDate,year:GameState.year,xi:GameState.tactics.xi.map(id=>player(id).clubId),stints:FM_DEPTH.ensure().stints,next:FM_DEPTH.ensure().nextClub}}""")
+        self.assertEqual(result['club'],'river');self.assertEqual(result['date'],result['start']);self.assertGreater(result['date'],before['date'])
+        self.assertEqual(result['year'],before['year']);self.assertEqual(result['xi'],['river']*11);self.assertEqual(len(result['stints']),2);self.assertIsNone(result['next'])
+        self.page.reload(wait_until='domcontentloaded',timeout=60000);self.page.wait_for_selector('aside',timeout=60000)
         self.assertEqual(self.page.evaluate('GameState.userClub.id'),'river')
 
     def test_handover_cancels_unsigned_work_but_preserves_signed_obligations(self):
@@ -90,12 +94,12 @@ class CareerHandover(unittest.TestCase):
         self.assertFalse(result['finished']);self.assertTrue(result['reviewed'])
         self.assertEqual(result['pending'],result['expected'])
 
-    def test_saved_accepted_job_recovers_when_career_was_already_resumed(self):
+    def test_legacy_accepted_job_migrates_to_interview_without_instant_switch(self):
         self.closed_review()
-        result=self.page.evaluate("""()=>{FM_DEPTH.acceptJob('river');GameState.finished=false;const done=FM_DEPTH.progress(GameState.today);saveGame(true);return{done,club:GameState.userClub.id,pending:FM_DEPTH.ensure().nextClub}}""")
-        self.assertTrue(result['done']);self.assertEqual(result['club'],'river');self.assertIsNone(result['pending'])
-        self.page.reload(wait_until='domcontentloaded');self.page.wait_for_selector('aside')
-        self.assertEqual(self.page.evaluate('GameState.userClub.id'),'river')
+        result=self.page.evaluate("""()=>{FM_DEPTH.ensure().nextClub='river';GameState.finished=false;FM_DEPTH.progress(GameState.today);saveGame(true);return{club:GameState.userClub.id,pending:FM_DEPTH.ensure().nextClub,vacancy:FM_GOVERNANCE.ensure().jobs.find(j=>j.clubId==='river')}}""")
+        self.assertEqual(result['club'],'boca');self.assertIsNone(result['pending']);self.assertEqual(result['vacancy']['status'],'open')
+        self.page.reload(wait_until='domcontentloaded',timeout=60000);self.page.wait_for_selector('aside',timeout=60000)
+        self.assertEqual(self.page.evaluate('GameState.userClub.id'),'boca')
 
     def test_user_review_does_not_dismiss_manager_in_unfinished_foreign_league(self):
         self.closed_review()

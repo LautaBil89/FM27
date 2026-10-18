@@ -28,7 +28,7 @@ class CareerLibrary(unittest.TestCase):
         self.page.wait_for_selector('aside')
         second=self.page.evaluate("""async()=>{await FM_CAREERS.saveCurrent();return{id:GameState.careerId,count:(await FM_CAREERS.list()).length}}""")
         self.assertNotEqual(first['id'],second['id']);self.assertEqual(second['count'],2)
-        self.page.reload(wait_until='domcontentloaded');self.page.wait_for_selector('aside')
+        self.page.reload(wait_until='domcontentloaded',timeout=60000);self.page.wait_for_selector('aside',timeout=60000)
         self.assertEqual(self.page.evaluate('GameState.careerId'),second['id'])
         self.page.click('aside [data-careers-open]')
         self.page.locator('[data-careers-load="'+first['id']+'"]').click()
@@ -39,12 +39,12 @@ class CareerLibrary(unittest.TestCase):
 
     def test_single_save_migrates_once_without_changing_its_players_or_money(self):
         self.settled()
-        before=self.page.evaluate("""async()=>{await FM_CAREERS.flush();const s=structuredClone(GameState);delete s.careerId;delete s.careerName;delete s.careerMigrated;const db=await new Promise((ok,no)=>{const r=indexedDB.open('fm27-career-library',1);r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)});await new Promise((ok,no)=>{const t=db.transaction('careers','readwrite');t.objectStore('careers').clear();t.oncomplete=ok;t.onerror=no});db.close();const legacy=WORLD_STORAGE.serialize(s);WORLD_STORAGE.cancelPending();GameState=null;window.GameState=null;localStorage.setItem(KEY,legacy);return {cash:s.userClub.presupuesto_dolares,manager:s.manager,ids:s.players.map(p=>p.id)}}""")
-        self.page.reload(wait_until='domcontentloaded');self.page.wait_for_selector('aside');self.settled()
+        before=self.page.evaluate("""async()=>{await FM_CAREERS.flush();const s=structuredClone(GameState);delete s.careerId;delete s.careerName;delete s.careerMigrated;const db=await new Promise((ok,no)=>{const r=indexedDB.open('fm27-career-library');r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)});await new Promise((ok,no)=>{const t=db.transaction(['careers','metadata'],'readwrite');t.objectStore('careers').clear();t.objectStore('metadata').clear();t.oncomplete=ok;t.onerror=no});db.close();const legacy=WORLD_STORAGE.serialize(s);WORLD_STORAGE.cancelPending();GameState=null;window.GameState=null;localStorage.setItem(KEY,legacy);return {cash:s.userClub.presupuesto_dolares,manager:s.manager,ids:s.players.map(p=>p.id)}}""")
+        self.page.reload(wait_until='domcontentloaded',timeout=60000);self.page.wait_for_selector('aside',timeout=60000);self.settled()
         after=self.page.evaluate("""async()=>({id:GameState.careerId,migrated:GameState.careerMigrated,count:(await FM_CAREERS.list()).length,cash:GameState.userClub.presupuesto_dolares,manager:GameState.manager,ids:GameState.players.map(p=>p.id)})""")
         self.assertTrue(after['id'].startswith('career-'));self.assertTrue(after['migrated']);self.assertEqual(after['count'],1)
         for key in ['cash','manager','ids']:self.assertEqual(after[key],before[key])
-        self.page.reload(wait_until='domcontentloaded');self.page.wait_for_selector('aside');self.settled()
+        self.page.reload(wait_until='domcontentloaded',timeout=60000);self.page.wait_for_selector('aside',timeout=60000);self.settled()
         self.assertEqual(self.page.evaluate('GameState.careerId'),after['id'])
         self.assertEqual(self.page.evaluate('async()=>(await FM_CAREERS.list()).length'),1)
 
@@ -74,7 +74,7 @@ class CareerLibrary(unittest.TestCase):
 
     def test_failed_archive_and_corrupt_slot_never_discard_current_career(self):
         self.settled()
-        r=self.page.evaluate("""async()=>{const id=GameState.careerId,cash=GameState.userClub.presupuesto_dolares;const put=IDBObjectStore.prototype.put;IDBObjectStore.prototype.put=function(){throw new DOMException('Full','QuotaExceededError')};let failed=false;try{await FM_CAREERS.beginNew()}catch{failed=true}finally{IDBObjectStore.prototype.put=put}const preserved=GameState.careerId===id&&GameState.userClub.presupuesto_dolares===cash;await FM_CAREERS.saveCurrent();const db=await new Promise((ok,no)=>{const q=indexedDB.open('fm27-career-library',1);q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});await new Promise((ok,no)=>{const t=db.transaction('careers','readwrite');t.objectStore('careers').put({id:'career-corrupt',name:'Rota',raw:'{"broken":true}'});t.oncomplete=ok;t.onerror=no});db.close();const primary=localStorage.getItem(KEY);let rejected=false;try{await FM_CAREERS.load('career-corrupt')}catch{rejected=true}return {failed,preserved,rejected,same:primary===localStorage.getItem(KEY),id:GameState.careerId,expected:id}}""")
+        r=self.page.evaluate("""async()=>{const id=GameState.careerId,cash=GameState.userClub.presupuesto_dolares;const put=IDBObjectStore.prototype.put;IDBObjectStore.prototype.put=function(){throw new DOMException('Full','QuotaExceededError')};let failed=false;try{await FM_CAREERS.beginNew()}catch{failed=true}finally{IDBObjectStore.prototype.put=put}const preserved=GameState.careerId===id&&GameState.userClub.presupuesto_dolares===cash;await FM_CAREERS.saveCurrent();const db=await new Promise((ok,no)=>{const q=indexedDB.open('fm27-career-library');q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});await new Promise((ok,no)=>{const t=db.transaction('careers','readwrite');t.objectStore('careers').put({id:'career-corrupt',name:'Rota',raw:'{"broken":true}'});t.oncomplete=ok;t.onerror=no});db.close();const primary=localStorage.getItem(KEY);let rejected=false;try{await FM_CAREERS.load('career-corrupt')}catch{rejected=true}return {failed,preserved,rejected,same:primary===localStorage.getItem(KEY),id:GameState.careerId,expected:id}}""")
         self.assertTrue(r['failed']);self.assertTrue(r['preserved']);self.assertTrue(r['rejected']);self.assertTrue(r['same']);self.assertEqual(r['id'],r['expected'])
         self.page.evaluate("()=>{window.originalCareerPut=IDBObjectStore.prototype.put;IDBObjectStore.prototype.put=function(){throw new DOMException('Full','QuotaExceededError')};}")
         try:

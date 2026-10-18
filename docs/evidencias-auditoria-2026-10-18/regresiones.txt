@@ -1,0 +1,15 @@
+test_complete_world_roundtrip_and_cup_navigation (test_audit_integration.AuditIntegration.test_complete_world_roundtrip_and_cup_navigation) ... ok
+test_future_preliminaries_roundtrip_then_resolve_into_two_group_draws (test_audit_integration.AuditIntegration.test_future_preliminaries_roundtrip_then_resolve_into_two_group_draws) ... ok
+test_quick_match_uses_ai_formation_records_form_and_cards_once (test_audit_integration.AuditIntegration.test_quick_match_uses_ai_formation_records_form_and_cards_once) ... ok
+test_snapshot_date_prepares_past_results_without_charging_incoming_manager (test_audit_integration.AuditIntegration.test_snapshot_date_prepares_past_results_without_charging_incoming_manager) ... ok
+test_competition_rules_are_snapshotted_and_extra_time_adds_one_change (test_match_regulations_depth.MatchRegulationsDepth.test_competition_rules_are_snapshotted_and_extra_time_adds_one_change) ... ok
+test_fewer_than_seven_abandons_without_fictional_scorers (test_match_regulations_depth.MatchRegulationsDepth.test_fewer_than_seven_abandons_without_fictional_scorers) ... ok
+test_individual_shootout_order_excludes_extra_eligible_players (test_match_regulations_depth.MatchRegulationsDepth.test_individual_shootout_order_excludes_extra_eligible_players) ... ok
+test_live_formation_and_emergency_keeper_use_existing_players (test_match_regulations_depth.MatchRegulationsDepth.test_live_formation_and_emergency_keeper_use_existing_players) ... ok
+test_penalty_sequence_uses_the_actual_fallback_taker (test_match_regulations_depth.MatchRegulationsDepth.test_penalty_sequence_uses_the_actual_fallback_taker) ... ok
+test_tactical_team_factors_reach_recorded_possessions (test_match_regulations_depth.MatchRegulationsDepth.test_tactical_team_factors_reach_recorded_possessions) ... ok
+
+----------------------------------------------------------------------
+Ran 10 tests in 237.713s
+
+OK

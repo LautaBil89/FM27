@@ -32,7 +32,7 @@ window.FM_INBOX = (() => {
     if(supported.has(message.action))m.action=message.action;
     if(lookup(message.playerId))m.playerId=Number(message.playerId);
     if(typeof message.offerId==='string'||Number.isSafeInteger(message.offerId))m.offerId=String(message.offerId).slice(0,160);
-    for(const key of ['contractAtCreation','contractEndAtCreation','issue','matchDate','fixtureId','incidentId'])if(typeof message[key]==='string'||Number.isSafeInteger(message[key]))m[key]=message[key];
+    for(const key of ['contractAtCreation','contractEndAtCreation','issue','matchDate','fixtureId','proTab','staffNegotiationId','staffId','incidentId'])if(typeof message[key]==='string'||Number.isSafeInteger(message[key]))m[key]=message[key];
     GameState.inbox.unshift(m);GameState.inbox=GameState.inbox.slice(0,150);return m;
   }
   function onMessage(message) {
@@ -109,9 +109,11 @@ window.FM_INBOX = (() => {
   function isPending(m) {
     if(!active()||m.dismissed)return false;
     const p=lookup(m.playerId),o=m.offerId?offerFor(m):null;
-    if(m.offerId)return !!o&&!o.awaitingRegistration&&!o.awaitingPlayerConsent&&(!o.awaitingMedical||o.medicalReport&&o.awaitingUser)&&!o.saleResponsePending&&o.status==='pending'&&(o.type!=='renewal'||o.awaitingUser&&(!o.lastMessageId||o.lastMessageId===m.id))&&(o.type!=='sell'||owned(p));
+    if(m.proTab)return !!window.FM_PRO?.needsDecision(m);
+    if(m.staffNegotiationId)return !!window.FM_GOVERNANCE?.officeState()?.staffNegotiations.find(r=>r.id===m.staffNegotiationId&&r.status==='pending'&&r.awaitingUser);
+    if(m.offerId)return !!o&&(o.type==='sell'||o.awaitingUser)&&!o.awaitingRegistration&&!o.awaitingPlayerConsent&&(!o.awaitingMedical||o.medicalReport&&o.awaitingUser)&&!o.saleResponsePending&&o.status==='pending'&&(o.type!=='renewal'||o.awaitingUser&&(!o.lastMessageId||o.lastMessageId===m.id))&&(o.type!=='sell'||owned(p));
     if(m.action==='incident')return !!window.FM_INCIDENTS?.pending(m.incidentId);
-    if(m.action==='career')return m.date.slice(0,4)===String(GameState.year)&&!!GameState.world.depth?.jobs?.some(j=>j.status==='open');
+    if(m.action==='career')return !!GameState.world.governance?.jobs?.some(j=>j.status==='open'&&j.expires>=GameState.today)||!!GameState.world.governance?.applications?.some(a=>['offer','counter'].includes(a.status));
     if(m.action==='contract')return owned(p)&&!p.loanId&&!window.FM_RENEWALS?.current(p.id)&&MARKET_CONTRACTS.contractEnd(p)<=MARKET_CONTRACTS.addMonths(GameState.today,12)&&(!m.contractEndAtCreation||m.contractEndAtCreation===MARKET_CONTRACTS.contractEnd(p))&&(!Number.isInteger(m.contractAtCreation)||p.contract===m.contractAtCreation);
     if(m.action==='medical')return owned(p)&&(p.injury>0||p.condicion_fisica<65)&&p.trainingFocus!=='Recuperación';
     if(m.action==='recovery'){const members=mine();return GameState.training.focus!=='Recuperación'&&members.length>0&&members.reduce((sum,p)=>sum+p.condicion_fisica,0)/members.length<73;}
@@ -134,6 +136,8 @@ window.FM_INBOX = (() => {
   function actionsFor(m) {
     const result=[],p=lookup(m.playerId),o=m.offerId?offerFor(m):null,blocked=locked();
     const add=(id,label,disabled=false,primary=false)=>result.push({id,label,disabled,primary});
+    if(m.proTab){add('pro-'+m.proTab,'Abrir expediente de '+m.proTab,blocked,true);return result;}
+    if(m.staffNegotiationId){add('staff-review','Revisar contraoferta del empleado',blocked,true);return result;}
     if(m.action==='incident'){for(const c of window.FM_INCIDENTS?.choices(m.incidentId)||[])add('incident:'+c.id,c.label,blocked||c.disabled);return result;}
     if(o?.status==='pending'&&!o.awaitingRegistration&&!o.awaitingPlayerConsent) {
       if(o.awaitingMedical){if(o.medicalReport&&o.awaitingUser)add('medical-report','Revisar dictamen médico y decidir',blocked,true);add('offer-cancel','Retirar incorporación',blocked);}
@@ -206,6 +210,8 @@ window.FM_INBOX = (() => {
     return `<section class="fm-inbox"><div class="fm-section-head"><div><span class="small muted">DESPACHO DEL ENTRENADOR</span><h2>Mensajes y decisiones</h2></div><button data-inbox-read-all>Marcar todo como leído</button></div><div class="fm-inbox-tools"><div class="fm-inbox-tabs" role="group" aria-label="Filtrar mensajes">${[['all','Todos',GameState.inbox.length],['pending','Pendientes',pending],['unread','Sin leer',unread]].map(([key,label,count])=>`<button class="${s.filter===key?'active':''}" data-inbox-filter="${key}" aria-pressed="${s.filter===key}">${label}<span>${count}</span></button>`).join('')}</div><div class="fm-inbox-search"><label><span class="sr-only">Buscar en mensajes</span><input id="inboxSearch" type="search" maxlength="120" value="${esc(s.query)}" placeholder="Buscar mensaje o jugador…"></label><label><span class="sr-only">Categoría de mensajes</span><select id="inboxCategory"><option value="all">Todas las categorías</option>${Object.entries(categories).map(([key,label])=>`<option value="${key}" ${s.category===key?'selected':''}>${label}</option>`).join('')}</select></label></div></div><div class="fm-inbox-layout"><div class="fm-inbox-list" aria-label="Lista de mensajes">${list.map(m=>`<button class="fm-inbox-item ${m.read?'':'unread'} ${selected?.id===m.id?'selected':''}" data-inbox-open="${m.id}" aria-pressed="${selected?.id===m.id}"><span class="fm-inbox-item-top"><span>${esc(categories[category(m)]||'Club')}</span><time>${date(m.date)}</time></span><strong>${esc(m.title)}</strong><span class="fm-inbox-preview">${esc(m.body.slice(0,150))}</span><span class="fm-inbox-item-status ${isPending(m)?'gold':''}">${isPending(m)?'● ':''}${esc(status(m))}</span></button>`).join('')||'<div class="fm-inbox-empty"><strong>No hay mensajes con este filtro.</strong><p>Podés cambiar la categoría o buscar otro término.</p></div>'}</div>${readPanel(selected)}</div></section>`;
   }
   function execute(id,action) {
+    if(action.startsWith('pro-'))return window.FM_PRO?.open(action.slice(4));
+    if(action==='staff-review'){const message=GameState.inbox.find(m=>m.id===Number(id));if(message?.staffId){FM_GOVERNANCE.showStaff(message.staffId);return true;}}
     if(!active())return;ensure();const m=GameState.inbox.find(q=>q.id===Number(id));if(!m)return;
     const allowed=actionsFor(m).find(a=>a.id===action&&!a.disabled);if(!allowed)return toast('La situación cambió. Revisá el estado del mensaje.');
     const p=lookup(m.playerId);m.read=true;

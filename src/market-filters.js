@@ -79,7 +79,7 @@ window.FM_MARKET_FILTERS = (() => {
   }
   function snapshot(p) {
     const d=GameState.world.scoutNetwork?.players?.[p.id]?.[GameState.userClub.id],r=GameState.world.depth?.reports?.[p.id],legacy=GameState.scouting?.reports?.[p.id];
-    const token=[d?.observations?.length||0,d?.preferredStaffId||'',r?.updated||'',r?.level||0,legacy?.date||'',p.clubId,p.valor_mercado].join(':');
+    const token=[d?.revision||0,d?.matches?.length||0,d?.observations?.length||0,d?.preferredStaffId||'',r?.updated||'',r?.level||0,legacy?.date||'',p.clubId,p.valor_mercado,...Object.keys(core).map(k=>p[k]),p.edad,p.potential,p.attributes?JSON.stringify(p.attributes):''].join(':');
     const old=snapshots.get(p);if(old?.token===token)return old.value;
     const value=window.FM_SCOUT_NETWORK?.filterSnapshot?FM_SCOUT_NETWORK.filterSnapshot(p):{quality:overall(p),potential:null,attributes:p,coverage:15,confidence:0};
     snapshots.set(p,{token,value});return value;

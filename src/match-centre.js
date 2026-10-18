@@ -75,7 +75,7 @@ window.FM_MATCH_CENTRE=(()=>{
   }
   matchView=renderMatch;
   document.addEventListener('click',e=>{if(active()&&ui.tab==='replays'&&e.target.closest('[data-action="play"]')){clearTimeout(replayTimer);ui.replayPlaying=false;ui.tab='field'}},true);
-  function openTab(key){clearTimeout(replayTimer);ui.replayPlaying=false;ui.tab=key;if(['changes','replays','phases','shootout'].includes(key))pause();saveGame(true);render()}
+  function openTab(key){clearTimeout(replayTimer);ui.replayPlaying=false;ui.tab=key;if(['changes','replays','phases','shootout'].includes(key))pause();WORLD_STORAGE.scheduleSave();render()}
   function selectReplay(id){clearTimeout(replayTimer);pause();ui.replayId=id;ui.replayPlaying=false;render()}
   document.addEventListener('click',e=>{
     if(!active())return;
@@ -85,11 +85,11 @@ window.FM_MATCH_CENTRE=(()=>{
     const planPage=e.target.closest('[data-mc-plan-page]');if(planPage){ui.planPage=planPage.dataset.mcPlanPage;render();return}
     const replay=e.target.closest('[data-mc-replay]');if(replay)return selectReplay(replay.dataset.mcReplay);
     if(e.target.closest('[data-mc-replay-play]')){pause();clearTimeout(replayTimer);ui.replayPlaying=!ui.replayPlaying;render();if(ui.replayPlaying){const eventId=GameState.match.eventId;replayTimer=setTimeout(()=>{ui.replayPlaying=false;if(active()&&GameState.match.eventId===eventId&&view==='match'&&ui.tab==='replays')render()},2900)}return}
-    if(e.target.closest('[data-mc-motion]')){GameState.world.matchPresentation=GameState.world.matchPresentation==='static'?'animated':'static';saveGame(true);render();return}
+    if(e.target.closest('[data-mc-motion]')){GameState.world.matchPresentation=GameState.world.matchPresentation==='static'?'animated':'static';WORLD_STORAGE.scheduleSave();render();return}
     const chart=e.target.closest('[data-mc-chart]');if(chart){ui.chart=chart.dataset.mcChart;render();return}
     const out=e.target.closest('[data-mc-out]');if(out){pause();ui.out=Number(out.dataset.mcOut);const candidates=bench(GameState.match);ui.into=candidates.find(id=>player(id).posicion===player(ui.out).posicion)||candidates[0];render()}
   });
-  document.addEventListener('change',e=>{if(!active())return;const node=e.target;if(node.hasAttribute('data-mc-formation')){FM_TACTICS.setLiveFormation(node.value);render();return}if(node.hasAttribute('data-mc-plan')){if(node.value)FM_TACTICS.loadPlan(node.value);render();return}if(node.hasAttribute('data-mc-keeper')){FM_TACTICS.setEmergencyKeeper(Number(node.value));render();return}if(node.hasAttribute('data-mc-replay-select'))return selectReplay(node.value);if(node.id==='out'){ui.out=Number(node.value);ui.into=null;render()}if(node.id==='in')ui.into=Number(node.value);if(node.hasAttribute('data-mc-feed')){ui.filter=node.value;render()}if(node.hasAttribute('data-mc-team')){ui.team=Number(node.value);render()}const key=node.dataset.mcSetting;if(['mentality','tempo','pressing','line'].includes(key)&&!GameState.match.done){pause();GameState.tactics[key]=key==='mentality'?node.value:Number(node.value);log('📋 Ajuste del DT: '+({mentality:'mentalidad',tempo:'ritmo',pressing:'presión',line:'línea'}[key])+'.');saveGame(true);render()}});
+  document.addEventListener('change',e=>{if(!active())return;const node=e.target;if(node.hasAttribute('data-mc-formation')){FM_TACTICS.setLiveFormation(node.value);render();return}if(node.hasAttribute('data-mc-plan')){if(node.value)FM_TACTICS.loadPlan(node.value);render();return}if(node.hasAttribute('data-mc-keeper')){FM_TACTICS.setEmergencyKeeper(Number(node.value));render();return}if(node.hasAttribute('data-mc-replay-select'))return selectReplay(node.value);if(node.id==='out'){ui.out=Number(node.value);ui.into=null;render()}if(node.id==='in')ui.into=Number(node.value);if(node.hasAttribute('data-mc-feed')){ui.filter=node.value;render()}if(node.hasAttribute('data-mc-team')){ui.team=Number(node.value);render()}const key=node.dataset.mcSetting;if(['mentality','tempo','pressing','line'].includes(key)&&!GameState.match.done){pause();GameState.tactics[key]=key==='mentality'?node.value:Number(node.value);log('📋 Ajuste del DT: '+({mentality:'mentalidad',tempo:'ritmo',pressing:'presión',line:'línea'}[key])+'.');WORLD_STORAGE.scheduleSave();render()}});
   function nodeKey(node){
     if(node.nodeType!==1)return null;
     if(node.id)return 'id:'+node.id;

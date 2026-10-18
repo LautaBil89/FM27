@@ -1,0 +1,10 @@
+/* Calendar age and observed youth formation share one clock. No historical training is invented. */
+window.FM_IDENTITY=(()=>{
+  const DAY=86400000,valid=d=>typeof d==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(d)&&Number.isFinite(Date.parse(d)),plusYear=(d,n)=>new Date(Date.UTC(Number(d.slice(0,4))+n,Number(d.slice(5,7))-1,Number(d.slice(8)))).toISOString().slice(0,10);
+  function birth(p,day=GameState?.today){const published=p.fecha_nacimiento||p.dateOfBirth||p.transfermarkt?.dateOfBirth;if(valid(published))return published;const year=Number(p.birthYear)||Number(day?.slice(0,4))-Number(p.edad||18);p.birthYear=year;p.dateOfBirth=year+'-01-01';p.birthDateEstimated=true;return p.dateOfBirth;}
+  function age(p,day=GameState?.today){const b=birth(p,day);return Math.max(0,Number(day.slice(0,4))-Number(b.slice(0,4))-(day.slice(5)<b.slice(5)?1:0));}
+  function training(p,day,id=p.clubId){if(!id||typeof club!=='function'||!club(id))return;const b=birth(p,day),start=plusYear(b,15),end=plusYear(b,21);if(day<start)return;p.trainingHistory??=[];let row=p.trainingHistory.findLast(h=>h.clubId===id&&h.source==='career-observed'&&!h.closed);if(!row){for(const h of p.trainingHistory)if(h.source==='career-observed')h.closed=true;if(day>end)return;row={clubId:id,country:club(id).country,from:day,to:day,months:0,beforeAge:age(p,day),source:'career-observed'};p.trainingHistory.push(row);}const until=day>end?end:day;if(until<row.to)return;row.to=until;row.beforeAge=Math.min(21,age(p,until));row.months=Math.max(0,(Number(until.slice(0,4))-Number(row.from.slice(0,4)))*12+Number(until.slice(5,7))-Number(row.from.slice(5,7))+(Number(until.slice(8))-Number(row.from.slice(8)))/31);if(day>=end)row.closed=true;}
+  function update(p,day=GameState?.today){if(!p||!day)return;p.edad=age(p,day);if(p.clubId)training(p,day);return p.edad;}
+  function transfer(p,from,to,day=GameState.today){if(from)training(p,day,from);for(const row of p.trainingHistory||[])if(row.source==='career-observed')row.closed=true;if(to)training(p,day,to);}
+  return{age,birth,update,training,transfer};
+})();

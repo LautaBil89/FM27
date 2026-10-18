@@ -172,11 +172,11 @@ def expanded_catalog(base):
 
 def embed(db):
     scripts = [ROOT / 'src' / name for name in
-               ('world-engine.js', 'competition-formats.js', 'domestic-regulations.js', 'football-pyramid.js', 'season-calendar.js', 'uefa-guest-clubs.js', 'continental-competitions.js', 'world-ui.js', 'vendor/lz-string.js', 'world-storage.js',
-                'club-ai.js', 'registration-rules.js', 'market-contracts.js', 'player-profile.js', 'player-lifecycle.js',
-                'tactics-workbench.js', 'match-simulation.js', 'match-calibration.js', 'action-inbox.js', 'dressing-room.js', 'match-realism.js', 'negotiation-workspace.js', 'renewal-negotiations.js', 'football-depth.js', 'match-centre.js', 'management-office.js', 'scouting-network.js', 'sports-medicine.js', 'development-centre.js', 'club-finances.js', 'club-governance.js', 'career-integrity.js', 'unexpected-events.js', 'market-filters.js', 'match-archive.js', 'viewport-workspace.js', 'career-library.js')]
+               ('player-identity.js', 'world-engine.js', 'competition-formats.js', 'domestic-regulations.js', 'football-pyramid.js', 'season-calendar.js', 'uefa-guest-clubs.js', 'continental-competitions.js', 'world-ui.js', 'career-locks.js', 'vendor/lz-string.js', 'world-storage.js',
+                'club-ai.js', 'registration-rules.js', 'market-contracts.js', 'player-profile.js', 'player-lifecycle.js', 'career-statistics.js',
+                'tactics-workbench.js', 'match-simulation.js', 'match-calibration.js', 'action-inbox.js', 'dressing-room.js', 'match-realism.js', 'negotiation-workspace.js', 'renewal-negotiations.js', 'football-depth.js', 'match-centre.js', 'management-office.js', 'scouting-network.js', 'sports-medicine.js', 'development-centre.js', 'club-finances.js', 'club-governance.js', 'career-integrity.js', 'unexpected-events.js', 'market-filters.js', 'match-archive.js', 'viewport-workspace.js', 'career-library.js', 'agent-market.js', 'career-projects.js', 'scout-training.js', 'international-football.js', 'tactical-analysis.js', 'database-updates.js', 'professional-workspace.js')]
     styles = [ROOT / 'src' / name for name in
-              ('world-ui.css', 'player-profile.css', 'tactics-workbench.css', 'action-inbox.css', 'dressing-room.css', 'match-realism.css', 'negotiation-workspace.css', 'viewport-workspace.css', 'football-depth.css', 'match-centre.css', 'management-office.css', 'development-centre.css', 'career-integrity.css', 'football-pyramid.css', 'season-calendar.css', 'registration-rules.css', 'sports-medicine.css', 'club-finances.css', 'club-governance.css', 'scouting-network.css', 'market-filters.css', 'continental-competitions.css', 'career-library.css')]
+              ('world-ui.css', 'player-profile.css', 'tactics-workbench.css', 'action-inbox.css', 'dressing-room.css', 'match-realism.css', 'negotiation-workspace.css', 'viewport-workspace.css', 'football-depth.css', 'match-centre.css', 'management-office.css', 'development-centre.css', 'career-integrity.css', 'football-pyramid.css', 'season-calendar.css', 'registration-rules.css', 'sports-medicine.css', 'club-finances.css', 'club-governance.css', 'scouting-network.css', 'market-filters.css', 'continental-competitions.css', 'career-library.css', 'professional-workspace.css')]
     for path in scripts + styles:
         if not path.exists():
             raise FileNotFoundError('Implementation not ready: ' + str(path))
@@ -264,6 +264,10 @@ def embed(db):
     html = html.replace('function scout(id){const p=', 'function scout(id){if(GameState?.worldVersion&&window.FM_DEPTH)return FM_DEPTH.scout(id);const p=')
     html = html.replace('function scoutingView(){const list=', 'function scoutingView(){if(GameState?.worldVersion&&window.FM_DEPTH)return FM_DEPTH.scouting();const list=')
     html = html.replace('if (m.minute >= 90 + m.addedTime) {\n      m.done = true;', 'if (m.minute >= 90 + m.addedTime) {\n      if(window.FM_REGULATIONS?.extend(m)){if(m.minute%5===0)saveGame(true);if(view==="match")render();return;}\n      m.done = true;')
+    # Original controls remain in the self-contained bootstrap. Their mutations
+    # use the background queue too; explicit manual-save and career-switch APIs
+    # are supplied by the modules below and retain their commit semantics.
+    html = html.replace('saveGame(true)', 'WORLD_STORAGE.scheduleSave()')
     js = '\n'.join(path.read_text() for path in scripts)
     db = expanded_catalog(db)
     database = json.dumps(db, ensure_ascii=False, separators=(',', ':')).replace('<', '\\u003c')

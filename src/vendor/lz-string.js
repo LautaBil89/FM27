@@ -478,7 +478,7 @@ var LZString = {
         }
       }
       outputLength += entry.length;
-      if (maximumLength && (outputLength > maximumLength || dictSize > 2000000)) return null;
+      if (maximumLength && (outputLength > maximumLength || dictSize > Math.min(4000000, maximumLength))) return null;
       result.push(entry);
 
       // Add w+entry[0] to the dictionary.

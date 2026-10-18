@@ -105,7 +105,7 @@ window.FM_DEVELOPMENT=(()=>{
     const coach=coachQuality(),manager=FM_OFFICE.ensure().profile.stats.entrenamiento;
     for(const p of mine()){
       const q=playerPlan(p,s),since=Math.max(0,days(GameState.today,q.loadDate));q.weeklyLoad=Math.max(0,q.weeklyLoad-since*.85);q.loadDate=GameState.today;
-      if(p.injury>0)continue;
+      if(p.injury>0||window.FM_NATIONALS?.unavailable(p))continue;
       const forcedRest=p.condicion_fisica<s.policy.restBelow||(s.policy.highRiskRest&&risk(p)==='Alto')||(q.restUntil&&q.restUntil>=GameState.today)||window.FM_MEDICINE?.resting?.(p),personal=p.trainingFocus&&p.trainingFocus!=='Equipo'?p.trainingFocus:t.focus;
       if(personal==='Recuperación'||forcedRest){if(window.FM_MEDICINE)FM_MEDICINE.trainingLoad(p,0,{recovery:true});else p.condicion_fisica=clamp(p.condicion_fisica+count*(forcedRest?3:2.5));q.weeklyLoad=Math.max(0,q.weeklyLoad-count*.5);rested++;continue}
       const intensity=(t.intensity==='Alta'?1.35:t.intensity==='Baja'?.6:1)*(workloads[q.load]||1),key=focuses[personal]||'fisico';
@@ -147,10 +147,10 @@ window.FM_DEVELOPMENT=(()=>{
     if(!check.ok){toast(check.reason);return false}
     if(GameState.players.some(other=>other.id===p.id)){toast('El jugador ya está registrado');return false}
     MANAGEMENT.transaction(-p.salario*4,`Prima de promoción: ${p.nombre}`,'cantera');
-    p.promoted=true;const promoted=structuredClone(p);delete promoted.promoted;promoted.clubId=GameState.userClub.id;promoted.registered=true;promoted.condicion_fisica=100;
-    GameState.players.push(promoted);WORLD_ENGINE.reindex();playerPlan(promoted,s);
+    p.promoted=true;const promoted=structuredClone(p);delete promoted.promoted;promoted.clubId=GameState.userClub.id;promoted.registered=false;window.FM_IDENTITY?.update(promoted,GameState.today);
+    GameState.players.push(promoted);WORLD_ENGINE.reindex();window.FM_REGISTRATION?.onPromotion?.(promoted);playerPlan(promoted,s);
     announce('Promoción de las inferiores',`${p.nombre}, ${p.edad} años, ${p.posicion}: pasa al primer equipo con contrato hasta ${p.contract}, salario semanal ${money(p.salario)} y prima ${money(p.salario*4)}. Es una identidad juvenil simulada. Asegurá minutos adecuados a su desarrollo.`, 'plantel',{playerId:p.id,action:'tactics'});
-    saveGame(true);render();return true;
+    WORLD_STORAGE.scheduleSave();render();return true;
   }
   function candidates(){
     const s=ensure(),key=String(GameState.year);if(s.recruitment[key])return s.recruitment[key];
@@ -169,7 +169,7 @@ window.FM_DEVELOPMENT=(()=>{
     MANAGEMENT.transaction(-bonus,`Contratación de ${c.name}`,'empleados');
     c.status='hired';const employee=structuredClone(c);delete employee.status;window.FM_OFFICE?.staffContract?.(employee,{salary,bonus,years,endDate:terms?.endDate});o.staff.push(employee);
     announce('Incorporación al cuerpo técnico',`${c.name} se incorpora como ${c.role.toLowerCase()}. Calidad ${c.ability}/99, salario ${money(salary)} por semana y prima ${money(bonus)}. Ya puede asumir tareas de su especialidad.`, 'directiva');
-    saveGame(true);render();return true;
+    WORLD_STORAGE.scheduleSave();render();return true;
   }
   function fire(id){
     if(!active()||locked())return false;const o=office(),e=o.staff.find(e=>e.id===id);if(!e)return false;
@@ -177,7 +177,7 @@ window.FM_DEVELOPMENT=(()=>{
     if(e.role==='Ayudante'&&o.staff.filter(e=>e.role==='Ayudante').length===1){toast('El club necesita conservar un ayudante');return false}
     const dismissal=window.FM_OFFICE?.beforeStaffDismiss?.(e)||{ok:true,cost:e.salary*4};if(!dismissal.ok){toast(dismissal.reason);return false}if(cash()<dismissal.cost){toast('No alcanza la caja para la indemnización contractual');return false}
     if(window.FM_GOVERNANCE)FM_GOVERNANCE.settleStaffPayroll(GameState.today,[e.id]);MANAGEMENT.transaction(-(dismissal.severance??dismissal.cost),`Rescisión de ${e.name}`,'empleados');o.staff=o.staff.filter(e=>e.id!==id);if(o.scoutChoice===id)o.scoutChoice='auto';
-    announce('Rescisión de empleado',`${e.name} deja el club. Indemnización: ${money(dismissal.cost)}. Su salario ya no integra las próximas liquidaciones semanales.`, 'directiva');saveGame(true);render();return true;
+    announce('Rescisión de empleado',`${e.name} deja el club. Indemnización: ${money(dismissal.cost)}. Su salario ya no integra las próximas liquidaciones semanales.`, 'directiva');WORLD_STORAGE.scheduleSave();render();return true;
   }
   function onDay(day){
     const s=ensure();if(!s||s.lastDay>=day)return;s.lastDay=day;
@@ -235,7 +235,7 @@ window.FM_DEVELOPMENT=(()=>{
     if(n.dataset.devPolicy){const key=n.dataset.devPolicy;if(key==='restBelow')s.policy[key]=clamp(Math.round(Number(n.value)||70),50,85);if(key==='highRiskRest')s.policy[key]=n.checked;changed=true}
     if(n.dataset.devDelegation&&['individual','academy'].includes(n.dataset.devDelegation)&&['DT','staff'].includes(n.value)){s.delegation[n.dataset.devDelegation]=n.value;changed=true}
     if(n.hasAttribute('data-dev-academy-level')){s.academyLevel=clamp(Math.round(Number(n.value)||1),1,4);changed=true}
-    if(changed){saveGame(true);render()}
+    if(changed){WORLD_STORAGE.scheduleSave();render()}
   });
   return {ensure,playerPlan,evolution,phase,developmentRate,advanceBiology,potentialRange,seasonEnd,fixtures,schedule,risk,coachQuality,positionFamiliarity,applyTraining,onDay,intake,promotionStatus,promote,candidates,staffBudget,hire,fire,page,decorate};
 })();

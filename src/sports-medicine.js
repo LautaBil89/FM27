@@ -36,8 +36,8 @@ window.FM_MEDICINE=(()=>{
     return r.injury;
   }
   function work(p,entry){const r=state(p);if(r.work.some(x=>x.id===entry.id))return false;r.work.push(entry);r.work=r.work.filter(x=>elapsed(entry.date,x.date)<=34).slice(-100);return true}
-  function trainingLoad(p,load,{date=GameState.today,recovery=false,random=Math.random}={}){
-    const r=state(p,date);if(!r||p.injury>0)return {applied:false,injured:false};if(r.restUntil&&date<=r.restUntil){recovery=true;load=0}const dose=bound(load,0,3),entry={id:'training-'+date,date,load:Math.round(dose*35),minutes:0,distance:0};
+  function trainingLoad(p,load,{date=GameState.today,recovery=false,random=Math.random,session='main'}={}){
+    const r=state(p,date);if(!r||p.injury>0)return {applied:false,injured:false};if(r.restUntil&&date<=r.restUntil){recovery=true;load=0}const dose=bound(load,0,3),entry={id:'training-'+date+(session==='main'?'':'-'+session),date,load:Math.round(dose*35),minutes:0,distance:0};
     if(!work(p,entry))return {applied:false,injured:false};
     if(recovery){r.tissueFatigue=bound(r.tissueFatigue-5);p.condicion_fisica=bound(p.condicion_fisica+2.5);r.sharpness=bound(r.sharpness-.15)}
     else {r.tissueFatigue=bound(r.tissueFatigue+dose*2.4);p.condicion_fisica=bound(p.condicion_fisica-Math.max(0,dose-.6)*1.35);r.sharpness=bound(r.sharpness+Math.min(.5,dose*.4));}
@@ -45,11 +45,11 @@ window.FM_MEDICINE=(()=>{
     if(injured)injure(p,{source:'training',date,random});return {applied:true,injured};
   }
   function recoverPlayer(p,day){
-    const r=state(p,GameState.today),count=Math.min(400,elapsed(day,r.lastDay));if(!count)return false;
+    const r=state(p,GameState.today),support=1+(window.FM_PROJECTS?.medicalSupport(p.clubId||p.academyClub||p.reserveClub)||0),count=Math.min(400,elapsed(day,r.lastDay));if(!count)return false;
     for(let n=1;n<=count;n++){
       const current=add(r.lastDay,n),load=r.work.filter(x=>elapsed(current,x.date)<=1&&x.date<=current).reduce((s,x)=>s+x.load,0),rest=r.restUntil&&current<=r.restUntil;
-      const ageRate=bound(1.08-Math.max(0,(p.edad||25)-27)*.018,.72,1.1),recovery=(rest?7.0:5.5)*ageRate*(1-r.tissueFatigue/210)/(load>160?1.15:1);
-      p.condicion_fisica=bound(p.condicion_fisica+recovery);r.tissueFatigue=bound(r.tissueFatigue-(rest?8:5.3)*ageRate);
+      const ageRate=bound(1.08-Math.max(0,(p.edad||25)-27)*.018,.72,1.1),recovery=(rest?7.0:5.5)*support*ageRate*(1-r.tissueFatigue/210)/(load>160?1.15:1);
+      p.condicion_fisica=bound(p.condicion_fisica+recovery);r.tissueFatigue=bound(r.tissueFatigue-(rest?8:5.3)*support*ageRate);
       r.sharpness=bound(r.sharpness-(r.injury?.75:r.lastMatch&&elapsed(current,r.lastMatch)>4?.42:.12));
       if(r.injury){
         const injury=r.injury;r.lostDays++;injury.remaining=Math.max(0,injury.remaining-1);p.injury=Math.ceil(injury.remaining);
@@ -102,7 +102,7 @@ window.FM_MEDICINE=(()=>{
   }
   function afterQuickMatch(event,g,result,lineups){
     if(!active())return false;const journey=travel(g.home,g.away,event?.neutral),length=result?.extraTime?120:90;let count=0;
-    for(let side=0;side<2;side++){const ids=lineups?.[side]||WORLD_ENGINE.aiXI?.(side?g.away:g.home)||[];for(const id of ids){const p=player(id);if(p&&appearance(p,{id:`match-${event?.id||event?.date}-${g.home}-${g.away}`,date:event?.date||GameState.today,minutes:length,load:window.FM_TACTICS?.matchLoad?.(CLUB_AI.tacticsFor(side?g.away:g.home))??1,distance:side?journey.km*2:0}))count++}}
+    for(let side=0;side<2;side++){const ids=lineups?.[side]||WORLD_ENGINE.aiXI?.(side?g.away:g.home)||[];for(const id of ids){const p=player(id);if(p&&appearance(p,{id:`match-${event?.id||event?.date}-${g.home}-${g.away}`,date:event?.date||GameState.today,minutes:g.playerMinutes?.[id]??length,load:window.FM_TACTICS?.matchLoad?.(CLUB_AI.tacticsFor(side?g.away:g.home))??1,distance:side?journey.km*2:0}))count++}}
     return count>0;
   }
   function resting(p,day=GameState.today){const r=state(p);return !!(r?.restUntil&&day<=r.restUntil)}
@@ -111,9 +111,9 @@ window.FM_MEDICINE=(()=>{
     const receipts=ensure().receipts,key=injury.id+':specialist';if(plan==='Especialista'&&!receipts[key]){const cost=Math.max(1500,Math.round((p.salario||1500)*.6));if((window.FM_FINANCES?.operatingAvailable?.()??CLUB_AI.availableBudget())<cost){toast('No hay caja disponible para la consulta especializada');return false}MANAGEMENT.transaction(-cost,`Consulta y rehabilitación especializada: ${p.nombre}`,'medico');receipts[key]={date:GameState.today,cost};
       // A consultation narrows uncertainty; it does not promise a faster biological recovery.
       injury.earliest=add(GameState.today,Math.max(1,Math.floor(injury.remaining*.92)));injury.latest=add(GameState.today,Math.ceil(injury.remaining*1.08));}
-    r.rehab=plan;if(plan==='Prudente')r.restUntil=injury.latest;notify(p,'Plan de recuperación actualizado',`${p.nombre}: ${plan==='Especialista'?'consulta especializada y controles adicionales, sin garantía de adelantar el alta':plan==='Prudente'?'se prioriza la vuelta gradual y se mantiene descanso individual hasta el extremo superior del pronóstico':'seguimiento habitual del cuerpo médico'}.`);saveGame(true);render();return true;
+    r.rehab=plan;if(plan==='Prudente')r.restUntil=injury.latest;notify(p,'Plan de recuperación actualizado',`${p.nombre}: ${plan==='Especialista'?'consulta especializada y controles adicionales, sin garantía de adelantar el alta':plan==='Prudente'?'se prioriza la vuelta gradual y se mantiene descanso individual hasta el extremo superior del pronóstico':'seguimiento habitual del cuerpo médico'}.`);WORLD_STORAGE.scheduleSave();render();return true;
   }
-  function setRest(id,days){const p=player(Number(id));if(!p||p.clubId!==GameState.userClub.id||locked())return false;const r=state(p);r.restUntil=days?add(GameState.today,bound(days,1,7)):null;saveGame(true);render();return true}
+  function setRest(id,days){const p=player(Number(id));if(!p||p.clubId!==GameState.userClub.id||locked())return false;const r=state(p);r.restUntil=days?add(GameState.today,bound(days,1,7)):null;WORLD_STORAGE.scheduleSave();render();return true}
   function report(p){const r=state(p),load=risk(p),injury=r.injury;return {condition:Math.round(p.condicion_fisica),sharpness:Math.round(r.sharpness),tissueFatigue:Math.round(r.tissueFatigue),risk:load,injury:injury?{...injury}:null,minuteLimit:minuteLimit(p),restUntil:r.restUntil,lastMatch:r.lastMatch,history:r.history.map(x=>({...x})),rehab:r.rehab,lostDays:r.lostDays||0}}
   function page(){const rows=mine().map(p=>({p,r:report(p)})).sort((a,b)=>(b.p.injury>0)-(a.p.injury>0)||b.r.risk.score-a.r.risk.score),journey=(()=>{const event=window.FM_DEVELOPMENT?.fixtures()[0],g=event&&WORLD_ENGINE.eventGames(event).find(x=>x.home===GameState.userClub.id||x.away===GameState.userClub.id);return g&&g.away===GameState.userClub.id?travel(g.home,g.away,event.neutral):null})();
     return `<section class="card med-centre"><div class="med-heading"><h2>Medicina y rendimiento</h2><span class="badge">${rows.filter(x=>x.p.injury).length} bajas · ${rows.filter(x=>x.r.risk.label==='Alto').length} riesgos altos</span></div><div class="med-legend"><span><b>Condición:</b> energía disponible</span><span><b>Ritmo:</b> preparación competitiva</span><span><b>Fatiga:</b> carga acumulada de tejidos</span></div>${journey?`<div class="med-trip">Próximo viaje: ~${journey.km.toLocaleString('es-AR')} km por tramo. ${esc(journey.basis)}; se computa ida y vuelta para la carga.</div>`:''}<div class="scroll"><table><thead><tr><th>Jugador</th><th>Condición / ritmo</th><th>Carga 7 días</th><th>Estado y pronóstico</th><th>Plan y descanso</th></tr></thead><tbody>${rows.map(({p,r})=>`<tr><td><button data-player="${p.id}">${esc(p.nombre)}</button><small>${p.edad} años · ${p.posicion}</small></td><td>${r.condition}% / ${r.sharpness}%<small>Fatiga ${r.tissueFatigue}% · límite ${r.minuteLimit}′</small></td><td>${r.risk.minutes}′ · ${r.risk.acute} UA<small>${r.risk.label} · ${Math.round(r.risk.travel).toLocaleString('es-AR')} km estimados</small></td><td>${r.injury?`<strong class="red">${esc(r.injury.label)}</strong><small>${esc(r.injury.stage)} · ${date(r.injury.earliest)} a ${date(r.injury.latest)}${r.injury.recurrence?' · recaída':''}</small>`:`${r.risk.returning?'<strong class="gold">Reintegración progresiva</strong>':'Apto'}<small>${r.lastMatch?'Último partido '+date(r.lastMatch):'Sin minutos registrados'}${r.restUntil?' · descanso hasta '+date(r.restUntil):''}</small>`}</td><td>${r.injury?`<select data-med-rehab="${p.id}" ${locked()?'disabled':''}>${['Normal','Prudente','Especialista'].map(v=>`<option ${r.rehab===v?'selected':''}>${v}</option>`).join('')}</select>`:`<button data-med-rest="${p.id}" ${locked()?'disabled':''}>${r.restUntil?'Quitar descanso':'Descanso 2 días'}</button>`}</td></tr>`).join('')}</tbody></table></div><p class="med-note">Las lesiones y pronósticos pertenecen a la simulación de esta carrera. Las unidades de carga y distancias son estimaciones del juego. Tener el alta médica no asegura ritmo ni elimina el riesgo de recaída.</p></section>`;

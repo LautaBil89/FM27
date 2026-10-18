@@ -1,0 +1,7 @@
+test_promises_require_future_progress_and_cannot_be_farmed (test_professional_integration.ProfessionalIntegration.test_promises_require_future_progress_and_cannot_be_farmed) ... ok
+test_projects_promises_trials_and_press_are_executable (test_professional_upgrade.ProfessionalUpgrade.test_projects_promises_trials_and_press_are_executable) ... ok
+
+----------------------------------------------------------------------
+Ran 2 tests in 26.378s
+
+OK

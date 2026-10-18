@@ -33,7 +33,7 @@
     m.keyPlays=m.keyPlays.slice(-60);const changed=adaptAI(m);
     // The result engine saves before this wrapper attaches recorded plays and decisions.
     // Complete that same checkpoint, including the five-minute extra-time checkpoints.
-    if(m.paused||m.done)saveGame(true);else if(m.minute%15===0||(m.extraTime&&m.minute%5===0))WORLD_STORAGE.scheduleSave();
+    if(m.paused||m.done)WORLD_STORAGE.scheduleSave();else if(m.minute%15===0||(m.extraTime&&m.minute%5===0))WORLD_STORAGE.scheduleSave();
     if((chances.length||changed)&&view==='match')render();
   };
   function decorate(){
@@ -45,6 +45,6 @@
     const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.classList.add('mr-play');svg.setAttribute('viewBox','0 0 100 100');svg.setAttribute('preserveAspectRatio','none');svg.setAttribute('aria-label',`Última ocasión: ${key.name}, ${key.outcome}, minuto ${key.minute}`);
     svg.innerHTML=`<path d="M ${start.x} ${start.y} Q 50 50 ${end.x} ${end.y}" fill="none" stroke="#f4d46b" stroke-width=".65" stroke-dasharray="2 1"/><circle cx="${start.x}" cy="${start.y}" r="2.1" fill="#d9bbef" data-play-actor="${key.playerId}"/><circle cx="${end.x}" cy="${end.y}" r="1" fill="#fff">${animated?`<animate attributeName="cx" from="${start.x}" to="${end.x}" dur=".7s" fill="freeze"/><animate attributeName="cy" from="${start.y}" to="${end.y}" dur=".7s" fill="freeze"/>`:''}</circle>`;pitch.append(svg);
   }
-  document.addEventListener('click',e=>{const actor=e.target.closest('[data-play-actor]');if(actor)return details(Number(actor.dataset.playActor));const button=e.target.closest('[data-mr-mode]');if(button){GameState.world.matchPresentation=button.dataset.mrMode;saveGame(true);render()}});
+  document.addEventListener('click',e=>{const actor=e.target.closest('[data-play-actor]');if(actor)return details(Number(actor.dataset.playActor));const button=e.target.closest('[data-mr-mode]');if(button){GameState.world.matchPresentation=button.dataset.mrMode;WORLD_STORAGE.scheduleSave();render()}});
   window.FM_MATCH_REALISM={decorate,adaptAI};
 })();

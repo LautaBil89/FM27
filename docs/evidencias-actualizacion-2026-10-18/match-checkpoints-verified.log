@@ -1,0 +1,9 @@
+test_01_half_time_checkpoint_retains_last_goal_and_sequence (test_match_persistence.MatchPersistence.test_01_half_time_checkpoint_retains_last_goal_and_sequence) ... ok
+test_02_final_checkpoint_retains_last_goal_and_sequence (test_match_persistence.MatchPersistence.test_02_final_checkpoint_retains_last_goal_and_sequence) ... ok
+test_03_extra_time_periodic_checkpoint_retains_last_goal (test_match_persistence.MatchPersistence.test_03_extra_time_periodic_checkpoint_retains_last_goal) ... ok
+test_04_extra_time_final_checkpoint_retains_last_goal (test_match_persistence.MatchPersistence.test_04_extra_time_final_checkpoint_retains_last_goal) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 143.821s
+
+OK

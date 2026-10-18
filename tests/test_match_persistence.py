@@ -19,7 +19,7 @@ class MatchPersistence(unittest.TestCase):
           const m=GameState.match;
           view='dashboard';m.minute=target-1;m.paused=false;m.addedTime=2;
           m.halfTimeTaken=target>45;m.aiAdjustments=[];
-          if(extraTime){currentEvent().stage='FINAL';m.extraTime=true;m.regulationEnd=90;m.extraEnd=120}
+          if(extraTime){currentEvent().stage='FINAL';m.extraTime=true;m.regulationEnd=90;m.extraEnd=120;m.extraHalfTimeTaken=target>105;m.extraHalfTime=false}
           GameState.tactics.tempo=100;
           const s=FM_SIMULATION.ensure(m);s.owner=m.userSide;s.carrier=m.lineups[m.userSide].find(id=>player(id).posicion==='DEL');s.progress=90;s.lateral=50;
           Math.random=()=>.04;

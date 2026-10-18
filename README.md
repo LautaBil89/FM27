@@ -31,6 +31,23 @@ Los [44 puntos revisados](docs/IMPLEMENTACION_AUDITORIA_2026-10-17.md) incorpora
 
 En el partido hay cambios de formación y posición, arquero de emergencia, reglas de convocatoria por competición y orden de penales. El archivo conserva 120 informes completos; las búsquedas admiten puestos múltiples, condiciones Y/O, orden, columnas y perfiles guardados. Las 25 situaciones aleatorias tienen contexto y consecuencias posteriores. La matriz enlazada distingue implementaciones, formatos adaptados y procedencia de los datos.
 
+## Dirección deportiva y coherencia de carrera
+
+La [actualización de los 36 puntos del 18 de octubre](docs/IMPLEMENTACION_AUDITORIA_2026-10-18.md) agrega **Dirección deportiva** a la barra lateral y al menú móvil:
+
+- Proyecto del club a tres temporadas, sucesión por puesto, compromisos verificables e inversiones en estadio, cantera, medicina y ojeo.
+- Estadísticas permanentes por jugador, temporada, club y competición. Reserva y juvenil se distinguen del primer equipo; el registro nuevo comienza al instalar esta versión.
+- Jugadores libres a prueba, agencias simuladas con relación e historial, honorarios, bonos por participaciones y clasificación, y recompra con negociación personal.
+- Rutas de ojeo por país con viaje y estadía; microciclos semanales de mañana y tarde con responsable y carga médica.
+- Selecciones con convocatorias, ausencias, minutos y lesiones. La copa internacional de carrera tiene 16 selecciones y un formato adaptado, expresamente distinto del Mundial oficial.
+- Análisis de acciones registradas, xA, asociaciones, progresión geométrica y variantes de pelota parada con responsables concretos.
+- Conferencias con memoria de compromisos y evaluación de resultados posteriores a la declaración.
+- Correcciones de referencias de jugadores con fuente y fecha, aplicadas sólo a **nuevas carreras**. No se realiza una descarga automática de Transfermarkt.
+
+Los fichajes mantienen hasta **40 contratos** separados de las listas deportivas. La promoción conserva condición y lesiones; formación local, edad, extranjeros y exención juvenil se evalúan por separado. Un aplazamiento de estadio mueve sólo el encuentro afectado. Las ofertas laborales pasan por entrevista, contrato y fecha de incorporación.
+
+El autoguardado de las acciones se comprime en segundo plano y la biblioteca consulta metadatos. Una carrera sólo admite una pestaña editora; otra puede crear una copia independiente. Borrar una carrera elimina sus puntos de recuperación. Las importaciones se validan antes de activarse, y las exportaciones grandes se entregan comprimidas en JSON para poder importarlas de nuevo.
+
 ## Avance diario
 
 Las carreras ampliadas tienen **cuatro turnos por día**: Mañana (08:00), Mediodía (12:00), Tarde (18:00) y Noche (21:00). **Continuar** procesa los turnos hasta recibir una novedad en la bandeja (incluidos informes, ofertas y altas médicas) o llegar al próximo partido. El botón cambia a **Parar** durante la simulación; también se pausa al abrir otra gestión o salir de la ventana. Desde Noche pasa a la mañana del día siguiente. La API interna `WORLD_CLOCK.advance()` sigue avanzando exactamente un turno. La fecha, hora y progreso diario aparecen en el encabezado, y el dashboard muestra la agenda y la actividad reciente del club.
@@ -294,7 +311,7 @@ Los grupos iniciales se contrastaron con [Libertadores](https://www.transfermark
 Instalá Playwright y su Chromium, y serví el repositorio:
 
 ```bash
-python3 -m pip install playwright
+python3 -m pip install -r requirements-dev.txt
 python3 -m playwright install chromium
 python3 -m http.server 8000
 ```
@@ -302,6 +319,8 @@ python3 -m http.server 8000
 En otra terminal:
 
 ```bash
+python3 tests/test_professional_upgrade.py
+python3 tests/test_professional_integration.py
 python3 tests/test_career_library.py
 python3 tests/test_real_calendars.py
 python3 tests/test_football_pyramids.py
@@ -347,3 +366,11 @@ El reloj respeta partidos locales de tarde y continentales de noche aun cuando u
 Las búsquedas, filtros, lecturas de la bandeja, ajustes tácticos y paradas del avance agrupan sus autoguardados y procesan la validación, compactación y compresión en un Web Worker local. La interfaz sigue respondiendo durante ese trabajo. Las revisiones impiden que una tarea atrasada reemplace un guardado manual, una importación o una carrera nueva. Al salir se completa el guardado pendiente; el botón Guardar y las firmas económicas conservan el guardado inmediato. Si el navegador bloquea workers, se utiliza el guardado convencional. El formato de las partidas anteriores se mantiene.
 
 Los guardados grandes usan compresión UTF-16 mediante lz-string 1.5.0 (MIT), incorporado localmente con límite de descompresión para importaciones. La licencia y la procedencia están en `src/vendor/`. Las copias JSON anteriores siguen admitidas; la exportación conserva el estado completo para trasladarlo.
+
+La automatización está en [.github/workflows/quality.yml](.github/workflows/quality.yml). Para una prueba deportiva prolongada:
+
+```bash
+FM27_TEST_URL=http://127.0.0.1:8000/index.html python3 tools/simulate_long_career.py --years 5 --league ARG1
+```
+
+Este ensayo enfoca las divisiones de un país y sus copas, sin simular todas las temporadas del resto del mundo. Usa selección y recuperación asistidas para evitar decisiones interactivas del DT; las liquidaciones económicas se comprueban en pruebas específicas. Admite hasta 20 temporadas y conserva el detalle anual de edades, planteles, ascensos y guardado.

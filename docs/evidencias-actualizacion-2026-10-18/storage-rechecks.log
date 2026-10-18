@@ -1,0 +1,10 @@
+test_03_primary_save_survives_unavailable_checkpoint_storage (test_career_integrity.CareerIntegrity.test_03_primary_save_survives_unavailable_checkpoint_storage) ... ok
+test_05_background_save_creates_checkpoint_with_matching_payload_date (test_career_integrity.CareerIntegrity.test_05_background_save_creates_checkpoint_with_matching_payload_date) ... ok
+test_new_career_button_keeps_first_and_loads_its_exact_progress_after_reload (test_career_library.CareerLibrary.test_new_career_button_keeps_first_and_loads_its_exact_progress_after_reload) ... ok
+test_scouting_has_separate_filters_and_applied_values_survive_reload (test_market_filters.MarketFilters.test_scouting_has_separate_filters_and_applied_values_survive_reload) ... ok
+test_two_tabs_cannot_overwrite_and_can_fork_an_independent_copy (test_professional_upgrade.ProfessionalUpgrade.test_two_tabs_cannot_overwrite_and_can_fork_an_independent_copy) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 247.303s
+
+OK

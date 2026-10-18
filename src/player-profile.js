@@ -136,7 +136,7 @@
     const p=player(Number(id));if(!p)return;
     if(view!=='player')state.back=view;
     state.id=p.id;state.tab='summary';state.compare=null;state.compareQuery='';
-    if(GameState.match&&!GameState.match.done&&!GameState.match.paused){GameState.match.paused=true;clearInterval(timer);saveGame(true);}
+    if(GameState.match&&!GameState.match.done&&!GameState.match.paused){GameState.match.paused=true;clearInterval(timer);WORLD_STORAGE.scheduleSave();}
     $('#details')?.close();view='player';render();
   }
   details = function(id) {return active()?open(id):legacyDetails(id);};

@@ -1,0 +1,47 @@
+name: Game quality
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '20 6 * * 1'
+permissions:
+  contents: read
+jobs:
+  gameplay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: pip install -r requirements-dev.txt
+      - run: python -m playwright install --with-deps chromium
+      - run: python tools/build_world.py
+      - name: Check JavaScript
+        run: find src -name '*.js' -not -path '*/vendor/*' -print0 | xargs -0 -n1 node --check
+      - name: Start local game
+        run: python -m http.server 8070 --bind 127.0.0.1 > /tmp/fm27-http.log 2>&1 &
+      - name: Functional regressions
+        env:
+          FM27_TEST_URL: http://127.0.0.1:8070/index.html
+          PYTHONPATH: tests
+        run: python -m unittest test_professional_upgrade test_professional_integration test_audit_integration test_match_regulations_depth test_match_persistence test_background_save test_career_library test_career_handover test_world_storage test_compressed_storage -v
+      - name: Long career simulation
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        env:
+          FM27_TEST_URL: http://127.0.0.1:8070/index.html
+        run: python tools/simulate_long_career.py --years 5 --league ARG1 --output /tmp/fm27-long-career.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: quality-evidence
+          path: |
+            /tmp/fm27-long-career.json
+            /tmp/fm27-http.log
+            /tmp/fm27-offer-form-qa

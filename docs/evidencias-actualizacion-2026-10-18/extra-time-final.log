@@ -1,0 +1,7 @@
+test_03_extra_time_periodic_checkpoint_retains_last_goal (test_match_persistence.MatchPersistence.test_03_extra_time_periodic_checkpoint_retains_last_goal) ... ok
+test_04_extra_time_final_checkpoint_retains_last_goal (test_match_persistence.MatchPersistence.test_04_extra_time_final_checkpoint_retains_last_goal) ... ok
+
+----------------------------------------------------------------------
+Ran 2 tests in 89.174s
+
+OK

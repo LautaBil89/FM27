@@ -175,8 +175,8 @@
   CLUB_AI.availableBudget=function(id=user(),excluded=null){return active()?available(id,excluded):0};
   document.addEventListener('click',e=>{const b=e.target.closest?.('[data-finance-tab]');if(b&&active()){ui.tab=b.dataset.financeTab;ui.notice='';render()}});
   document.addEventListener('change',e=>{if(e.target.matches?.('[data-finance-currency]')&&active()){ui.currency=e.target.value;render()}});
-  document.addEventListener('submit',e=>{if(!e.target.matches?.('[data-finance-loan]'))return;e.preventDefault();const form=new FormData(e.target),result=takeLoan(Number(form.get('amount')),Number(form.get('months')));if(!result.ok)ui.notice=result.reason;saveGame(true);render()});
+  document.addEventListener('submit',e=>{if(!e.target.matches?.('[data-finance-loan]'))return;e.preventDefault();const form=new FormData(e.target),result=takeLoan(Number(form.get('amount')),Number(form.get('months')));if(!result.ok)ui.notice=result.reason;WORLD_STORAGE.scheduleSave();render()});
   if(typeof actions!=='undefined')actions.wageBudget=()=>{if(!active()||GameState.match)return;ui.tab='budget';ui.notice='';view='finances';render()};
-  document.addEventListener('submit',e=>{if(!e.target.matches?.('[data-finance-allocation]'))return;e.preventDefault();const data=new FormData(e.target),result=reallocate(data.get('direction'),Number(data.get('weekly')));if(!result.ok)ui.notice=result.reason;saveGame(true);render()});
+  document.addEventListener('submit',e=>{if(!e.target.matches?.('[data-finance-allocation]'))return;e.preventDefault();const data=new FormData(e.target),result=reallocate(data.get('direction'),Number(data.get('weekly')));if(!result.ok)ui.notice=result.reason;WORLD_STORAGE.scheduleSave();render()});
   window.FM_FINANCES={ensure,account,model,ui,onDay,onSeason,onTransfer,onRenewal,onTermination,snapshot,projection,commitments,available,operatingAvailable,boardAvailable,bankDebt,debtLimit,takeLoan,reconcile,recordCash,arrears,reallocate,beforeClubChange,afterClubChange,render:page,decorate,addMonths};
 })();

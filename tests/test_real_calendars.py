@@ -62,7 +62,7 @@ class RealCalendars(unittest.TestCase):
             self.assertLessEqual(league['end'], '2026-06-10')
 
     def test_04_postponements_reject_breaks_and_preserve_original_date(self):
-        r = self.page.evaluate('''()=>{__qaCareer();const event=GameState.calendar.find(e=>e.leagueId==='ARG1'&&e.date>='2026-02-14'&&e.date<='2026-03-01'),before=event.date,bad=FM_SEASONS.postpone(event.id,'Ensayo de receso','2026-03-24'),unchanged=event.date===before,good=FM_SEASONS.postpone(event.id,'Lluvia en el estadio');return {bad,unchanged,good:good.ok,date:event.date,old:event.originalDate,reason:event.postponed?.reason,sorted:GameState.calendar.every((e,i,a)=>!i||e.date>=a[i-1].date)}}''')
+        r = self.page.evaluate('''()=>{__qaCareer();const event=GameState.calendar.find(e=>e.leagueId==='ARG1'&&e.date>='2026-02-14'&&e.date<='2026-03-01'),before=event.date,bad=FM_SEASONS.postpone(event.id,'Ensayo de receso','2026-03-24'),unchanged=event.date===before,good=FM_SEASONS.postpone(event.id,'Lluvia en el estadio');return {bad,unchanged,good:good.ok,date:good.event?.date,old:good.event?.originalDate,reason:good.event?.postponed?.reason,sorted:GameState.calendar.every((e,i,a)=>!i||e.date>=a[i-1].date)}}''')
         self.assertFalse(r['bad']['ok'])
         self.assertTrue(r['unchanged'])
         self.assertTrue(r['good'])

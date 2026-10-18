@@ -29,7 +29,7 @@ window.FM_DRESSING_ROOM=(()=>{
     return s;
   }
   function log(text,playerId=null){const s=ensure();s.history.push({date:GameState.today,text,playerId});s.history=s.history.slice(-120)}
-  function reply(text){ui.notice=text;saveGame(true);render();return text}
+  function reply(text){ui.notice=text;WORLD_STORAGE.scheduleSave();render();return text}
   function notify(title,body,extra={}){MANAGEMENT.addMessage(title,body,'plantel',{sender:'Cuerpo técnico · vestuario',...extra})}
   function influence(p,r=ensure()?.players[p.id]){return r?r.leadership*3+Math.min(15,(p.appearances||0)*.4)+Math.min(15,(p.edad-18)*.6):0}
   function hierarchy(){
@@ -89,7 +89,7 @@ window.FM_DRESSING_ROOM=(()=>{
     const p=selected(id),r=ensure()?.players[id];if(!p||!r||locked()||!Object.hasOwn(roles,role))return false;
     if(r.role===role)return true;const previous=r.role;
     if(roles[role]<roles[previous]&&r.concern?.active){r.trust=clamp(r.trust-3);p.moral=clamp(p.moral-2);log(`${p.nombre} no acepta que cambiar su papel de ${previous.toLowerCase()} a ${role.toLowerCase()} borre la falta de minutos.`,p.id)}
-    r.role=role;p.squadRole=role;log(`${p.nombre}: papel ofrecido de ${role.toLowerCase()}. La participación reciente sigue registrada.`,p.id);saveGame(true);render();return true;
+    r.role=role;p.squadRole=role;log(`${p.nombre}: papel ofrecido de ${role.toLowerCase()}. La participación reciente sigue registrada.`,p.id);WORLD_STORAGE.scheduleSave();render();return true;
   }
   function setCaptain(id){
     const p=selected(id),s=ensure();if(!p||!s||locked())return false;
@@ -111,7 +111,7 @@ window.FM_DRESSING_ROOM=(()=>{
     s.mentoring.push({id:'mentoring-'+mentor.id+'-'+young.id+'-'+s.nextMentoringId,mentorId:mentor.id,youngId:young.id,start:GameState.today,deadline:day(GameState.today,21),status:'active',lastReport:null});s.mentoring=s.mentoring.slice(-60);
     log(`${mentor.nombre} acompañará a ${young.nombre} durante 21 días.`,young.id);return reply('Mentoría iniciada: el seguimiento mejora el entorno de aprendizaje; no garantiza una subida de atributos deportivos.');
   }
-  function cancelMentoring(id){const s=ensure(),m=s?.mentoring.find(q=>q.id===id);if(!m||m.status!=='active'||locked())return false;m.status='cancelled';log(`Cancelaste la mentoría de ${player(m.youngId)?.nombre||'un juvenil'}.`,selected(m.youngId)?.id||null);saveGame(true);render();return true}
+  function cancelMentoring(id){const s=ensure(),m=s?.mentoring.find(q=>q.id===id);if(!m||m.status!=='active'||locked())return false;m.status='cancelled';log(`Cancelaste la mentoría de ${player(m.youngId)?.nombre||'un juvenil'}.`,selected(m.youngId)?.id||null);WORLD_STORAGE.scheduleSave();render();return true}
   function progressMentoring(s,dateValue){
     for(const m of s.mentoring){if(m.status!=='active')continue;const mentor=selected(m.mentorId),young=selected(m.youngId);
       if(!mentor||!young){m.status='interrupted';notify('Mentoría interrumpida','Uno de los participantes dejó el plantel. El acompañamiento terminó y no se aplicaron mejoras.');continue}

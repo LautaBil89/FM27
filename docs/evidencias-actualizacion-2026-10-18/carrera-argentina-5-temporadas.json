@@ -1,0 +1,166 @@
+{
+  "league": "ARG1",
+  "yearsRequested": 5,
+  "mode": "focused-country-sporting",
+  "years": [
+    {
+      "year": 2026,
+      "day": "2026-12-19",
+      "events": 119,
+      "expectedClosures": 2,
+      "closed": [
+        {
+          "league": "ARG1",
+          "champion": "river",
+          "ranking": 30
+        },
+        {
+          "league": "ARG2",
+          "champion": "tm-12100",
+          "ranking": 36
+        }
+      ],
+      "stalled": 0,
+      "rosterErrors": [],
+      "ageErrors": [],
+      "serialized": true,
+      "saveError": "",
+      "encodedBytes": 0,
+      "compressedBytes": 5273796,
+      "largestBlocks": [],
+      "players": 17390,
+      "gamesTotal": 1405,
+      "generated": 0,
+      "persisted": true,
+      "storedBytes": 4953276
+    },
+    {
+      "year": 2027,
+      "day": "2027-12-18",
+      "events": 82,
+      "expectedClosures": 2,
+      "closed": [
+        {
+          "league": "ARG1",
+          "champion": "racing",
+          "ranking": 30
+        },
+        {
+          "league": "ARG2",
+          "champion": "belgrano",
+          "ranking": 36
+        }
+      ],
+      "stalled": 0,
+      "rosterErrors": [],
+      "ageErrors": [],
+      "serialized": true,
+      "saveError": "",
+      "encodedBytes": 0,
+      "compressedBytes": 5978912,
+      "largestBlocks": [],
+      "players": 16794,
+      "gamesTotal": 2549,
+      "generated": 24,
+      "persisted": true,
+      "storedBytes": 5639080
+    },
+    {
+      "year": 2028,
+      "day": "2028-12-16",
+      "events": 82,
+      "expectedClosures": 2,
+      "closed": [
+        {
+          "league": "ARG1",
+          "champion": "river",
+          "ranking": 30
+        },
+        {
+          "league": "ARG2",
+          "champion": "tm-8057",
+          "ranking": 36
+        }
+      ],
+      "stalled": 0,
+      "rosterErrors": [],
+      "ageErrors": [],
+      "serialized": true,
+      "saveError": "",
+      "encodedBytes": 0,
+      "compressedBytes": 6402172,
+      "largestBlocks": [],
+      "players": 16530,
+      "gamesTotal": 3693,
+      "generated": 96,
+      "persisted": true,
+      "storedBytes": 6059956
+    },
+    {
+      "year": 2029,
+      "day": "2029-12-15",
+      "events": 82,
+      "expectedClosures": 2,
+      "closed": [
+        {
+          "league": "ARG1",
+          "champion": "independiente",
+          "ranking": 30
+        },
+        {
+          "league": "ARG2",
+          "champion": "belgrano",
+          "ranking": 36
+        }
+      ],
+      "stalled": 0,
+      "rosterErrors": [],
+      "ageErrors": [],
+      "serialized": true,
+      "saveError": "",
+      "encodedBytes": 0,
+      "compressedBytes": 6812790,
+      "largestBlocks": [],
+      "players": 16186,
+      "gamesTotal": 4837,
+      "generated": 139,
+      "persisted": true,
+      "storedBytes": 6474382
+    },
+    {
+      "year": 2030,
+      "day": "2030-12-14",
+      "events": 82,
+      "expectedClosures": 2,
+      "closed": [
+        {
+          "league": "ARG1",
+          "champion": "tm-12179",
+          "ranking": 30
+        },
+        {
+          "league": "ARG2",
+          "champion": "tm-8057",
+          "ranking": 36
+        }
+      ],
+      "stalled": 0,
+      "rosterErrors": [],
+      "ageErrors": [],
+      "serialized": true,
+      "saveError": "",
+      "encodedBytes": 0,
+      "compressedBytes": 7240158,
+      "largestBlocks": [],
+      "players": 15821,
+      "gamesTotal": 5981,
+      "generated": 243,
+      "persisted": true,
+      "storedBytes": 6904844
+    }
+  ],
+  "pageErrors": [],
+  "seconds": 597.36,
+  "passed": true,
+  "scopeNote": "Dos divisiones del país y copas continentales con sus clubes; esta ejecución argentina no incluyó la Copa Argentina."
+}

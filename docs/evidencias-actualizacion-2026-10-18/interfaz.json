@@ -1,0 +1,79 @@
+{
+  "views": [
+    {
+      "tab": "club",
+      "overflow": false,
+      "bodyBottom": 837,
+      "viewport": 844
+    },
+    {
+      "tab": "club",
+      "panel": "Proyecto a tres temporadas",
+      "overflow": false
+    },
+    {
+      "tab": "club",
+      "panel": "Institución e inversiones",
+      "overflow": false
+    },
+    {
+      "tab": "statistics",
+      "overflow": false,
+      "bodyBottom": 837,
+      "viewport": 844
+    },
+    {
+      "tab": "market",
+      "overflow": false,
+      "bodyBottom": 837,
+      "viewport": 844
+    },
+    {
+      "tab": "scouting",
+      "overflow": false,
+      "bodyBottom": 837,
+      "viewport": 844
+    },
+    {
+      "tab": "training",
+      "overflow": false,
+      "bodyBottom": 837,
+      "viewport": 844
+    },
+    {
+      "tab": "nationals",
+      "overflow": false,
+      "bodyBottom": 837,
+      "viewport": 844
+    },
+    {
+      "tab": "analysis",
+      "overflow": false,
+      "bodyBottom": 837,
+      "viewport": 844
+    },
+    {
+      "tab": "analysis",
+      "panel": "Laboratorio del partido",
+      "overflow": false
+    },
+    {
+      "tab": "analysis",
+      "panel": "Variantes ensayadas",
+      "overflow": false
+    },
+    {
+      "tab": "press",
+      "overflow": false,
+      "bodyBottom": 837,
+      "viewport": 844
+    },
+    {
+      "tab": "data",
+      "overflow": false,
+      "bodyBottom": 837,
+      "viewport": 844
+    }
+  ],
+  "errors": []
+}

@@ -78,7 +78,7 @@ window.FM_REGULATIONS=(()=>{
   function crown(id,phase,winner,absolute=false){const s=state(id);if(!winner||s.winners[phase])return;s.winners[phase]=winner;if(absolute)s.champion=winner;if(winner===GameState.userClub.id){MANAGEMENT.transaction(absolute?3000000:1500000,`Campeón ${league(id).name} · ${phase}`,'premios');GameState.userClub.reputacion=clamp(GameState.userClub.reputacion+4)}news('Título definido',`${club(winner).nombre} gana ${phase} en ${league(id).name}.`)}
   function peruFinal(){const id='PER1',s=state(id),a=s.winners.APERTURA,b=s.winners.CLAUSURA,top=ordered(league(id).standings,id).slice(0,2).map(r=>r.id);if(a===b){crown(id,'NACIONAL',a,true);const rest=ordered(league(id).standings,id).map(r=>r.id).filter(x=>x!==a);s.peruRest=rest;ties(id,'LIB_34',[[rest[1],rest[2]]]);return}const direct=[a,b].filter(x=>top.includes(x));if(direct.length===2)ties(id,'FINAL',[[a,b]]);else if(direct.length===1){s.bye=direct[0];ties(id,'SEMIFINALES',[[[a,b].find(x=>x!==s.bye),top.find(x=>x!==s.bye)]]);}else ties(id,'SEMIFINALES',[[top[0],a],[top[1],b]])}
   function complete(e){
-    if(!local(e))return;const id=e.leagueId,s=state(id),r=rules[id],p=e.regPhase;if(!e.regLast)return;
+    if(!local(e))return;const id=e.leagueId,s=state(id),r=rules[id],p=e.regPhase;const phaseEvents=GameState.calendar.filter(x=>x.leagueId===id&&x.regPhase===p);if(phaseEvents.some(x=>x.games.some(g=>!g.result)))return;
     if(e.phase==='knockout'){
       const winners=settle(id,p);if(!winners||s.completed.includes(p))return;s.completed.push(p);
       if(id==='COL1'&&p==='AP_CUARTOS')ties(id,'AP_SEMIS',[[winners[0],winners[1]],[winners[2],winners[3]]]);
@@ -123,7 +123,7 @@ window.FM_REGULATIONS=(()=>{
     if(m.extraTime)return m.minute<m.extraEnd;
     if(!extraTied(m,currentEvent(),fixture(currentEvent())))return false;
     m.extraTime=true;m.regulationEnd=m.minute;m.regulationScore=[...m.score];m.extraEnd=m.minute+30;m.paused=true;clearInterval(timer);timer=null;
-    log('⏸ Empate en la final: se jugarán 30 minutos de prórroga antes de una eventual definición por penales.');saveGame(true);return true;
+    log('⏸ Empate en la final: se jugarán 30 minutos de prórroga antes de una eventual definición por penales.');WORLD_STORAGE.scheduleSave();return true;
   }
   function simulateExtra(e,g,r){if(r.pen||!extraRequired(e)||!extraTied({score:[r.home,r.away]},e,g))return r;const score={home:r.home,away:r.away};for(let i=0;i<3;i++){if(Math.random()<clamp(.15+(club(g.home).rating-club(g.away).rating)*.002,.06,.3))r.home++;if(Math.random()<clamp(.15+(club(g.away).rating-club(g.home).rating)*.002,.06,.3))r.away++}r.extraTime=score;r.winner=r.home===r.away?null:r.home>r.away?g.home:g.away;return r}
   function label(e){if(!local(e))return null;return `${league(e.leagueId).name} · ${e.regPhase.replaceAll('_',' ')}${e.phase==='knockout'?` · ${e.regLeg===1?'Ida / único':'Vuelta'}`:` · Fecha ${e.round}`}`}
@@ -148,7 +148,7 @@ window.FM_REGULATIONS=(()=>{
   FM_COMPETITIONS.qualificationRankings=rankings=>{const result=base.qualificationRankings(rankings);if(!enabled()||!rankings)return result;return {...result,...Object.fromEntries(Object.keys(rules).map(id=>[id,state(id)?ranking(id,rankings[id]):rankings[id]]))}};
   FM_COMPETITIONS.objectiveResult=(place,goal,fallback)=>{const id=GameState.world.userLeagueId;if(!enabled()||!rules[id])return base.objectiveResult(place,goal,fallback);if(goal.includes('campe'))return Object.values(state(id).winners).includes(GameState.userClub.id);if(goal.includes('descenso'))return !summary()[id].relegated.includes(GameState.userClub.id);return fallback};
   const report=seasonReport;seasonReport=function(){const id=GameState?.world?.userLeagueId;if(!enabled()||!GameState.finished||!rules[id])return report();const s=state(id);return `${league(id).name}: ${Object.entries(s.winners).map(([phase,pid])=>phase+' · '+club(pid).nombre).join('; ')}. ${summary()[id].relegated.includes(GameState.userClub.id)?'Terminaste en posición de descenso deportivo.':'Temporada completada.'}`};
-  document.addEventListener('click',e=>{const b=e.target.closest('[data-reg-tab]');if(b){ui.tab=b.dataset.regTab;render()}const next=e.target.closest('[data-reg-next]');if(next){GameState.world.nextRegulations=!GameState.world.nextRegulations;saveGame(true);render()}});
+  document.addEventListener('click',e=>{const b=e.target.closest('[data-reg-tab]');if(b){ui.tab=b.dataset.regTab;render()}const next=e.target.closest('[data-reg-next]');if(next){GameState.world.nextRegulations=!GameState.world.nextRegulations;WORLD_STORAGE.scheduleSave();render()}});
   document.addEventListener('change',e=>{if(e.target.hasAttribute('data-reg-round')){ui.round=e.target.value;render()}if(e.target.hasAttribute('data-reg-phase')){ui.phase=e.target.value;ui.group='';render()}if(e.target.hasAttribute('data-reg-group')){ui.group=e.target.value;render()}});
   return {enabled,initialize,rules,build,buildLeagueCalendar,local,ordered,summary,archive,archiveLeague,extraRequired,extraTied,extend,simulateExtra,render:renderLeague,hydrate,ui};
 })();

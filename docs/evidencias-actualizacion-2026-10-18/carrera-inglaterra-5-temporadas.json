@@ -1,0 +1,166 @@
+{
+  "league": "GB1",
+  "yearsRequested": 5,
+  "mode": "focused-country-sporting",
+  "years": [
+    {
+      "year": 2026,
+      "day": "2027-05-29",
+      "events": 156,
+      "expectedClosures": 2,
+      "closed": [
+        {
+          "league": "GB2",
+          "champion": "tm-1020",
+          "ranking": 24
+        },
+        {
+          "league": "GB1",
+          "champion": "tm-148",
+          "ranking": 20
+        }
+      ],
+      "stalled": 0,
+      "rosterErrors": [],
+      "ageErrors": [],
+      "serialized": true,
+      "saveError": "",
+      "encodedBytes": 0,
+      "compressedBytes": 6060728,
+      "largestBlocks": [],
+      "players": 17390,
+      "gamesTotal": 1380,
+      "generated": 0,
+      "persisted": true,
+      "storedBytes": 5819228
+    },
+    {
+      "year": 2027,
+      "day": "2028-05-27",
+      "events": 156,
+      "expectedClosures": 2,
+      "closed": [
+        {
+          "league": "GB2",
+          "champion": "tm-405",
+          "ranking": 24
+        },
+        {
+          "league": "GB1",
+          "champion": "tm-1237",
+          "ranking": 20
+        }
+      ],
+      "stalled": 0,
+      "rosterErrors": [],
+      "ageErrors": [],
+      "serialized": true,
+      "saveError": "",
+      "encodedBytes": 0,
+      "compressedBytes": 7059944,
+      "largestBlocks": [],
+      "players": 16630,
+      "gamesTotal": 2760,
+      "generated": 28,
+      "persisted": true,
+      "storedBytes": 6816710
+    },
+    {
+      "year": 2028,
+      "day": "2029-05-26",
+      "events": 156,
+      "expectedClosures": 2,
+      "closed": [
+        {
+          "league": "GB2",
+          "champion": "tm-1123",
+          "ranking": 24
+        },
+        {
+          "league": "GB1",
+          "champion": "tm-405",
+          "ranking": 20
+        }
+      ],
+      "stalled": 0,
+      "rosterErrors": [],
+      "ageErrors": [],
+      "serialized": true,
+      "saveError": "",
+      "encodedBytes": 0,
+      "compressedBytes": 7559468,
+      "largestBlocks": [],
+      "players": 16321,
+      "gamesTotal": 4140,
+      "generated": 81,
+      "persisted": true,
+      "storedBytes": 7333926
+    },
+    {
+      "year": 2029,
+      "day": "2030-05-25",
+      "events": 154,
+      "expectedClosures": 2,
+      "closed": [
+        {
+          "league": "GB2",
+          "champion": "tm-677",
+          "ranking": 24
+        },
+        {
+          "league": "GB1",
+          "champion": "tm-985",
+          "ranking": 20
+        }
+      ],
+      "stalled": 0,
+      "rosterErrors": [],
+      "ageErrors": [],
+      "serialized": true,
+      "saveError": "",
+      "encodedBytes": 0,
+      "compressedBytes": 8052316,
+      "largestBlocks": [],
+      "players": 16032,
+      "gamesTotal": 5518,
+      "generated": 219,
+      "persisted": true,
+      "storedBytes": 7819040
+    },
+    {
+      "year": 2030,
+      "day": "2031-05-24",
+      "events": 154,
+      "expectedClosures": 2,
+      "closed": [
+        {
+          "league": "GB2",
+          "champion": "tm-3008",
+          "ranking": 24
+        },
+        {
+          "league": "GB1",
+          "champion": "tm-873",
+          "ranking": 20
+        }
+      ],
+      "stalled": 0,
+      "rosterErrors": [],
+      "ageErrors": [],
+      "serialized": true,
+      "saveError": "",
+      "encodedBytes": 0,
+      "compressedBytes": 8504478,
+      "largestBlocks": [],
+      "players": 15611,
+      "gamesTotal": 6896,
+      "generated": 312,
+      "persisted": true,
+      "storedBytes": 8278910
+    }
+  ],
+  "pageErrors": [],
+  "seconds": 588.29,
+  "passed": true,
+  "scopeNote": "Premier League, Championship, copa nacional y rondas continentales con sus clubes. No se completan las ligas de los demás países."
+}

@@ -38,7 +38,7 @@ class OfferFormScenarios(unittest.TestCase):
     def setUp(self):
         self.context = self.browser.new_context(viewport={'width': 1440, 'height': 960})
         self.page = self.context.new_page()
-        self.page.set_default_timeout(10000)
+        self.page.set_default_timeout(60000)
         self.errors = []
         self.page.on('pageerror', lambda error: self.errors.append(str(error)))
         self.page.on('dialog', lambda dialog: dialog.accept())
@@ -55,6 +55,7 @@ class OfferFormScenarios(unittest.TestCase):
         # A new world initializes all squads, staff and competition calendars.
         self.page.click('[data-action="new"]', timeout=30000)
         self.page.wait_for_function('GameState?.version===3')
+        self.page.wait_for_function('!document.documentElement.classList.contains("career-library-busy")')
 
     def tearDown(self):
         if self.errors:

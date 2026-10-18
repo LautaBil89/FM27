@@ -117,7 +117,7 @@
       if(quality<s.positions[p.posicion].quality-4&&need.count>=TARGET[p.posicion])continue;
       if(quality>s.quality+15&&rep<70)continue;
       const exact=s.exactNeeds.find(n=>natural(p).includes(n.slot));if(!exact||exact.score<2)continue;
-      const score=(window.FM_DEPTH?.projectScore(p,c.id)||0)+need.score+exact.score*.6+(quality-s.positions[p.posicion].quality)*1.7+(p.edad<25?3:0)+(c.country===club(p.clubId)?.country?3:0);
+      const score=(window.FM_PROJECTS?.transferScore(p,c.id)||0)+(window.FM_DEPTH?.projectScore(p,c.id)||0)+need.score+exact.score*.6+(quality-s.positions[p.posicion].quality)*1.7+(p.edad<25?3:0)+(c.country===club(p.clubId)?.country?3:0);
       if(score<3)continue;
       result.push({id:c.id,nombre:c.nombre,score:Math.round(score),need:exact.slot+' · '+exact.role,playingTime:exact.count<1||quality>exact.quality+3?'Titular':'Rotación',offer:fee,wage,style:economy(c.id).style});
     }
@@ -132,7 +132,7 @@
     if(quality>summary.quality+15&&e.reputation<70)return null;
     if(future>=88&&e.reputation<65&&wage<p.salario*1.7)return null;
     const countryBonus=club(p.clubId)?.country===club(clubId)?.country?4:0;
-    const score=(window.FM_DEPTH?.projectScore(p,clubId)||0)+need.score+(quality-summary.positions[p.posicion].quality)*2+(p.edad<24?Math.min(6,(future-quality)*.35):0)+countryBonus-(p.edad>31?3:0);
+    const score=(window.FM_PROJECTS?.transferScore(p,clubId)||0)+(window.FM_DEPTH?.projectScore(p,clubId)||0)+need.score+(quality-summary.positions[p.posicion].quality)*2+(p.edad<24?Math.min(6,(future-quality)*.35):0)+countryBonus-(p.edad>31?3:0);
     if(score<4)return null;
     const exact=summary.exactNeeds.find(n=>natural(p).includes(n.slot));if(!exact||exact.score<2)return null;
     const bid={playerId:p.id,fromClub:p.clubId,toClub:clubId,type:'buy',dealType:'permanent',fee,wage,bonus,years:p.edad<25?4:p.edad<31?3:2,installments:0,upfrontPercent:100,sellOnPercent:0,releaseClause:roundMoney(Math.max(fee,p.valor_mercado)*2.2),score:score+exact.score*.6,targetPosition:exact.slot,targetRole:exact.role,playingTime:exact.count<1||quality>exact.quality+3?'Titular':'Rotación',appeal:appeal(p,clubId,wage)};
@@ -322,17 +322,17 @@
   function respondToSaleOffer(id,accept){
     if(!active())return false;if(locked())return toast('Terminá el partido antes de negociar');const ai=ensure(),offer=GameState.offers.find(o=>o.id===id&&o.type==='sell');
     if(!offer||offer.status!=='pending'||offer.awaitingRegistration||offer.awaitingPlayerConsent||offer.saleResponsePending)return false;const p=player(offer.playerId);
-    if(!accept){offer.status='rejected';ai.cooldown[offer.playerId]=GameState.today;notify('Oferta rechazada',`Decidiste conservar a ${p?.nombre||'tu jugador'}.`,{playerId:offer.playerId,offerId:id,action:'sale'});saveGame(true);render();return true}
+    if(!accept){offer.status='rejected';ai.cooldown[offer.playerId]=GameState.today;notify('Oferta rechazada',`Decidiste conservar a ${p?.nombre||'tu jugador'}.`,{playerId:offer.playerId,offerId:id,action:'sale'});WORLD_STORAGE.scheduleSave();render();return true}
     if(!p||p.clubId!==userId())return toast('La propuesta ya no corresponde a tu plantel');
     const release=canRelease(p,userId());if(!release.ok)return toast(release.reason);
     offer.fromClub=userId();offer.toClub??=GameState.league.find(c=>c.id!==userId())?.id;offer.wage??=expectedWage(p,offer.toClub);offer.bonus??=0;offer.years??=p.edad<30?3:2;offer.dealType??='permanent';offer.releaseClause??=roundMoney(p.valor_mercado*2.2);
-    const result=window.MARKET_CONTRACTS?MARKET_CONTRACTS.beginSaleConsent(offer):move(offer);if(!result.ok)return toast(result.reason||'No se puede completar el pase');if(result.pendingConsent){saveGame(true);render();return true}
-    if(result.deferred){saveGame(true);render();return true}
-    offer.status='accepted';GameState.transferListed=GameState.transferListed.filter(x=>x!==p.id);autoLineup();notify(offer.dealType==='loan'?'Préstamo acordado':'Venta acordada',`${p.nombre} pasa a ${club(offer.toClub).nombre} ${offer.dealType==='loan'?'a préstamo por '+offer.loanMonths+' meses, con cargo de':'por'} ${money(offer.fee)}.`,{playerId:p.id,offerId:offer.id,action:'sale'});news('Transferencia confirmada',`${p.nombre} se marcha a ${club(offer.toClub).nombre}.`);saveGame(true);render();return true;
+    const result=window.MARKET_CONTRACTS?MARKET_CONTRACTS.beginSaleConsent(offer):move(offer);if(!result.ok)return toast(result.reason||'No se puede completar el pase');if(result.pendingConsent){WORLD_STORAGE.scheduleSave();render();return true}
+    if(result.deferred){WORLD_STORAGE.scheduleSave();render();return true}
+    offer.status='accepted';GameState.transferListed=GameState.transferListed.filter(x=>x!==p.id);autoLineup();notify(offer.dealType==='loan'?'Préstamo acordado':'Venta acordada',`${p.nombre} pasa a ${club(offer.toClub).nombre} ${offer.dealType==='loan'?'a préstamo por '+offer.loanMonths+' meses, con cargo de':'por'} ${money(offer.fee)}.`,{playerId:p.id,offerId:offer.id,action:'sale'});news('Transferencia confirmada',`${p.nombre} se marcha a ${club(offer.toClub).nombre}.`);WORLD_STORAGE.scheduleSave();render();return true;
   }
   function cancelUserOffer(id){
     if(!active()||locked())return false;const offer=GameState.offers.find(o=>o.id===id&&o.type==='buy'&&o.status==='pending'&&!o.awaitingRegistration);if(!offer)return false;
-    offer.status='cancelled';offer.awaitingUser=false;notify('Oferta retirada',`Retiraste la propuesta por ${player(offer.playerId)?.nombre||'el jugador'}. Los fondos reservados quedan disponibles.`,{playerId:offer.playerId,offerId:offer.id,action:'offer'});saveGame(true);render();return true;
+    offer.status='cancelled';offer.awaitingUser=false;notify('Oferta retirada',`Retiraste la propuesta por ${player(offer.playerId)?.nombre||'el jugador'}. Los fondos reservados quedan disponibles.`,{playerId:offer.playerId,offerId:offer.id,action:'offer'});WORLD_STORAGE.scheduleSave();render();return true;
   }
   function submitOffer(form){return window.MARKET_CONTRACTS?MARKET_CONTRACTS.submitOffer(form):toast('El mercado se está preparando')}
   function processUserOffers(){if(!active())return;ensure();window.MARKET_CONTRACTS?.processOffers();expireSales(GameState.today)}

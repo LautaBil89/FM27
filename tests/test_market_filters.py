@@ -71,7 +71,7 @@ class MarketFilters(unittest.TestCase):
           const before=Object.keys(GameState.world.scoutNetwork?.players||{}).length;
           for(const q of GameState.players)FM_SCOUT_NETWORK.filterSnapshot(q);
           const after=Object.keys(GameState.world.scoutNetwork?.players||{}).length;
-          const observed=FM_SCOUT_NETWORK.filterSnapshot(p),a=FM_PLAYER.attributes({...p,...observed.attributes},{observed:false}),score=Math.max(1,Math.round(a.pase/5));
+          const observed=FM_SCOUT_NETWORK.filterSnapshot(p),a=observed.details,score=Math.max(1,Math.round(a.pase/5));
           const oldPotential=p.potential;p.potential=1;const first=FM_SCOUT_NETWORK.filterSnapshot(p).potential;p.potential=99;const second=FM_SCOUT_NETWORK.filterSnapshot(p).potential;p.potential=oldPotential;
           return {id:p.id,name:p.nombre,score,before,after,first,second};
         }""")

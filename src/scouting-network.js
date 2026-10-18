@@ -12,14 +12,14 @@ window.FM_SCOUT_NETWORK=(()=>{
   function dossier(p,id=GameState.userClub.id){const s=ensure();if(!s||!p)return null;if(id!==GameState.userClub.id)return {observations:[],matches:[],firstSeen:GameState.today};const records=s.players[p.id]??={};return records[id]??={observations:[],matches:[],firstSeen:GameState.today}}
   function staffFor(plan={},id=GameState.userClub.id){
     const current=id===GameState.userClub.id?window.FM_OFFICE?.office()?.staff.find(e=>e.id===plan.staffId):null;
-    if(current)return {id:current.id,name:current.name,ability:Number(current.ability)||60,adaptability:Number(current.adaptability)||60,region:current.region||''};
+    if(current)return {id:current.id,name:current.name,ability:Number(current.ability)||60,adaptability:Number(current.adaptability)||60,region:current.region||'',regions:current.regionKnowledge||{}};
     npcCache();if(id!==GameState.userClub.id&&npcStaff.has(id))return npcStaff.get(id);const c=club(id),seed=hash(id+'-scouting'),staff={id:plan.staffId||id+'-technical-staff',name:plan.staffName||'Cuerpo técnico estimado',ability:bound((c?.rating||60)-5+seed%14,35,90),adaptability:55+seed%30,region:c?.country||'',observationSeed:seed};if(id!==GameState.userClub.id)npcStaff.set(id,staff);return staff;
   }
   function publicQuality(p){
     const value=Number(p.transfermarkt?.marketValueEUR)||Number(p.valor_mercado)||0;
     return bound(value>0?48+Math.log10(Math.max(50000,value)/50000)*12:(club(p.clubId)?.rating||60)-5,25,94);
   }
-  function familiarity(p,staff){return staff.region===club(p.clubId)?.country||(p.nationalities||[p.nacionalidad]).includes(staff.region)}
+  function familiarity(p,staff){return (staff.regions?.[club(p.clubId)?.country]||0)>=50||staff.region===club(p.clubId)?.country||(p.nationalities||[p.nacionalidad]).includes(staff.region)}
   function outlook(quality,p){const age=Number(p.edad)||25;return bound(quality+(age<=18?12:age<=21?9:age<=24?5:age<=27?2:0),1,97)}
   function makeObservation(p,report={},day=GameState.today,id=GameState.userClub.id,transientDossier=null){
     const d=transientDossier||dossier(p,id),staff=staffFor(report,id),coverage=bound(Number(report.level)||15,0,100),local=familiarity(p,staff),samples=d.matches.length;
@@ -36,7 +36,7 @@ window.FM_SCOUT_NETWORK=(()=>{
   }
   function capture(p,report,day=GameState.today){
     if(!p||!active())return null;const d=dossier(p),record=makeObservation(p,report,day),same=d.observations.find(o=>o.date===day&&o.staff.id===record.staff.id&&o.coverage===record.coverage);
-    if(same)return same;d.observations.push(record);d.observations=d.observations.slice(-24);report.observationSchema=VERSION;report.assessmentDate=day;return record;
+    if(same){if(same.matchSample!==record.matchSample){Object.assign(same,record);d.revision=(d.revision||0)+1;}return same;}d.revision=(d.revision||0)+1;d.observations.push(record);d.observations=d.observations.slice(-24);report.observationSchema=VERSION;report.assessmentDate=day;return record;
   }
   function latest(p,id=GameState.userClub.id){
     if(id!==GameState.userClub.id){const cache=npcCache(),key=id+':'+p.id+':'+p.clubId+':'+p.edad+':'+p.valor_mercado;if(cache.has(key))return cache.get(key);const o=makeObservation(p,{level:own(p,id)?100:15},GameState.today,id);o.source=own(p,id)?'simulated-training-assessment':'reference-impression';cache.set(key,o);if(cache.size>4096)cache.delete(cache.keys().next().value);return o}
@@ -107,7 +107,7 @@ window.FM_SCOUT_NETWORK=(()=>{
   function observeMatch(m){
     if(!active()||!m||!m.done||!m.lineups)return false;const s=ensure(),key=String(m.eventId||m.event?.id||m.id||`${m.date||GameState.today}:${m.home}:${m.away}`);if(s.observedMatches.includes(key))return false;
     s.observedMatches.push(key);s.observedMatches=s.observedMatches.slice(-500);
-    for(const id of new Set([...m.lineups.flat(),...Object.keys(m.ratings||{}).map(Number)])){const p=player(id);if(!p||Number(m.minutesPlayed?.[id]??m.playerMinutes?.[id]??0)<=0)continue;const r=window.FM_DEPTH?.ensure()?.reports[id];if(!own(p)&&r?.status!=='active')continue;const d=dossier(p);d.matches.push({id:key,date:m.date||GameState.today,minutes:Number(m.minutesPlayed?.[id]??m.playerMinutes?.[id]??0)});d.matches=d.matches.slice(-30);if(r?.status==='active')capture(p,r,m.date||GameState.today)}return true;
+    for(const id of new Set([...m.lineups.flat(),...Object.keys(m.ratings||{}).map(Number)])){const p=player(id);if(!p||Number(m.minutesPlayed?.[id]??m.playerMinutes?.[id]??0)<=0)continue;const r=window.FM_DEPTH?.ensure()?.reports[id];if(!own(p)){if(r?.status!=='active'||r.started&&(m.date||GameState.today)<r.started)continue;const employee=window.FM_OFFICE?.office()?.staff.find(e=>e.id===r.staffId);if(employee&&window.FM_PROGRAMMES&&!FM_PROGRAMMES.available(employee,p))continue;}const d=dossier(p);d.matches.push({id:key,date:m.date||GameState.today,minutes:Number(m.minutesPlayed?.[id]??m.playerMinutes?.[id]??0)});d.matches=d.matches.slice(-30);if(r?.status==='active')capture(p,r,m.date||GameState.today)}return true;
   }
   document.addEventListener('change',event=>{if(event.target.hasAttribute('data-sn-opinion'))prefer(event.target.dataset.snOpinion,event.target.value)});
   return {ensure,dossier,staffFor,capture,detailAttributes,knowledge,assessment,range,observedPlayer,observedRange,potentialRange,prefer,canReobserve,recommendation,risks,reportHTML,sourceHTML,observeMatch,publicQuality,filterSnapshot};

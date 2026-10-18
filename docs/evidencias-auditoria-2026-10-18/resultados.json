@@ -1,0 +1,530 @@
+{
+  "commit": "86206010e8de65fc3c0649c0580c68d764c3d0bb",
+  "date": "2026-10-18",
+  "method": "Chromium headless; fixtures controladas sobre las API activas, dos pestañas, 14 vistas en 1440x900 y 390x844. No se editaron los módulos de producción.",
+  "probes": {
+    "promotion_registration": {
+      "ok": true,
+      "registered": true,
+      "listed": false,
+      "eligible": false,
+      "condition": 100,
+      "spent": 3100
+    },
+    "promoted_player_age": {
+      "birthYear": 2010,
+      "old": 16,
+      "after": 16,
+      "today": "2027-01-01",
+      "expected": 17
+    },
+    "under21_exemption": {
+      "name": "Nico O'Reilly",
+      "age": 20,
+      "exempt": true,
+      "eligible": false,
+      "check": {
+        "ok": true,
+        "reason": "Exento sub-21"
+      }
+    },
+    "italy_u21_non_eu": [
+      {
+        "id": 1291698,
+        "edad": 19,
+        "exempt": true,
+        "reg": {
+          "ok": true
+        }
+      },
+      {
+        "id": 1000669,
+        "edad": 19,
+        "exempt": true,
+        "reg": {
+          "ok": true
+        }
+      },
+      {
+        "id": 1236677,
+        "edad": 20,
+        "exempt": true,
+        "reg": {
+          "ok": true
+        }
+      }
+    ],
+    "empty_reserve_match": {
+      "result": {
+        "home": 0,
+        "away": 6,
+        "scorers": [
+          {
+            "playerId": 2002210,
+            "name": "Facundo Navarro (juvenil)",
+            "side": 1
+          },
+          {
+            "playerId": 2002209,
+            "name": "Lautaro Benítez (juvenil)",
+            "side": 1
+          },
+          {
+            "playerId": 2002210,
+            "name": "Facundo Navarro (juvenil)",
+            "side": 1
+          },
+          {
+            "playerId": 2002210,
+            "name": "Facundo Navarro (juvenil)",
+            "side": 1
+          },
+          {
+            "playerId": 2002210,
+            "name": "Facundo Navarro (juvenil)",
+            "side": 1
+          },
+          {
+            "playerId": 2002209,
+            "name": "Lautaro Benítez (juvenil)",
+            "side": 1
+          }
+        ]
+      },
+      "lineups": [
+        [],
+        [
+          2002207,
+          2002208,
+          2002210,
+          2002209
+        ]
+      ],
+      "table": {
+        "id": "tm-14602",
+        "pj": 1,
+        "g": 0,
+        "e": 0,
+        "p": 1,
+        "gf": 0,
+        "gc": 6,
+        "pts": 0
+      }
+    },
+    "reserve_senior_rest": [
+      {
+        "id": 292985,
+        "reserve": "2026-01-03",
+        "seniorEligible": true
+      },
+      {
+        "id": 982633,
+        "reserve": "2026-01-03",
+        "seniorEligible": true
+      },
+      {
+        "id": 54534,
+        "reserve": "2026-01-03",
+        "seniorEligible": true
+      }
+    ],
+    "save_archive_delete": {
+      "id": "career-22fe9a71-08c1-4f84-87ad-d8904b5623a4",
+      "checkpoint": "1792345064116-5moki7j",
+      "remaining": 3
+    },
+    "invalid_registration_import": {
+      "accepted": true,
+      "error": "",
+      "runtime": "Cannot read properties of null (reading 'includes')"
+    },
+    "manager_renewal_backpay": {
+      "ok": true,
+      "old": 1000,
+      "newSalary": 1050,
+      "charged": 1050,
+      "expectedProrated": 1007
+    },
+    "attribute_filter_stale": {
+      "before": false,
+      "after": false,
+      "actual": 99,
+      "afterInvalidation": true
+    },
+    "promote_reserve_registration": {
+      "ok": true,
+      "registered": true,
+      "listed": false,
+      "condition": 100,
+      "eligible": false
+    },
+    "postponement_scope": {
+      "enabled": true,
+      "ok": true,
+      "reason": null,
+      "old": "2026-01-24",
+      "new": "2026-01-27",
+      "gamesAffected": 15
+    },
+    "ui_1440_dashboard": {
+      "error": "",
+      "ms": 15,
+      "pageOverflow": 0,
+      "outside": []
+    },
+    "ui_1440_inbox": {
+      "error": "",
+      "ms": 11,
+      "pageOverflow": 0,
+      "outside": []
+    },
+    "ui_1440_squad": {
+      "error": "",
+      "ms": 43,
+      "pageOverflow": 0,
+      "outside": []
+    },
+    "ui_1440_tactics": {
+      "error": "",
+      "ms": 60,
+      "pageOverflow": 0,
+      "outside": []
+    },
+    "ui_1440_training": {
+      "error": "",
+      "ms": 219,
+      "pageOverflow": 0,
+      "outside": []
+    },
+    "ui_1440_scouting": {
+      "error": "",
+      "ms": 11,
+      "pageOverflow": 0,
+      "outside": []
+    },
+    "ui_1440_market": {
+      "error": "",
+      "ms": 652,
+      "pageOverflow": 0,
+      "outside": []
+    },
+    "ui_1440_tables": {
+      "error": "",
+      "ms": 28,
+      "pageOverflow": 0,
+      "outside": []
+    },
+    "ui_1440_finances": {
+      "error": "",
+      "ms": 10,
+      "pageOverflow": 0,
+      "outside": []
+    },
+    "ui_1440_match": {
+      "error": "",
+      "ms": 8,
+      "pageOverflow": 0,
+      "outside": []
+    },
+    "ui_1440_office": {
+      "error": "",
+      "ms": 30,
+      "pageOverflow": 0,
+      "outside": []
+    },
+    "ui_1440_career": {
+      "error": "",
+      "ms": 13,
+      "pageOverflow": 0,
+      "outside": []
+    },
+    "ui_1440_dressing-room": {
+      "error": "",
+      "ms": 15,
+      "pageOverflow": 0,
+      "outside": []
+    },
+    "ui_1440_archive": {
+      "error": "",
+      "ms": 6,
+      "pageOverflow": 0,
+      "outside": []
+    },
+    "ui_390_dashboard": {
+      "error": "",
+      "ms": 9,
+      "pageOverflow": 0,
+      "outside": [
+        "Preparar partido"
+      ]
+    },
+    "ui_390_inbox": {
+      "error": "",
+      "ms": 6,
+      "pageOverflow": 0,
+      "outside": []
+    },
+    "ui_390_squad": {
+      "error": "",
+      "ms": 18,
+      "pageOverflow": 0,
+      "outside": []
+    },
+    "ui_390_tactics": {
+      "error": "",
+      "ms": 18,
+      "pageOverflow": 0,
+      "outside": []
+    },
+    "ui_390_training": {
+      "error": "",
+      "ms": 38,
+      "pageOverflow": 0,
+      "outside": []
+    },
+    "ui_390_scouting": {
+      "error": "",
+      "ms": 8,
+      "pageOverflow": 0,
+      "outside": []
+    },
+    "ui_390_market": {
+      "error": "",
+      "ms": 210,
+      "pageOverflow": 0,
+      "outside": []
+    },
+    "ui_390_tables": {
+      "error": "",
+      "ms": 23,
+      "pageOverflow": 0,
+      "outside": []
+    },
+    "ui_390_finances": {
+      "error": "",
+      "ms": 8,
+      "pageOverflow": 0,
+      "outside": []
+    },
+    "ui_390_match": {
+      "error": "",
+      "ms": 6,
+      "pageOverflow": 0,
+      "outside": []
+    },
+    "ui_390_office": {
+      "error": "",
+      "ms": 28,
+      "pageOverflow": 0,
+      "outside": []
+    },
+    "ui_390_career": {
+      "error": "",
+      "ms": 11,
+      "pageOverflow": 0,
+      "outside": []
+    },
+    "ui_390_dressing-room": {
+      "error": "",
+      "ms": 12,
+      "pageOverflow": 0,
+      "outside": []
+    },
+    "ui_390_archive": {
+      "error": "",
+      "ms": 6,
+      "pageOverflow": 0,
+      "outside": []
+    },
+    "dashboard_mobile_geometry": {
+      "text": "Preparar partido ",
+      "rect": {
+        "x": 21,
+        "y": 941.5625,
+        "width": 146.765625,
+        "height": 36.84375,
+        "top": 941.5625,
+        "right": 167.765625,
+        "bottom": 978.40625,
+        "left": 21
+      },
+      "content": {
+        "x": 0,
+        "y": 129,
+        "width": 390,
+        "height": 715,
+        "top": 129,
+        "right": 390,
+        "bottom": 844,
+        "left": 0
+      },
+      "parent": "world-next-match-actions",
+      "html": "<button class=\"primary\" data-view=\"match\">Preparar partido <svg class=\"fm-inline-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 12h16m-6-6 6 6-6 6\"></path></svg></button>"
+    },
+    "reserve_zero_condition": {
+      "xi": [
+        {
+          "id": 2002207,
+          "condition": 100
+        },
+        {
+          "id": 2002216,
+          "condition": 0
+        },
+        {
+          "id": 2002217,
+          "condition": 0
+        },
+        {
+          "id": 2002215,
+          "condition": 0
+        },
+        {
+          "id": 2002208,
+          "condition": 100
+        },
+        {
+          "id": 2002222,
+          "condition": 0
+        },
+        {
+          "id": 2002223,
+          "condition": 0
+        },
+        {
+          "id": 2002209,
+          "condition": 100
+        },
+        {
+          "id": 2002210,
+          "condition": 100
+        },
+        {
+          "id": 2002225,
+          "condition": 0
+        },
+        {
+          "id": 2002224,
+          "condition": 0
+        }
+      ],
+      "total": 11
+    },
+    "performance_sizes": {
+      "clubs": 645,
+      "players": 17390,
+      "calendar": 1345,
+      "saveChars": 875670,
+      "serializeMs": 2716,
+      "saveMs": 2362,
+      "careers": 1,
+      "marketRenderMs": [
+        706,
+        221,
+        177
+      ]
+    },
+    "two_tabs_confirmed": {
+      "tabA": {
+        "id": "career-5c898ad4-ece9-40ab-a55e-b70113af948f",
+        "live": 1234567,
+        "saved": true,
+        "cached": 1234567
+      },
+      "tabB": {
+        "id": "career-5c898ad4-ece9-40ab-a55e-b70113af948f",
+        "live": 987654,
+        "saved": true,
+        "cached": 987654
+      },
+      "tabAStillShows": 1234567,
+      "conflictWarning": false
+    },
+    "quick_match_double_red": {
+      "calls": 96,
+      "cards": [
+        {
+          "side": 0,
+          "playerId": 729264,
+          "type": "amarilla"
+        },
+        {
+          "side": 0,
+          "playerId": 729264,
+          "type": "doble amarilla"
+        },
+        {
+          "side": 0,
+          "playerId": 729264,
+          "type": "roja directa"
+        },
+        {
+          "side": 1,
+          "playerId": 1011738,
+          "type": "roja directa"
+        }
+      ],
+      "redCounts": {
+        "729264": {
+          "reds": 2,
+          "minutes": 2520
+        },
+        "1011738": {
+          "reds": 1,
+          "minutes": 2550
+        }
+      }
+    },
+    "inbox_waiting_as_decision": {
+      "isPending": true,
+      "actions": [
+        {
+          "id": "offer-cancel",
+          "label": "Retirar oferta",
+          "disabled": false,
+          "primary": false
+        },
+        {
+          "id": "profile",
+          "label": "Ficha del jugador",
+          "disabled": false,
+          "primary": false
+        },
+        {
+          "id": "shortlist",
+          "label": "Seguir jugador",
+          "disabled": false,
+          "primary": false
+        },
+        {
+          "id": "scout",
+          "label": "Pedir informe · USD 1.500",
+          "disabled": false,
+          "primary": false
+        }
+      ],
+      "stage": "club",
+      "awaitingUser": false
+    },
+    "inbox_new_job_not_actionable": {
+      "job": "open",
+      "governanceJobs": 1,
+      "legacyJobs": 0,
+      "isPending": false
+    },
+    "inbox_staff_counter_not_actionable": {
+      "proposal": true,
+      "awaitingUser": true,
+      "message": true,
+      "isPending": false,
+      "actions": [
+        {
+          "id": "go-career",
+          "label": "Revisar proyectos",
+          "disabled": false,
+          "primary": true
+        }
+      ]
+    }
+  }
+}

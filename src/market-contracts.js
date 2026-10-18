@@ -64,9 +64,10 @@
     const nationalities=p.nationalities||[p.nacionalidad];
     if(priority==='adaptation'&&origin?.country!==c?.country&&!nationalities.includes(c?.country)){factor+=.04;reasons.push('El cambio de país requiere una compensación por adaptación')}
     if(priority==='minutes'&&offer.playingTime==='Proyecto'&&p.edad>=24){factor+=.05;reasons.push('Busca responsabilidades de primera plantilla')}
-    const incentive=Math.min(.04,(Number(offer.appearanceBonus)||0)/Math.max(100,p.salario)*.025);
-    const wage=Math.max(100,Math.ceil(base.wage*Math.max(.96,factor-incentive)/100)*100);
-    return {name:['Río Gestión Deportiva','Fútbol Global','Proyecto Once','Puente Sports'][n%4],simulated:true,priority,label:labels[priority],patience:7+n%8,wage,reasons:[...(base.reasons||[]),...reasons],refuse:base.refuse||'',project:window.FM_DEPTH?.project(target)?.policy||'academy',style:target===GameState.userClub.id?GameState.tactics.style:ai().economy(target)?.style,continental};
+    const incentive=Math.min(.04,(Number(offer.appearanceBonus)||0)/Math.max(100,p.salario)*.025),agency=window.FM_AGENTS?.agency(p),relationship=agency?(agency.relationship-50)/2500:0;
+    if(agency&&agency.relationship!==50)reasons.push(agency.relationship>50?'La relación con su agencia facilita el diálogo':'La agencia recuerda negociaciones interrumpidas');
+    const wage=Math.max(100,Math.ceil(base.wage*Math.max(.94,factor-incentive-relationship)/100)*100);
+    return {name:agency?.name||['Río Gestión Deportiva','Fútbol Global','Proyecto Once','Puente Sports'][n%4],simulated:true,priority,label:labels[priority],patience:Math.max(4,7+n%8+(agency?Math.round((agency.relationship-50)/15):0)),wage,reasons:[...(base.reasons||[]),...reasons],refuse:base.refuse||'',project:window.FM_DEPTH?.project(target)?.policy||'academy',style:target===GameState.userClub.id?GameState.tactics.style:ai().economy(target)?.style,continental};
   }
   function responseDue(offer) {
     return dailyClock() ? validDay(offer.responseDate)&&offer.responseDate<=GameState.today : offer.dueAt<=GameState.eventIndex;
@@ -86,7 +87,7 @@
     const renewals=(state.renewals||[]).filter(r=>r.status==='pending'&&r.fromClub===id&&r.id!==excludingId).reduce((sum,r)=>sum+amount(r.bonus),0);
     // A disputed purchase after the player's return is a contingent claim, not a
     // signed payable. Only a concluded settlement creates a cash movement.
-    return obligations+purchases+renewals+offers.reduce((sum,o)=>sum+amount(o.fee)+amount(o.bonus)+(o.dealType==='loan'&&['mandatory','conditional'].includes(o.purchaseMode)?amount(o.purchaseFee)+amount(o.purchaseTerms?.bonus):0),0);
+    return (window.FM_AGENTS?.reserved(id,excludingId)||0)+obligations+purchases+renewals+offers.reduce((sum,o)=>sum+amount(o.fee)+amount(o.bonus)+(o.dealType==='loan'&&['mandatory','conditional'].includes(o.purchaseMode)?amount(o.purchaseFee)+amount(o.purchaseTerms?.bonus):0),0);
   }
   function pendingWages(id=GameState?.userClub.id, excludingId=null) {
     if (!world()) return 0;
@@ -133,32 +134,34 @@
     if (committed(p.id,offer.id)) return 'El jugador ya firmó un acuerdo para la próxima ventana';
     if(offer.precontract){const legal=precontractEligibility(p,to,GameState.today,offer.ownerConsent===true);if(!legal.ok)return legal.reason;}
     const continuity=purchasingLoan(p,offer),enforced=enforceablePurchase(p,offer);
-    if (p.clubId&&!offer.precontract&&!offer.activateClause&&!continuity&&!signedRegistration(p,offer)) {
+    if (p.clubId&&!offer.precontract&&!offer.activateClause&&!window.FM_AGENTS?.isBuyback(offer,p)&&!continuity&&!signedRegistration(p,offer)) {
       const releasable = ai().canRelease(p,p.clubId);
       if (releasable===false || (releasable && releasable.ok===false)) return 'El club necesita conservar cobertura en esa posición';
     }
     const receiving=ai().canReceive(p,to,wage,{excludeOfferId:offer.id,loanPurchaseId:continuity?.id});
     if ((receiving===false||(receiving&&receiving.ok===false))&&!(enforced&&receiving?.reason==='se supera el presupuesto salarial')) return receiving?.reason||'El club no puede incorporar al jugador';
-    if (!enforced&&amount(offer.fee)+amount(offer.bonus)+(offer.dealType==='loan'&&['mandatory','conditional'].includes(offer.purchaseMode)?amount(offer.purchaseFee)+amount(offer.purchaseTerms?.bonus):0)>ai().availableBudget(to,offer.id)) return 'No hay fondos para cubrir el pase y sus obligaciones';
+    if (!enforced&&amount(offer.fee)+amount(offer.bonus)+(window.FM_AGENTS?.extra(offer)||0)+(offer.dealType==='loan'&&['mandatory','conditional'].includes(offer.purchaseMode)?amount(offer.purchaseFee)+amount(offer.purchaseTerms?.bonus):0)>ai().availableBudget(to,offer.id)) return 'No hay fondos para cubrir el pase y sus obligaciones';
     return '';
   }
   function normalise(raw) {
     raw=raw&&typeof raw==='object'?raw:{};
     const p=player(Number(raw.playerId)), type=raw.type==='sell'?'sell':'buy', dealType=raw.dealType==='loan'?'loan':'permanent';
     const parseMoney=(value,fallback=0)=>Math.round(Number(value??fallback));
-    return {...raw,playerId:Number(raw.playerId),type,dealType,fromClub:Object.prototype.hasOwnProperty.call(raw,'fromClub')?raw.fromClub:p?.clubId??null,toClub:raw.toClub||GameState.userClub.id,
+    return {...raw,...(window.FM_AGENTS?.terms(raw)||{}),playerId:Number(raw.playerId),type,dealType,fromClub:Object.prototype.hasOwnProperty.call(raw,'fromClub')?raw.fromClub:p?.clubId??null,toClub:raw.toClub||GameState.userClub.id,
       fee:parseMoney(raw.fee),bonus:parseMoney(raw.bonus),wage:parseMoney(raw.wage,p?.salario),years:Number(raw.years??3),
       installments:Number(raw.installments??0),upfrontPercent:Number(raw.upfrontPercent??50),sellOnPercent:Number(raw.sellOnPercent??0),
       releaseClause:parseMoney(raw.releaseClause,p?.clausula_rescision),loanMonths:Number(raw.loanMonths??6),wageShare:Number(raw.wageShare??100),purchaseMode:raw.purchaseMode||'none',purchaseFee:parseMoney(raw.purchaseFee),annualIncrease:Number(raw.annualIncrease??0),recallAllowed:raw.recallAllowed===true||raw.recallAllowed==='on',purchaseAppearances:Number(raw.purchaseAppearances??10),precontract:raw.precontract===true||raw.precontract==='on',ownerConsent:raw.ownerConsent===true||raw.ownerConsent==='on',activateClause:raw.activateClause===true||raw.activateClause==='on'};
   }
   function termsReason(offer,p) {
     if (!p) return 'Jugador no encontrado';
+    if(!p.clubId||offer.precontract)offer.contingencies=[];
     // A loan never rewrites the owner's employment contract or carries transfer clauses.
     if(offer.dealType==='loan'){
-      offer.wage=p.salario;offer.years=1;offer.bonus=0;offer.annualIncrease=0;
+      offer.wage=p.salario;offer.years=1;offer.bonus=0;offer.annualIncrease=0;offer.contingencies=[];offer.agentFee=0;
       offer.releaseClause=p.clausula_rescision;offer.installments=0;offer.upfrontPercent=100;offer.sellOnPercent=0;offer.activateClause=false;
       if(offer.purchaseMode==='none')offer.purchaseFee=0;
     }else{offer.purchaseMode='none';offer.purchaseFee=0}
+    const agencyError=window.FM_AGENTS?.validate(offer);if(agencyError)return agencyError;
     if(offer.playingTime&&!['Titular','Rotación','Proyecto'].includes(offer.playingTime))return 'Revisá el papel en el plantel';
     for(const key of ['appearanceBonus','goalBonus','cleanSheetBonus','titleBonus']){
       const value=Number(offer[key]??0),limit=key==='titleBonus'?500000:100000;
@@ -228,7 +231,7 @@
     GameState.offers.unshift(offer);
     const description=offer.dealType==='loan'?`${offer.loanMonths} meses, ${cash(offer.fee)} de cargo y ${offer.wageShare}% del salario a tu cargo`:`${cash(offer.fee)} de pase, ${cash(offer.wage)} semanales${offer.installments?`, ${offer.installments} cuotas mensuales`:''}`;
     message('Oferta enviada',`${p.nombre}: ${description}. El club y el jugador responderán ${dailyClock()?`a partir del ${date(offer.responseDate)}`:'en la próxima jornada'}.`,offer);
-    $('#details')?.close();saveGame(true);render();toast(dailyClock()?'Oferta enviada; respuesta a partir de mañana':'Oferta enviada; respuesta en la próxima jornada');
+    $('#details')?.close();WORLD_STORAGE.scheduleSave();render();toast(dailyClock()?'Oferta enviada; respuesta a partir de mañana':'Oferta enviada; respuesta en la próxima jornada');
     return {ok:true,offer};
   }
   function clubTerms(formOrObject) {
@@ -248,14 +251,15 @@
     Object.assign(offer,{id:nextId('offer'),status:'pending',createdAt:GameState.eventIndex,dueAt:GameState.eventIndex+1,createdDate:GameState.today,responseDate:nextDay(GameState.today),requiresMedical:true,clubAccepted:!p.clubId||offer.precontract,playerTermsSubmitted:false,awaitingPlayerTerms:!p.clubId||offer.precontract,awaitingUser:!p.clubId||offer.precontract});
     if(!p.clubId||offer.precontract){offer.stage='player';offer.personalDeadline=addDays(GameState.today,negotiationProfile(p,offer).patience)}GameState.offers.unshift(offer);
     message(offer.precontract?'Precontrato habilitado':p.clubId?'Oferta al club enviada':'Jugador libre disponible',offer.precontract?`${p.nombre}: aviso al club propietario registrado. Podés negociar un vínculo que comenzará después de su vencimiento, el ${date(addDays(contractEnd(p),1))}. No hay pago de pase.`:p.clubId?`${clubName(p.clubId)} evaluará el ${date(offer.responseDate)} tu propuesta por ${p.nombre}. Si la acepta, podrás negociar el contrato personal.`:`${p.nombre} no necesita acuerdo de traspaso. Negociá sus condiciones personales para completar la incorporación.`,offer);
-    $('#details')?.close();saveGame(true);render();return {ok:true,offer};
+    $('#details')?.close();WORLD_STORAGE.scheduleSave();render();return {ok:true,offer};
   }
   function submitPlayerTerms(id,raw) {
     const offer=byId(id),form=typeof HTMLFormElement!=='undefined'&&raw instanceof HTMLFormElement?raw:null;
     const reject=reason=>{if(form)offerFeedback(form,reason);else toast(reason);return {ok:false,reason}};
     if(!offer||!pending(offer)||!offer.clubAccepted||!offer.awaitingPlayerTerms||locked())return reject('El acuerdo con el club no está disponible para negociar el contrato');
-    if(offer.personalDeadline&&offer.personalDeadline<GameState.today){rejectOffer(offer,'El representante dio por terminado el plazo para el contrato personal');saveGame(true);render();return reject('Venció el plazo para negociar el contrato personal')}
+    if(offer.personalDeadline&&offer.personalDeadline<GameState.today){rejectOffer(offer,'El representante dio por terminado el plazo para el contrato personal');WORLD_STORAGE.scheduleSave();render();return reject('Venció el plazo para negociar el contrato personal')}
     const fields=form?Object.fromEntries(new FormData(form).entries()):raw,p=player(offer.playerId),candidate=normalise({...offer,...fields,fee:offer.fee,fromClub:offer.fromClub,toClub:offer.toClub,dealType:offer.dealType,installments:offer.installments,upfrontPercent:offer.upfrontPercent,sellOnPercent:offer.sellOnPercent,loanMonths:offer.loanMonths,wageShare:offer.wageShare,activateClause:offer.activateClause,purchaseMode:offer.purchaseMode,purchaseFee:offer.purchaseFee,precontract:offer.precontract,ownerConsent:offer.ownerConsent,recallAllowed:offer.recallAllowed,purchaseAppearances:offer.purchaseAppearances,stage:'player'});
+    candidate.contingencies=structuredClone(offer.contingencies||[]);
     if(offer.dealType==='loan'){candidate.wage=p.salario;candidate.years=1;candidate.bonus=0;candidate.releaseClause=p.clausula_rescision}
     candidate.playingTime=fields.playingTime||'Rotación';candidate.appearanceBonus=Number(fields.appearanceBonus||0);candidate.goalBonus=Number(fields.goalBonus||0);candidate.cleanSheetBonus=Number(fields.cleanSheetBonus||0);candidate.titleBonus=Number(fields.titleBonus||0);
     if(candidate.dealType==='loan'&&candidate.purchaseMode!=='none'){
@@ -269,7 +273,7 @@
     const reason=termsReason(candidate,p)||statusReason(p,candidate.toClub,candidate.dealType==='loan'?amount(p.salario*candidate.wageShare/100):candidate.wage,candidate);if(reason)return reject(reason);
     Object.assign(offer,candidate,{playerTermsSubmitted:true,awaitingPlayerTerms:false,awaitingUser:false,counterAccepted:false,responseDate:nextDay(GameState.today)});delete offer.counter;
     message('Contrato personal propuesto',`${p.nombre} evaluará ${candidate.dealType==='loan'?'el papel y las primas durante la cesión; conserva el contrato del propietario. Papel propuesto:':'salario, duración y papel de'} ${candidate.playingTime.toLowerCase()} a partir del ${date(offer.responseDate)}. El acuerdo con el club se conserva y todavía no se paga el pase.`,offer);
-    $('#details')?.close();saveGame(true);render();return {ok:true,offer};
+    $('#details')?.close();WORLD_STORAGE.scheduleSave();render();return {ok:true,offer};
   }
   function demands(p,offer) {
     const selling=club(p.clubId),position=squad(p.clubId).filter(q=>q.posicion===p.posicion).sort((a,b)=>overall(b)-overall(a)),rank=position.findIndex(q=>q.id===p.id);
@@ -280,13 +284,15 @@
     const interestCount=window.FM_DEPTH?.rivalOffers(p,offer).length||0;
     const clause=offer.activateClause;
     const basePrice=typeof ai().askingPrice==='function'?ai().askingPrice(p):transferCost(p)*.9;
-    const fee=!p.clubId||offer.precontract?0:clause?p.clausula_rescision:Math.round(basePrice*clubNegotiation(p,offer).priceFactor*(1+Math.min(.12,interestCount*.03))*(1-offer.sellOnPercent*.003)+(offer.installments?basePrice*(.015+offer.installments*.003)*(1-offer.upfrontPercent/100):0));
+    const expectedBonuses=window.FM_AGENTS?.clubCredit(offer,p)||0;
+    const fee=!p.clubId||offer.precontract?0:clause?p.clausula_rescision:Math.max(Math.round(basePrice*.5),Math.round(basePrice*clubNegotiation(p,offer).priceFactor*(1+Math.min(.12,interestCount*.03))*(1-offer.sellOnPercent*.003)+(offer.installments?basePrice*(.015+offer.installments*.003)*(1-offer.upfrontPercent/100):0)-expectedBonuses));
     const reputation=offer.toClub===GameState.userClub.id?GameState.userClub.reputacion:ai().economy(offer.toClub)?.reputation||65;
     const lowReputation=(window.FM_SCOUT_NETWORK?.assessment(p,{kind:'potential',observerClub:offer.toClub})?.estimate||overall(p))>=88&&reputation<65;
     const wage=Math.max(100,Math.ceil(p.salario*(lowReputation?1.7:p.moral<40?1:1.05)/100)*100);
     const personal=offer.stage==='player'?negotiationProfile(p,offer):null;return {fee,wage:personal?.wage??wage,releaseClause:window.FM_REGISTRATION?.profile(offer.toClub).country==='España'?Math.round(p.valor_mercado*1.2):0,refuse:personal?.refuse||''};
   }
   function rejectOffer(offer,reason) {
+    if(offer.stage==='player'&&window.FM_AGENTS){const p=player(offer.playerId);if(p){const agency=FM_AGENTS.agency(p);agency.relationship=Math.max(0,agency.relationship-2);}}
     offer.status='rejected';offer.reason=reason;offer.resolvedDate=GameState.today;delete offer.awaitingUser;
     message('Negociación rechazada',`${player(offer.playerId)?.nombre||'Jugador'}: ${reason}.`,offer);
   }
@@ -371,12 +377,12 @@
   }
   function respondMedical(id,accept){
     const o=byId(id);if(locked()||!o||!pending(o)||!o.awaitingMedical||!o.medicalReport||!o.awaitingUser)return {ok:false,reason:'El dictamen médico no está disponible'};
-    if(!accept){rejectOffer(o,'Retiraste la incorporación después del reconocimiento médico');o.awaitingMedical=false;saveGame(true);render();return {ok:true}}
+    if(!accept){rejectOffer(o,'Retiraste la incorporación después del reconocimiento médico');o.awaitingMedical=false;WORLD_STORAGE.scheduleSave();render();return {ok:true}}
     const p=player(o.playerId);if(!p)return {ok:false,reason:'Jugador no disponible'};
-    const current=medicalAssessment(p);if(current.injuryId!==o.medicalReport.injuryId||current.remainingDays>o.medicalReport.remainingDays||current.verdict!==o.medicalReport.verdict||current.risk>=o.medicalReport.risk+15){o.medicalReport=current;message('Dictamen actualizado antes de la firma',`${p.nombre}: ${current.details} Revisá el cambio antes de confirmar.`,o);saveGame(true);render();return {ok:false,reason:'Cambió la situación médica; revisá el nuevo dictamen'}}
+    const current=medicalAssessment(p);if(current.injuryId!==o.medicalReport.injuryId||current.remainingDays>o.medicalReport.remainingDays||current.verdict!==o.medicalReport.verdict||current.risk>=o.medicalReport.risk+15){o.medicalReport=current;message('Dictamen actualizado antes de la firma',`${p.nombre}: ${current.details} Revisá el cambio antes de confirmar.`,o);WORLD_STORAGE.scheduleSave();render();return {ok:false,reason:'Cambió la situación médica; revisá el nuevo dictamen'}}
     const result=agreeTransfer({...o,medicalAccepted:true,awaitingMedical:false});if(!result.ok)return result;
     Object.assign(o,{medicalAccepted:true,awaitingMedical:false,awaitingUser:false});if(result.deferred)Object.assign(o,result.offer);else{o.status='accepted';o.resolvedDate=GameState.today;message('Fichaje firmado tras el reconocimiento',`${p.nombre} se incorpora a ${clubName(o.toClub)}. Dictamen: ${current.verdict}. Pase ${cash(o.fee)}.`,o)}
-    saveGame(true);render();return result;
+    WORLD_STORAGE.scheduleSave();render();return result;
   }
   // Stable club policy, adjusted by the circumstances of this particular deal.
   function clubNegotiation(p,offer={}) {
@@ -395,6 +401,7 @@
     o.negotiationHistory=o.negotiationHistory.slice(-24);
   }
   function preserveClubAgreement(o,candidate){
+    if(o.clubAccepted)candidate.contingencies=structuredClone(o.contingencies||[]);
     if(o.clubAccepted)for(const key of ['fee','installments','upfrontPercent','sellOnPercent','dealType','loanMonths','wageShare','purchaseMode','purchaseFee','recallAllowed','purchaseAppearances','activateClause','precontract','fromClub','toClub'])candidate[key]=o[key]??candidate[key];
     return candidate;
   }
@@ -417,7 +424,7 @@
     Object.assign(o,candidate,{counterRounds:(o.counterRounds||0)+1,awaitingUser:false,counterAccepted:false,responseDate:nextDay(GameState.today),dueAt:GameState.eventIndex+1,lastNegotiationDate:GameState.today});
     delete o.counter;if(o.type==='sell')o.saleResponsePending=true;
     logNegotiation(o,'DT');message('Contraoferta enviada',`${p.nombre}: la contraparte responderá a partir del ${date(o.responseDate)}. El jugador continúa en su club y todavía no se cobra ni paga el pase.`,o);
-    if(form)$('#details')?.close();saveGame(true);render();return {ok:true,offer:o};
+    if(form)$('#details')?.close();WORLD_STORAGE.scheduleSave();render();return {ok:true,offer:o};
   }
   function processSaleCounters() {
     for(const o of GameState.offers.filter(o=>pending(o)&&o.type==='sell'&&o.saleResponsePending&&responseDue(o))){
@@ -437,7 +444,7 @@
   function respondCounter(id,accept) {
     if (!world()||locked()) return false;
     const offer=byId(id);if (!offer||!pending(offer)||!offer.awaitingUser||!offer.counter) return false;
-    if (!accept) {rejectOffer(offer,'Retiraste la oferta');saveGame(true);render();return true}
+    if (!accept) {rejectOffer(offer,'Retiraste la oferta');WORLD_STORAGE.scheduleSave();render();return true}
     if(offer.personalDeadline&&offer.personalDeadline<GameState.today){toast('Venció el plazo para negociar el contrato personal');return false}
     const candidate=preserveClubAgreement(offer,{...offer,...offer.counter}),p=player(offer.playerId),wage=candidate.stage==='club'?0:candidate.dealType==='loan'?amount(p?.salario*candidate.wageShare/100):candidate.wage;
     const reason=termsReason(candidate,p)||statusReason(p,candidate.toClub,wage,candidate);
@@ -445,13 +452,13 @@
     logNegotiation(offer,'DT acepta',candidate);
     Object.assign(offer,candidate,{awaitingUser:false,counterAccepted:true,dueAt:GameState.eventIndex+1,responseDate:nextDay(GameState.today)});delete offer.counter;
     message('Contraoferta aceptada',`${p.nombre}: confirmaste las condiciones. ${offer.stage==='club'?'El club confirmará el acuerdo para habilitar el contrato personal':'El jugador confirmará sus condiciones para completar la firma'} ${dailyClock()?`a partir del ${date(offer.responseDate)}`:'en la próxima jornada'}.`,offer);
-    saveGame(true);render();return true;
+    WORLD_STORAGE.scheduleSave();render();return true;
   }
   function cancelOffer(id) {
     if (!world()||locked()) return false;
     const offer=byId(id);
     if (!offer||!pending(offer)||offer.type!=='buy'||offer.awaitingRegistration) return false;
-    rejectOffer(offer,'Retiraste la oferta');saveGame(true);render();return true;
+    rejectOffer(offer,'Retiraste la oferta');WORLD_STORAGE.scheduleSave();render();return true;
   }
   function expireOffers(day) {
     for (const offer of GameState.offers.filter(o=>pending(o)&&o.type==='buy'&&!o.awaitingRegistration)) {
@@ -508,10 +515,10 @@
     }
     if(reindex){WORLD_ENGINE.reindex();autoLineup()}state.lastContractDay=day;return count;
   }
-  function requestPrecontractConsent(pid,to=GameState.userClub.id){const p=player(Number(pid)),state=ensure();if(!p?.clubId||p.clubId===to||locked())return{ok:false,reason:'El jugador no está disponible'};if(state.consentRequests.some(row=>row.playerId===p.id&&row.toClub===to&&row.status==='pending'))return{ok:false,reason:'Ya se solicitó permiso al propietario'};const row={id:nextId('consent'),playerId:p.id,fromClub:p.clubId,toClub:to,status:'pending',createdDate:GameState.today,responseDate:nextDay(GameState.today)};state.consentRequests.push(row);message('Permiso de negociación solicitado',`${clubName(p.clubId)} responderá a partir del ${date(row.responseDate)} si permite negociar anticipadamente con ${p.nombre}.`,{playerId:p.id},'mercado');saveGame(true);render();return{ok:true}}
+  function requestPrecontractConsent(pid,to=GameState.userClub.id){const p=player(Number(pid)),state=ensure();if(!p?.clubId||p.clubId===to||locked())return{ok:false,reason:'El jugador no está disponible'};if(state.consentRequests.some(row=>row.playerId===p.id&&row.toClub===to&&row.status==='pending'))return{ok:false,reason:'Ya se solicitó permiso al propietario'};const row={id:nextId('consent'),playerId:p.id,fromClub:p.clubId,toClub:to,status:'pending',createdDate:GameState.today,responseDate:nextDay(GameState.today)};state.consentRequests.push(row);message('Permiso de negociación solicitado',`${clubName(p.clubId)} responderá a partir del ${date(row.responseDate)} si permite negociar anticipadamente con ${p.nombre}.`,{playerId:p.id},'mercado');WORLD_STORAGE.scheduleSave();render();return{ok:true}}
   function terminationQuote(p,day=GameState.today){if(p&&committed(p.id))return {ok:false,reason:'El jugador ya firmó su salida: no puede rescindirse sin resolver antes el acuerdo firmado'};if(!p||p.clubId!==GameState.userClub.id||activeLoan(p))return {ok:false,reason:'Sólo se puede rescindir un contrato propio sin cesión'};const weeks=Math.max(0,Math.ceil((Date.parse(contractEnd(p))-Date.parse(day))/(7*86400000))),fee=Math.round(p.salario*Math.min(weeks,52)*.5);return{ok:true,fee,weeks,remainingWages:weeks*p.salario,reason:'Acuerdo mutuo simulado: 50% de hasta 52 semanas pendientes; el jugador puede rechazarlo'} }
-  function terminateContract(pid,confirmTerms=false){const p=player(Number(pid)),q=terminationQuote(p);if(!q.ok)return q;if(locked())return {ok:false,reason:'Terminá el partido antes de rescindir'};if(!confirmTerms)return{...q,ok:false,reason:'Confirmá la indemnización antes de rescindir'};if(!ai().canRelease(p).ok)return{ok:false,reason:ai().canRelease(p).reason};if(ai().availableBudget(GameState.userClub.id,window.FM_RENEWALS?.current(p.id)?.id)<q.fee)return{ok:false,reason:'No hay fondos disponibles para la indemnización'};if(p.personalidad==='Ambicioso'&&p.moral>85)return{ok:false,reason:'El representante rechazó una rescisión de mutuo acuerdo'};const state=ensure(),id='termination-'+p.id+'-'+GameState.today;if(state.terminations.some(row=>row.id===id))return{ok:false,reason:'La rescisión ya fue liquidada'};const from=p.clubId;if(!ai().transaction(from,-q.fee,`Indemnización por rescisión: ${p.nombre}`,'indemnizaciones'))return{ok:false,reason:'La caja no alcanza'};state.terminations.push({id,playerId:p.id,clubId:from,date:GameState.today,fee:q.fee});p.clubId=null;p.registered=false;p.contractEnd=GameState.today;window.FM_RENEWALS?.invalidatePlayer(p.id,'Se rescindió el contrato vigente');p.contract=Number(GameState.today.slice(0,4));window.FM_REGISTRATION?.onTransfer(p,from,null);window.FM_FINANCES?.onTermination(p,q.fee,from);WORLD_ENGINE.reindex();autoLineup();message('Rescisión acordada',`${p.nombre} queda libre. Indemnización liquidada: ${cash(q.fee)}.`,{playerId:p.id},'contratos');saveGame(true);render();return{ok:true,fee:q.fee}}
-  function recallLoan(id){const loan=ensure()?.loans.find(l=>l.id===id&&l.status==='active'),p=loan&&player(loan.playerId);if(!loan||!p||loan.ownerClub!==GameState.userClub.id||!loan.recallAllowed)return{ok:false,reason:'El préstamo no incluye derecho de regreso'};if(locked()||GameState.today<loan.recallFrom||!registrationOpen(GameState.today,loan.ownerClub))return{ok:false,reason:'El regreso requiere tres meses cumplidos y ventana abierta del propietario'};if(['mandatory','conditional'].includes(loan.purchaseMode))return{ok:false,reason:'No puede revocarse una obligación de compra pactada'};loan.endDate=GameState.today;loan.recalled=true;returnLoans(GameState.today);saveGame(true);render();return{ok:true}}
+  function terminateContract(pid,confirmTerms=false){const p=player(Number(pid)),q=terminationQuote(p);if(!q.ok)return q;if(locked())return {ok:false,reason:'Terminá el partido antes de rescindir'};if(!confirmTerms)return{...q,ok:false,reason:'Confirmá la indemnización antes de rescindir'};if(!ai().canRelease(p).ok)return{ok:false,reason:ai().canRelease(p).reason};if(ai().availableBudget(GameState.userClub.id,window.FM_RENEWALS?.current(p.id)?.id)<q.fee)return{ok:false,reason:'No hay fondos disponibles para la indemnización'};if(p.personalidad==='Ambicioso'&&p.moral>85)return{ok:false,reason:'El representante rechazó una rescisión de mutuo acuerdo'};const state=ensure(),id='termination-'+p.id+'-'+GameState.today;if(state.terminations.some(row=>row.id===id))return{ok:false,reason:'La rescisión ya fue liquidada'};const from=p.clubId;if(!ai().transaction(from,-q.fee,`Indemnización por rescisión: ${p.nombre}`,'indemnizaciones'))return{ok:false,reason:'La caja no alcanza'};state.terminations.push({id,playerId:p.id,clubId:from,date:GameState.today,fee:q.fee});p.clubId=null;p.registered=false;p.contractEnd=GameState.today;window.FM_RENEWALS?.invalidatePlayer(p.id,'Se rescindió el contrato vigente');p.contract=Number(GameState.today.slice(0,4));window.FM_REGISTRATION?.onTransfer(p,from,null);window.FM_FINANCES?.onTermination(p,q.fee,from);WORLD_ENGINE.reindex();autoLineup();message('Rescisión acordada',`${p.nombre} queda libre. Indemnización liquidada: ${cash(q.fee)}.`,{playerId:p.id},'contratos');WORLD_STORAGE.scheduleSave();render();return{ok:true,fee:q.fee}}
+  function recallLoan(id){const loan=ensure()?.loans.find(l=>l.id===id&&l.status==='active'),p=loan&&player(loan.playerId);if(!loan||!p||loan.ownerClub!==GameState.userClub.id||!loan.recallAllowed)return{ok:false,reason:'El préstamo no incluye derecho de regreso'};if(locked()||GameState.today<loan.recallFrom||!registrationOpen(GameState.today,loan.ownerClub))return{ok:false,reason:'El regreso requiere tres meses cumplidos y ventana abierta del propietario'};if(['mandatory','conditional'].includes(loan.purchaseMode))return{ok:false,reason:'No puede revocarse una obligación de compra pactada'};loan.endDate=GameState.today;loan.recalled=true;returnLoans(GameState.today);WORLD_STORAGE.scheduleSave();render();return{ok:true}}
   function royaltyFor(p,fromClub) {
     const clause=p.sellOnClause;
     return clause&&clause.ownerClub===fromClub&&clause.beneficiaryClub&&clause.beneficiaryClub!==fromClub&&Number.isFinite(clause.percent)&&clause.percent>0?{clubId:clause.beneficiaryClub,percent:clause.percent}:null;
@@ -539,7 +546,7 @@
     const continuity=purchasingLoan(p,offer),enforced=enforceablePurchase(p,offer),before=p.clubId,royalty=offer.dealType==='permanent'?royaltyFor(p,before):null;
     const installments=offer.dealType==='permanent'?offer.installments:0;
     const initialFee=enforced?0:installments?Math.round(offer.fee*offer.upfrontPercent/100):offer.fee;
-    const payment=enforced?0:initialFee+offer.bonus;
+    const payment=enforced?0:initialFee+offer.bonus+Number(offer.agentFee||0);
     if (payment&&!ai().transaction(offer.toClub,-payment,`${offer.dealType==='loan'?'Cargo de préstamo':'Fichaje y prima'}: ${p.nombre}`,offer.dealType==='loan'?'prestamos':'fichajes')) return {ok:false,reason:'La caja no alcanza para el pago inicial'};
     if (before&&initialFee) {ai().transaction(before,initialFee,`${offer.dealType==='loan'?'Cargo de préstamo cobrado':'Venta'}: ${p.nombre}`,offer.dealType==='loan'?'prestamos':'ventas');if(royalty)payRoyalty(before,initialFee,royalty,p.nombre)}
     if(enforced){
@@ -564,7 +571,7 @@
     WORLD_ENGINE.reindex();
     if(offer.playingTime){p.squadRole=offer.playingTime;p.contractBonuses={appearance:amount(offer.appearanceBonus),goal:amount(offer.goalBonus),cleanSheet:amount(offer.cleanSheetBonus),title:amount(offer.titleBonus)};if(p.clubId===GameState.userClub.id&&!continuity)window.FM_DRESSING_ROOM?.onSigning?.(p,offer.playingTime)}
     if (before===GameState.userClub.id||offer.toClub===GameState.userClub.id) {GameState.userClub.cupos_extranjeros_usados=foreigners(GameState.userClub.id);if(!continuity)autoLineup()}
-    window.FM_FINANCES?.onTransfer({id:offer.id||'transfer-'+p.id+'-'+GameState.today,playerId:p.id,fromClub:before,toClub:offer.toClub,fee:offer.fee,bonus:offer.bonus,years:offer.years,dealType:offer.dealType,installments,date:GameState.today,contractEnd:contractEnd(p)});
+    window.FM_AGENTS?.signed(offer,p);window.FM_FINANCES?.onTransfer({id:offer.id||'transfer-'+p.id+'-'+GameState.today,playerId:p.id,fromClub:before,toClub:offer.toClub,fee:offer.fee+Number(offer.agentFee||0),bonus:offer.bonus,years:offer.years,dealType:offer.dealType,installments,date:GameState.today,contractEnd:contractEnd(p)});
     ai().recordTransfer({date:GameState.today,playerId:p.id,playerName:p.nombre,fromClub:before,toClub:offer.toClub,fee:offer.fee,wage:offer.wage,dealType:offer.dealType,installments,sellOnPercent:offer.sellOnPercent});
     return {ok:true,offer};
   }
@@ -634,7 +641,7 @@
     if(!result.ok){p.clubId=beforeClub;p.loanId=loanId;loan.status='active';WORLD_ENGINE.reindex();return result}
     loan.status='purchased';loan.purchaseDate=GameState.today;
     if([loan.ownerClub,loan.borrowerClub].includes(GameState.userClub.id))message(enforceObligation?'Compra obligatoria inscrita con deuda vencida':'Compra de cedido ejecutada',`${p.nombre}: pase definitivo por ${cash(loan.purchaseFee)}. Se mantienen el salario y las condiciones personales pactadas.${enforceObligation?' La falta de caja no anula el contrato firmado: el pase y la prima impagos quedan como obligaciones exigibles. El vendedor no cobró y la tesorería intentará liquidarlos al avanzar los días.':''}`,{playerId:p.id},'contratos');
-    if(!automatic){saveGame(true);render()}return result;
+    if(!automatic){WORLD_STORAGE.scheduleSave();render()}return result;
   }
   function returnLoans(day=GameState.today) {
     if (!world()||!validDay(day)) return;
@@ -679,7 +686,7 @@
     if(quote.compensation)ai().transaction(claim.toClub,quote.compensation,'Indemnización cobrada por compra incumplida: '+(player(claim.playerId)?.nombre||'cesión'),'indemnizaciones');
     Object.assign(claim,{status:'settled',settledDate:GameState.today,compensation:quote.compensation,settlementMode:'simulated-mutual-agreement'});
     message('Reclamación de compra cerrada por acuerdo',`${player(claim.playerId)?.nombre||'Jugador'}: ${clubName(claim.fromClub)} abonó ${cash(quote.compensation)} a ${clubName(claim.toClub)}. Acuerdo de cierre simulado por el 20% de ${cash(claim.amount)}; ambas partes renuncian al resto de esta reclamación. No cambia la propiedad del jugador.`,{playerId:claim.playerId},'contratos');
-    saveGame(true);render();return {ok:true,compensation:quote.compensation};
+    WORLD_STORAGE.scheduleSave();render();return {ok:true,compensation:quote.compensation};
   }
   function openPurchaseClaim(id){
     const quote=quotePurchaseClaim(id);if(!quote.ok)return toast(quote.reason);
@@ -699,7 +706,7 @@
     if(t.purchaseMode!=='none'&&(t.purchaseFee<Math.max(10000,p.valor_mercado*.8)||t.purchaseFee>1e10||t.wage<100||t.wage>1e7||!Number.isInteger(t.years)||t.years<1||t.years>(p.edad<18?3:5)||t.bonus<0||t.bonus>1e9||t.releaseClause<0||t.releaseClause>1e10||!['Titular','Rotación','Proyecto'].includes(t.playingTime)))return {ok:false,reason:'Revisá las condiciones de la futura compra y del contrato personal'};
     const row=old||{id:nextId('loan-amendment'),loanId:id,playerId:p.id,fromClub:loan.ownerClub,toClub:loan.borrowerClub,createdDate:GameState.today,status:'pending',rounds:0,baselineEnd:loan.endDate};
     Object.assign(row,t,{endDate,responseDate:nextDay(GameState.today),awaitingUser:false,rounds:row.rounds+(old?1:0)});delete row.counter;if(!old)s.loanAmendments.unshift(row);
-    message('Renegociación de cesión enviada',`${p.nombre}: ${t.extraMonths?'ampliación de '+t.extraMonths+' meses':'revisión de condiciones'}, ${t.wageShare}% salarial a cargo del prestatario y cargo ${cash(t.fee)}. Club y jugador responderán desde el ${date(row.responseDate)}. La cesión vigente conserva sus condiciones hasta la aceptación.`,null,'mercado');saveGame(true);render();return {ok:true,negotiation:row};
+    message('Renegociación de cesión enviada',`${p.nombre}: ${t.extraMonths?'ampliación de '+t.extraMonths+' meses':'revisión de condiciones'}, ${t.wageShare}% salarial a cargo del prestatario y cargo ${cash(t.fee)}. Club y jugador responderán desde el ${date(row.responseDate)}. La cesión vigente conserva sus condiciones hasta la aceptación.`,null,'mercado');WORLD_STORAGE.scheduleSave();render();return {ok:true,negotiation:row};
   }
   function processLoanAmendments(){
     const s=ensure();for(const r of s.loanAmendments.filter(r=>r.status==='pending')){
@@ -723,7 +730,7 @@
     }
     s.loanAmendments=[...s.loanAmendments.filter(r=>r.status==='pending'),...s.loanAmendments.filter(r=>r.status!=='pending').slice(0,40)];
   }
-  function cancelLoanAmendment(id){const r=loanAmendment(id);if(!r||locked())return false;r.status='cancelled';r.resolvedDate=GameState.today;saveGame(true);render();return true}
+  function cancelLoanAmendment(id){const r=loanAmendment(id);if(!r||locked())return false;r.status='cancelled';r.resolvedDate=GameState.today;WORLD_STORAGE.scheduleSave();render();return true}
   function trim() {
     const state=ensure();if (!state) return;
     state.payments=[...state.payments.filter(row=>row.status!=='paid'),...state.payments.filter(row=>row.status==='paid').slice(-120)];

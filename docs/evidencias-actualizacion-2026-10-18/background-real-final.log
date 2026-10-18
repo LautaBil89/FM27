@@ -1,0 +1,9 @@
+test_background_roundtrip_and_event_loop_remain_responsive (test_background_save.BackgroundSave.test_background_roundtrip_and_event_loop_remain_responsive) ... ok
+test_import_cannot_be_overwritten_and_failed_background_write_keeps_backup (test_background_save.BackgroundSave.test_import_cannot_be_overwritten_and_failed_background_write_keeps_backup) ... ok
+test_newer_revision_manual_save_and_reload_win_over_inflight_worker (test_background_save.BackgroundSave.test_newer_revision_manual_save_and_reload_win_over_inflight_worker) ... ok
+test_newest_autosave_and_no_worker_fallback (test_background_save.BackgroundSave.test_newest_autosave_and_no_worker_fallback) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 165.327s
+
+OK

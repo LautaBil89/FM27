@@ -364,7 +364,7 @@ window.FM_MATCH_RULES=(()=>{
     const t=ensure();if(!t||live())return null;
     const cleaned=String(name||'').trim().slice(0,40);if(!cleaned){toast('Dale un nombre al plan.');return null}
     if(t.savedPlans.length>=5){toast('Podés guardar hasta cinco planes. Eliminá uno para agregar otro.');return null}
-    const id=`plan-${t.nextPlanId++}`;t.savedPlans.push({id,name:cleaned,...snapshot(t),savedDate:GameState.today});saveGame(true);toast(`Plan «${cleaned}» guardado.`);return id;
+    const id=`plan-${t.nextPlanId++}`;t.savedPlans.push({id,name:cleaned,...snapshot(t),savedDate:GameState.today});WORLD_STORAGE.scheduleSave();toast(`Plan «${cleaned}» guardado.`);return id;
   }
   function loadPlan(id) {
     const t=ensure();if(!t||live()&&!liveEditable())return false;

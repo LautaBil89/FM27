@@ -49,10 +49,12 @@ class AuditIntegration(unittest.TestCase):
           const totals=changed.map(p=>({minutes:p.minutes-before.get(p.id).minutes,form:p.form.length-before.get(p.id).form,last:p.lastRating,pos:p.posicion}));
           const yellows=squad(g.home).reduce((sum,p)=>sum+(p.yellowSeason||0)-before.get(p.id).yellow,0),minutes=changed.reduce((n,p)=>n+p.minutes,0);
           WORLD_ENGINE.simulatedStats(g,{home:2,away:1},e);
-          return {totals,yellows,forwards:selected.slice(-2).every(id=>FM_PLAYER.naturalPositions(player(id)).includes('DC')),selectedObserved:changed.length===selected.length&&changed.every(p=>selected.includes(p.id)),idempotent:changed.reduce((n,p)=>n+p.minutes,0)===minutes};
+          return {totals,yellows,forwards:selected.slice(-2).every(id=>FM_PLAYER.naturalPositions(player(id)).includes('DC')),selectedObserved:selected.every(id=>changed.some(p=>p.id===id))&&changed.every(p=>g.quickLineups[0].includes(p.id)),idempotent:changed.reduce((n,p)=>n+p.minutes,0)===minutes};
         }""")
-        self.assertEqual(len(result['totals']),11)
-        self.assertTrue(all(p['minutes']==90 and p['form']>=0 and p['last']>=1 for p in result['totals']))
+        self.assertGreaterEqual(len(result['totals']),11)
+        self.assertLessEqual(len(result['totals']),14)
+        self.assertTrue(all(0<p['minutes']<=90 and p['form']>=0 and p['last']>=1 for p in result['totals']))
+        self.assertEqual(sum(p['minutes'] for p in result['totals']),990)
         self.assertGreater(result['yellows'],0)
         self.assertTrue(result['forwards'])
         self.assertTrue(result['selectedObserved'])

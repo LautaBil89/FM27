@@ -227,6 +227,25 @@ const WORLD_STORAGE = (() => {
     return !!lib&&lib.type==='LIB_PRE'&&lib.participants.length===47&&!!sud&&sud.type==='SUD_PRE'&&sud.participants.length===44&&['direct','phase1','phase2','sudDirect','sudNational'].every(k=>Array.isArray(p[k]))&&[lib,sud].every(c=>c.eventIds.some(id=>events.some(e=>e.id===id&&e.extraCupId===c.id)));
   }
 
+  function validateSubsystems(s,clubs,ids){
+    const optionalObject=(v,label)=>{if(v!=null&&!object(v))fail(label+' no válido');};
+    const arr=(v,label,max=40000)=>{if(!Array.isArray(v)||v.length>max)fail(label+' no válido');};
+    const idList=(v,label)=>{arr(v,label);if(v.some(id=>!integer(id,1,Number.MAX_SAFE_INTEGER))||new Set(v).size!==v.length)fail(label+' no válido');};
+    const r=s.world.registration;if(r!=null){if(!object(r)||!object(r.clubs))fail('inscripciones no válidas');optionalObject(r.internationalIntakes,'altas internacionales');for(const [id,c]of Object.entries(r.clubs)){if(!clubs.has(id)||!object(c)||!object(c.continental))fail('registro de club no válido');idList(c.domestic,'lista doméstica');for(const rows of Object.values(c.continental))idList(rows,'lista continental');}for(const rows of Object.values(r.internationalIntakes||{}))idList(rows,'altas internacionales');}
+    const office=s.world.office;if(office!=null){if(!object(office)||!object(office.clubs)||!object(office.profile)||!object(office.profile.stats))fail('oficina no válida');for(const n of Object.values(office.profile.stats))if(!finite(n,1,20))fail('atributo del DT no válido');for(const [id,c]of Object.entries(office.clubs)){if(!clubs.has(id)||!object(c)||!object(c.responsibilities)||!object(c.assignment))fail('delegación de empleados no válida');arr(c.staff,'empleados',100);idList(c.loanListed,'lista de préstamos');const staffIds=new Set();for(const e of c.staff){if(!object(e)||!string(e.id,150)||staffIds.has(e.id)||!string(e.name,150)||!string(e.role,100)||!finite(e.salary,0,1e8)||!finite(e.ability,0,99))fail('empleado no válido');staffIds.add(e.id);if(e.employment!=null&&(!object(e.employment)||!validDate(e.employment.start)||!validDate(e.employment.end)))fail('contrato de empleado no válido');}}}
+    for(const p of s.players){if(p.edad!=null&&!integer(p.edad,0,120))fail('edad no válida');if(p.birthYear!=null&&!integer(p.birthYear,1900,2300))fail('año de nacimiento no válido');if(p.dateOfBirth!=null&&!validDate(p.dateOfBirth))fail('nacimiento simulado no válido');if(p.trainingHistory!=null){arr(p.trainingHistory,'historial de formación',200);for(const h of p.trainingHistory)if(!object(h)||!string(h.clubId,100)||!finite(h.months,0,1200)||!finite(h.beforeAge,0,120)||(h.from!=null&&!validDate(h.from))||(h.to!=null&&!validDate(h.to)))fail('formación no válida');}}
+    const d=s.world.development;if(d!=null){if(!object(d)||!object(d.clubs))fail('desarrollo no válido');for(const [id,c]of Object.entries(d.clubs)){if(!clubs.has(id)||!object(c)||!object(c.plans))fail('plan de desarrollo no válido');arr(c.academy,'academia',200);optionalObject(c.policy,'política de desarrollo');for(const p of c.academy)if(!object(p)||!integer(p.id,1,Number.MAX_SAFE_INTEGER)||!string(p.nombre,150))fail('juvenil no válido');}}
+    const m=s.world.medicine;if(m!=null){if(!object(m)||!object(m.players))fail('medicina no válida');for(const r of Object.values(m.players)){if(!object(r))fail('ficha médica no válida');if(r.history!=null){arr(r.history,'historial médico',500);for(const h of r.history)if(!object(h)||!validDate(h.date)||!string(h.group,60)||!finite(h.days,0,10000))fail('antecedente médico no válido');}if(r.work!=null){arr(r.work,'carga médica',1000);for(const w of r.work)if(!object(w)||!string(w.id,300)||!validDate(w.date)||!finite(w.load,0,100000)||!finite(w.minutes,0,130)||!finite(w.distance,0,100000))fail('carga médica no válida');}if(r.injury!=null&&(!object(r.injury)||!finite(r.injury.remaining,0,10000)||!finite(r.injury.days,0,10000)))fail('lesión no válida');if(r.restUntil!=null&&!validDate(r.restUntil))fail('descanso médico no válido');}}
+    const g=s.world.governance;if(g!=null){if(!object(g)||!object(g.clubs))fail('empleados no válidos');for(const k of ['jobs','applications','managerContracts'])if(g[k]!=null)arr(g[k],k,5000);for(const [id,c]of Object.entries(g.clubs)){if(!clubs.has(id)||!object(c))fail('administración de club no válida');optionalObject(c.policy,'delegación');for(const k of ['staffNegotiations','staffHistory','delegated'])if(c[k]!=null)arr(c[k],k,5000);}if(g.activeContract!=null&&(!object(g.activeContract)||!clubs.has(g.activeContract.clubId)||!finite(g.activeContract.salary,0,1e7)||!validDate(g.activeContract.start)||!validDate(g.activeContract.end)))fail('contrato de DT no válido');}
+    const f=s.world.financialAccounts;if(f!=null){if(!object(f)||!object(f.clubs))fail('cuentas financieras no válidas');for(const [id,b]of Object.entries(f.clubs)){if(!clubs.has(id)||!object(b)||!object(b.assets)||!object(b.board)||!Array.isArray(b.loans)||!finite(b.board.authorized,0,1e13)||!finite(b.board.spent,0,1e13))fail('cuenta de club no válida');for(const k of ['loans','ledger','statements'])if(b[k]!=null)arr(b[k],k,20000);for(const k of ['periods','assets','board'])optionalObject(b[k],k);for(const loan of b.loans||[])if(!object(loan)||!finite(loan.remaining,0,1e13)||(loan.payments!=null&&!Array.isArray(loan.payments)))fail('crédito no válido');}}
+    for(const p of s.players){if(p.careerStats!=null){arr(p.careerStats,'estadísticas históricas',1000);for(const r of p.careerStats)if(!Array.isArray(r)||r.length!==10||!string(r[0],30)||!clubs.has(r[1])||!string(r[2],180)||r.slice(3,9).some(n=>!integer(n,0,1e9))||!finite(r[9],0,1e10))fail('fila estadística no válida');}if(p.internationalStats!=null&&(!object(p.internationalStats)||!integer(p.internationalStats.caps,0,10000)||!integer(p.internationalStats.minutes,0,1e7)||!Array.isArray(p.internationalStats.titles)))fail('trayectoria internacional no válida');if(p.nationalDuty!=null&&(!object(p.nationalDuty)||!string(p.nationalDuty.country,80)||!validDate(p.nationalDuty.from)||!validDate(p.nationalDuty.until)||p.nationalDuty.until<p.nationalDuty.from))fail('convocatoria no válida');}
+    const market=s.world.marketDepth;if(market!=null){if(!object(market)||!object(market.agencies))fail('representación no válida');arr(market.conditions,'cláusulas',20000);arr(market.trials,'pruebas',20000);for(const a of Object.values(market.agencies)){if(!object(a)||!string(a.name,120)||!finite(a.relationship,0,100)||!finite(a.feeWeeks,0,52)||!Array.isArray(a.history))fail('agencia no válida');}for(const c of market.conditions)if(!object(c)||!['appearances','qualification','buyback'].includes(c.kind)||!finite(c.amount,0,1e10)||!clubs.has(c.payer)||!validDate(c.start)||!validDate(c.expires))fail('cláusula contingente no válida');for(const t of market.trials)if(!object(t)||!clubs.has(t.clubId)||!integer(t.playerId,1,Number.MAX_SAFE_INTEGER)||!validDate(t.start)||!validDate(t.end))fail('prueba de jugador no válida');}
+    const long=s.world.longTerm;if(long!=null){if(!object(long)||!object(long.clubs))fail('plan institucional no válido');for(const k of ['promises','projects','press'])arr(long[k],k,20000);for(const [id,c]of Object.entries(long.clubs))if(!clubs.has(id)||!object(c)||!['develop','balance','win'].includes(c.policy)||!Array.isArray(c.tasks)||!Array.isArray(c.history))fail('plan de club no válido');for(const p of long.projects)if(!object(p)||!clubs.has(p.clubId)||!['stadium','academy','medical','scouting'].includes(p.kind)||!validDate(p.start)||!validDate(p.due)||!finite(p.cost,0,1e12))fail('obra no válida');for(const p of long.promises)if(!object(p)||!clubs.has(p.clubId)||!validDate(p.due)||!['minutes','sale','continental'].includes(p.kind)||!finite(p.target,0,5000))fail('promesa no válida');for(const p of long.press)if(!object(p)||!string(p.question,2000)||!validDate(p.date)||!validDate(p.due))fail('conferencia no válida');}
+    const programmes=s.world.programmes;if(programmes!=null){if(!object(programmes)||!object(programmes.clubs))fail('programas no válidos');for(const [id,c]of Object.entries(programmes.clubs)){if(!clubs.has(id)||!object(c)||!object(c.routes)||!object(c.training)||typeof c.training.enabled!=='boolean'||!finite(c.training.load,.5,1.5)||!Array.isArray(c.training.applied)||!Array.isArray(c.training.history)||!Array.isArray(c.training.week)||c.training.week.length!==7||c.training.week.some(d=>!object(d)||!['recovery','possession','finishing','defending','setpieces','matchprep','strength'].includes(d.am)||!['recovery','possession','finishing','defending','setpieces','matchprep','strength'].includes(d.pm)))fail('microciclo no válido');for(const r of Object.values(c.routes))if(!object(r)||!validDate(r.start)||!validDate(r.arrives)||!validDate(r.end)||!finite(r.weekly,0,1e8))fail('ruta de ojeo no válida');}}
+    const nationals=s.world.nationals;if(nationals!=null){if(!object(nationals)||!object(nationals.windows)||!Array.isArray(nationals.history))fail('selecciones no válidas');for(const e of Object.values(nationals.windows)){if(!object(e)||!Array.isArray(e.teams)||!object(e.rosters)||!Array.isArray(e.fixtures)||!object(e.tables)||!validDate(e.start)||!validDate(e.end))fail('ventana internacional no válida');for(const g of e.fixtures)if(!object(g)||!validDate(g.date)||!e.teams.includes(g.home)||!e.teams.includes(g.away)||g.home===g.away||(g.result!=null&&(!object(g.result)||!integer(g.result.home,0,100)||!integer(g.result.away,0,100))))fail('partido internacional no válido');}}
+    const analysis=s.world.analysisDepth;if(analysis!=null){if(!object(analysis)||!object(analysis.clubs)||!object(analysis.routines))fail('análisis táctico no válido');for(const rows of Object.values(analysis.routines)){arr(rows,'variantes',12);for(const r of rows)if(!object(r)||!string(r.name,60)||!object(r.plan))fail('variante no válida');}}
+  }
+
   function validateWorld(s, aliases = true) {
     if (!object(s) || s.version !== 3 || s.worldVersion !== 1 || !object(s.world) || !Array.isArray(s.world.clubs) || !Array.isArray(s.world.leagues) || !Array.isArray(s.players) || !Array.isArray(s.calendar) || !object(s.userClub) || !object(s.tactics) || !object(s.world.cups)) fail('estructura de carrera mundial incompatible');
     if (!string(s.manager, 100) || !integer(s.year, 2020, 2300) || !validDate(s.today) || !integer(s.eventIndex, 0, s.calendar.length) || !finite(s.userClub.presupuesto_dolares, -1e13) || !finite(s.userClub.presupuesto_pesos, -1e16, 1e16)) fail('datos de carrera no válidos');
@@ -272,7 +291,7 @@ const WORLD_STORAGE = (() => {
       if(p.attributes!=null&&(!object(p.attributes)||Object.keys(p.attributes).length>50||Object.values(p.attributes).some(n=>!finite(n,1,99))))fail('atributos específicos no válidos');
       ids.add(p.id);
     }
-    validateIncidents(s.world.incidents,clubs);validateArchive(s.world.matchArchive,clubs);validateSearches(s.world.marketSearches,clubs);validatePurchaseClaims(s.world.ai?.contracts?.purchaseClaims,clubs);
+    validateSubsystems(s,clubs,ids);validateIncidents(s.world.incidents,clubs);validateArchive(s.world.matchArchive,clubs);validateSearches(s.world.marketSearches,clubs);validatePurchaseClaims(s.world.ai?.contracts?.purchaseClaims,clubs);
     const lineup = [...(s.tactics.xi || []), ...(s.tactics.bench || [])].filter(id => id != null);
     if (!Array.isArray(s.tactics.xi) || !Array.isArray(s.tactics.bench) || s.tactics.xi.length > 11 || s.tactics.bench.length > 15 || lineup.some(id => !ids.has(id)) || new Set(lineup).size !== lineup.length || !FORMATIONS[s.tactics.formation]) fail('alineación no válida');
     const events = new Set(); let previousDate = '';
@@ -390,27 +409,30 @@ const WORLD_STORAGE = (() => {
     return serialized;
   }
   // Autosaves use a single background codec. The public manual save stays synchronous.
-  let saveRevision=0,saveTimer=null,saveDirty=false,dirtySince=0,saveWorker=null,workerBusy=false,workerFailed=false,workerState=null,workerRevision=-1;
-  function invalidateAutosave(){saveRevision++;if(saveTimer!==null)clearTimeout(saveTimer);saveTimer=null;saveDirty=false;dirtySince=0;}
+  let saveRevision=0,saveTimer=null,saveDirty=false,dirtySince=0,saveWorker=null,workerBusy=false,workerFailed=false,workerState=null,workerRevision=-1,lockWaiting=null;
+  function invalidateAutosave(){saveRevision++;if(saveTimer!==null)clearTimeout(saveTimer);saveTimer=null;saveDirty=false;dirtySince=0;lockWaiting=null;}
+  function awaitEditor(state){lockWaiting=state;FM_CAREER_LOCKS.acquire(state).then(ok=>{if(lockWaiting!==state)return;lockWaiting=null;if(ok&&GameState===state)scheduleSave();});}
   function saveError(error){toast('No se pudo guardar la carrera: '+(error.name==='QuotaExceededError'?'se agotó el espacio del navegador. Exportá una copia de seguridad.':error.message||'revisá los permisos del navegador.'));}
+  const asyncWrites=new Map();let asyncSequence=0;
   function backgroundWorker(){
     if(saveWorker||workerFailed)return saveWorker;
     if(typeof Worker==='undefined'||typeof Blob==='undefined'){workerFailed=true;return null}
     try{
-      const definitions={own,object,same,copy,fail,string,integer,finite,validDate,mask,playerReference,identity,residual,packRecords,table,result,cupNodes,validateIncidents,validateArchive,validateSearches,validatePurchaseClaims,validateExtraCompetitions,validateWorld,encode,serialize};
+      const definitions={own,object,same,copy,fail,string,integer,finite,validDate,mask,playerReference,identity,residual,packRecords,table,result,cupNodes,validateIncidents,validateArchive,validateSearches,validatePurchaseClaims,validateExtraCompetitions,validateSubsystems,validateWorld,encode,serialize};
       const source=`const FORMAT='${FORMAT}',COMPRESSED_FORMAT='${COMPRESSED_FORMAT}',CODEC_VERSION=${CODEC_VERSION},alphabet=${JSON.stringify(alphabet)},missing=Symbol('absent'),identityTemplates=new Map();let dbPlayers,dbClubs,dbLeagues,FORMATIONS;const WORLD_ENGINE={hydratePlayerIdentity:${WORLD_ENGINE.hydratePlayerIdentity.toString()}};const f=String.fromCharCode,LZString={_compress:${LZString._compress.toString()},compressToUTF16:${LZString.compressToUTF16.toString()}};`+Object.entries(definitions).map(([name,fn])=>`const ${name}=${fn.toString()};`).join('\n')+`self.onmessage=({data})=>{if(data.init){dbPlayers=new Map(data.init.players.map(p=>[p.playerId,p]));dbClubs=new Map(data.init.clubs.map(c=>[c.id,c]));dbLeagues=new Map(data.init.leagues.map(l=>[l.id,l]));FORMATIONS=data.init.formations;return}try{self.postMessage({id:data.id,text:serialize(data.state),snapshot:{careerId:data.state.careerId,careerName:data.state.careerName,careerMigrated:data.state.careerMigrated,manager:data.state.manager,today:data.state.today,year:data.state.year,userClub:{id:data.state.userClub.id,nombre:data.state.userClub.nombre}}})}catch(error){self.postMessage({id:data.id,error:error.message})}};`;
       const url=URL.createObjectURL(new Blob([source],{type:'text/javascript'}));
       try{saveWorker=new Worker(url)}finally{URL.revokeObjectURL(url)}
       saveWorker.onmessage=({data})=>{
+        if(asyncWrites.has(data.id)){const job=asyncWrites.get(data.id);asyncWrites.delete(data.id);if(data.error)job.reject(Error(data.error));else job.resolve(data);return;}
         workerBusy=false;
         if(data.id===saveRevision&&workerState===GameState){
           if(data.error)saveError(new Error(data.error));
-          else try{localStorage.setItem(KEY,data.text);window.FM_INTEGRITY?.onSaved?.(data.text,data.snapshot);window.FM_CAREERS?.onSaved?.(data.text,data.snapshot)}catch(error){saveError(error)}
+          else try{if(window.FM_CAREER_LOCKS&&!FM_CAREER_LOCKS.guard(GameState))return;localStorage.setItem(KEY,data.text);window.FM_INTEGRITY?.onSaved?.(data.text,data.snapshot);window.FM_CAREERS?.onSaved?.(data.text,data.snapshot)}catch(error){saveError(error)}
         }
         workerState=null;
         if(saveDirty){clearTimeout(saveTimer);saveTimer=setTimeout(runAutosave,0)}
       };
-      saveWorker.onerror=event=>{event.preventDefault();saveWorker?.terminate();saveWorker=null;workerFailed=true;workerBusy=false;const retry=saveDirty||workerState===GameState&&workerRevision===saveRevision;workerState=null;if(retry)save(true)};
+      saveWorker.onerror=event=>{event.preventDefault();for(const job of asyncWrites.values())job.reject(Error('El proceso de guardado no está disponible'));asyncWrites.clear();saveWorker?.terminate();saveWorker=null;workerFailed=true;workerBusy=false;const retry=saveDirty||workerState===GameState&&workerRevision===saveRevision;workerState=null;if(retry)save(true)};
       saveWorker.postMessage({init:{players:WORLD_DATABASE.players,clubs:WORLD_DATABASE.clubs,leagues:WORLD_DATABASE.leagues,formations:FORMATIONS}});
       return saveWorker;
     }catch(error){saveWorker?.terminate();saveWorker=null;workerFailed=true;return null}
@@ -419,7 +441,7 @@ const WORLD_STORAGE = (() => {
     saveTimer=null;if(!saveDirty)return;if(!GameState){invalidateAutosave();return}if(workerBusy)return;
     if(GameState.version!==3){save(true);return}
     const worker=backgroundWorker();if(!worker){save(true);return}
-    window.FM_CAREERS?.ensureIdentity(GameState);saveDirty=false;dirtySince=0;workerBusy=true;workerState=GameState;workerRevision=saveRevision;
+    window.FM_CAREERS?.ensureIdentity(GameState);if(window.FM_CAREER_LOCKS&&!FM_CAREER_LOCKS.guard(GameState)){saveDirty=false;if(!FM_CAREER_LOCKS.blocked())awaitEditor(GameState);return}saveDirty=false;dirtySince=0;workerBusy=true;workerState=GameState;workerRevision=saveRevision;
     try{worker.postMessage({id:saveRevision,state:GameState})}catch(error){workerBusy=false;workerState=null;save(true)}
   }
   function scheduleSave(){
@@ -427,15 +449,24 @@ const WORLD_STORAGE = (() => {
     saveRevision++;saveDirty=true;dirtySince||=Date.now();clearTimeout(saveTimer);
     saveTimer=setTimeout(runAutosave,Math.max(0,Math.min(350,2000-(Date.now()-dirtySince))));return true;
   }
-  function autosavePending(){return saveDirty||workerBusy&&workerRevision===saveRevision}
+  function autosavePending(){return !!lockWaiting||saveDirty||workerBusy&&workerRevision===saveRevision||asyncWrites.size>0}
   function flushSave(){return autosavePending()?save(true):true}
   window.addEventListener?.('pagehide',flushSave);
   document.addEventListener?.('visibilitychange',()=>{if(document.hidden)flushSave()});
+  async function saveAsync(silent=true){
+    if(!GameState)return false;const target=GameState;window.FM_CAREERS?.ensureIdentity(target);
+    if(window.FM_CAREER_LOCKS&&!await FM_CAREER_LOCKS.acquire(target))return false;
+    invalidateAutosave();const revision=saveRevision,worker=backgroundWorker();if(!worker)return save(silent);
+    const id='commit-'+(++asyncSequence),data=await new Promise((resolve,reject)=>{asyncWrites.set(id,{resolve,reject});try{worker.postMessage({id,state:target});}catch(error){asyncWrites.delete(id);reject(error);}});
+    if(GameState!==target)return false;if(revision!==saveRevision)return saveAsync(silent);
+    if(window.FM_CAREER_LOCKS&&!FM_CAREER_LOCKS.guard(target))return false;
+    localStorage.setItem(KEY,data.text);window.FM_INTEGRITY?.onSaved?.(data.text,data.snapshot);window.FM_CAREERS?.onSaved?.(data.text,data.snapshot);if(!silent)toast('Carrera guardada');return true;
+  }
   function save(silent = false) {
     invalidateAutosave();
     if (!GameState) return false;
     try {
-      window.FM_CAREERS?.ensureIdentity(GameState);const raw=serialize(GameState);localStorage.setItem(KEY,raw);window.FM_INTEGRITY?.onSaved?.(raw,GameState);window.FM_CAREERS?.onSaved?.(raw,GameState);
+      window.FM_CAREERS?.ensureIdentity(GameState);if(window.FM_CAREER_LOCKS&&!FM_CAREER_LOCKS.guard(GameState)){if(!FM_CAREER_LOCKS.blocked()){awaitEditor(GameState);return true}return false}const raw=serialize(GameState);localStorage.setItem(KEY,raw);window.FM_INTEGRITY?.onSaved?.(raw,GameState);window.FM_CAREERS?.onSaved?.(raw,GameState);
       if (!silent) toast('Carrera guardada');
       return true;
     } catch (error) {
@@ -459,6 +490,7 @@ const WORLD_STORAGE = (() => {
     const candidate = decode(raw);
     if (GameState && options.confirm !== false && !confirm('¿Reemplazar la carrera actual por esta copia de seguridad?')) return false;
     // Persist first: a rejected or oversized import cannot replace the current career.
+    if(options.persist!==false&&window.FM_CAREER_LOCKS&&!FM_CAREER_LOCKS.guard(candidate))throw Error('La carrera pertenece a otra pestaña o está preparando su guardado; cargala desde Mis carreras.');
     if (options.persist !== false) localStorage.setItem(KEY, serialize(candidate));
     invalidateAutosave();
     clearInterval(timer); timer = null;
@@ -468,11 +500,12 @@ const WORLD_STORAGE = (() => {
     if (options.render !== false) render();
     return true;
   }
+  function exportText(state){const expanded=JSON.stringify({format:'FM27',exportedAt:new Date().toISOString(),state});return bytes(expanded)>MAX_IMPORT_BYTES?serialize(state):expanded;}
   function exportGame() {
     if (!GameState) return;
     try {
       if (GameState.version === 3) validateWorld(GameState); else MANAGEMENT.validateImported(GameState);
-      const blob = new Blob([JSON.stringify({format: 'FM27', exportedAt: new Date().toISOString(), state: GameState})], {type: 'application/json'});
+      const blob = new Blob([exportText(GameState)], {type: 'application/json'});
       const url = URL.createObjectURL(blob), link = document.createElement('a');
       link.href = url; link.download = `FM27-${GameState.userClub.id}-${GameState.year}.json`; link.click();
       setTimeout(() => URL.revokeObjectURL(url), 3000); toast('Copia de seguridad exportada');
@@ -494,7 +527,7 @@ const WORLD_STORAGE = (() => {
   window.saveGame = save;
   window.loadGame = function () { if (!restore()) return false; view = GameState.match ? 'match' : 'dashboard'; render(); return true; };
   Object.assign(actions, {save: () => save(), export: exportGame, import: importGame});
-  return {cancelPending:invalidateAutosave,scheduleSave,flushSave,pending:autosavePending,encode, decode, validate: s => s?.version === 3 ? validateWorld(s) : MANAGEMENT.validateImported(s), serialize, importState, exportGame, importGame, maxImportBytes: MAX_IMPORT_BYTES,
+  return {saveStatus:()=>({queued:saveDirty,waitingForEditor:!!lockWaiting,busy:workerBusy,commits:asyncWrites.size}),exportText,saveAsync,cancelPending:invalidateAutosave,scheduleSave,flushSave,pending:autosavePending,encode, decode, validate: s => s?.version === 3 ? validateWorld(s) : MANAGEMENT.validateImported(s), serialize, importState, exportGame, importGame, maxImportBytes: MAX_IMPORT_BYTES,
     inspect: s => { const text = serialize(s); return {players: s.players.length, characters: text.length, utf8Bytes: bytes(text), localStorageBytes: text.length * 2, hydratedBytes: bytes(JSON.stringify(s))}; }};
 })();
 window.WORLD_STORAGE = WORLD_STORAGE;
