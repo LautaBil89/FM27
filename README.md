@@ -13,6 +13,14 @@ Las partidas anteriores conservan sus equipos, calendarios, jugadores y condicio
 
 También se puede servir en desarrollo con `python3 -m http.server 8000 --directory .`.
 
+## Interfaz visual
+
+La [renovación visual](docs/INTERFAZ_VISUAL_2026-10-18.md) incorpora un escritorio con próximo partido, disponibilidad, jugadores destacados, tabla, mensajes y agenda. Navegación, fichajes, plantillas, bandeja, finanzas, empleados, competiciones y dirección deportiva comparten tipografía, colores, controles y jerarquía.
+
+Las camisetas ilustradas usan los colores del club. La ficha del jugador muestra un radar de atributos simulados sólo para tu plantel; el ojeo conserva su incertidumbre. El entrenamiento presenta los siete días en tarjetas y las finanzas grafican los movimientos registrados. Los dibujos, iconos y gráficos están incorporados al HTML y no necesitan descargar imágenes ni fuentes.
+
+En escritorio se aprovecha el espacio para mostrar varios paneles; en móvil el inicio ofrece **Panorama**, **El club** y **Agenda y prensa**. Las listas, expedientes y formularios extensos tienen desplazamiento interno. No hace falta empezar otra carrera para usar esta interfaz.
+
 
 ## Varias carreras guardadas
 

@@ -1,0 +1,217 @@
+{
+  "scope": "Última ejecución por escenario: 42 casos únicos, sin sumar repeticiones. La prueba antigua del control de formación fue corregida y repetida: ahora se busca en Convocatoria, no en Equipo. Se conservan los registros inicial y final.",
+  "passed": 42,
+  "failed": 0,
+  "cases": [
+    {
+      "case": "test_visual_workspace.VisualWorkspace.test_dashboard_message_opens_exact_reader_and_marks_read",
+      "result": "ok",
+      "log": "regresiones-interfaz-final.log"
+    },
+    {
+      "case": "test_visual_workspace.VisualWorkspace.test_dashboard_panels_and_primary_match_action_fit",
+      "result": "ok",
+      "log": "regresiones-interfaz-final.log"
+    },
+    {
+      "case": "test_visual_workspace.VisualWorkspace.test_decoration_is_idempotent_and_does_not_replace_search_control",
+      "result": "ok",
+      "log": "regresiones-interfaz-final.log"
+    },
+    {
+      "case": "test_visual_workspace.VisualWorkspace.test_finance_chart_uses_recorded_cash_and_fits_its_card",
+      "result": "ok",
+      "log": "regresiones-interfaz-final.log"
+    },
+    {
+      "case": "test_visual_workspace.VisualWorkspace.test_visual_player_attributes_do_not_reveal_scouting_secrets",
+      "result": "ok",
+      "log": "regresiones-interfaz-final.log"
+    },
+    {
+      "case": "test_visual_workspace.VisualWorkspace.test_weekly_training_and_scouting_empty_state_are_actionable",
+      "result": "ok",
+      "log": "regresiones-interfaz-final.log"
+    },
+    {
+      "case": "test_market_search_and_speed.MarketSearchAndSpeed.test_focused_search_survives_other_redraw_and_click_is_not_swallowed",
+      "result": "ok",
+      "log": "regresiones-mercado.log"
+    },
+    {
+      "case": "test_market_search_and_speed.MarketSearchAndSpeed.test_new_1x_is_three_times_slower_than_3x_with_live_interval",
+      "result": "ok",
+      "log": "regresiones-mercado.log"
+    },
+    {
+      "case": "test_market_search_and_speed.MarketSearchAndSpeed.test_typing_across_debounce_keeps_focus_node_and_selection",
+      "result": "ok",
+      "log": "regresiones-mercado.log"
+    },
+    {
+      "case": "test_tactics_selection.TacticsSelection.test_01_formation_bench_and_reserves_share_a_bounded_workspace",
+      "result": "ok",
+      "log": "regresiones-interfaz-inicial.log"
+    },
+    {
+      "case": "test_tactics_selection.TacticsSelection.test_02_keyboard_swap_and_reserve_assignment_need_no_tab_change",
+      "result": "ok",
+      "log": "regresiones-interfaz-inicial.log"
+    },
+    {
+      "case": "test_tactics_selection.TacticsSelection.test_03_formation_updates_and_unavailable_reserves_keep_real_restrictions",
+      "result": "ok",
+      "log": "regresiones-interfaz-inicial.log"
+    },
+    {
+      "case": "test_match_centre_depth.MatchCentreDepth.test_01_pitch_decisions_and_new_panels_fit_small_viewports",
+      "result": "ok",
+      "log": "regresiones-interfaz-inicial.log"
+    },
+    {
+      "case": "test_match_centre_depth.MatchCentreDepth.test_02_replay_pauses_clock_and_preserves_every_result_record",
+      "result": "ok",
+      "log": "regresiones-interfaz-inicial.log"
+    },
+    {
+      "case": "test_match_centre_depth.MatchCentreDepth.test_03_assistant_and_stats_display_recorded_engine_data",
+      "result": "ok",
+      "log": "regresiones-interfaz-inicial.log"
+    },
+    {
+      "case": "test_match_centre_depth.MatchCentreDepth.test_04_phase_adjustment_changes_saved_tactic_and_does_not_advance",
+      "result": "ok",
+      "log": "regresiones-interfaz-inicial.log"
+    },
+    {
+      "case": "test_match_centre_depth.MatchCentreDepth.test_05_replay_and_empty_shot_map_support_previous_match_records",
+      "result": "ok",
+      "log": "regresiones-interfaz-inicial.log"
+    },
+    {
+      "case": "test_match_centre_depth.MatchCentreDepth.test_06_early_chances_remain_replayable_and_shot_map_uses_origin",
+      "result": "ok",
+      "log": "regresiones-interfaz-inicial.log"
+    },
+    {
+      "case": "test_match_centre_depth.MatchCentreDepth.test_07_live_refresh_preserves_pause_and_tab_controls",
+      "result": "ok",
+      "log": "regresiones-interfaz-inicial.log"
+    },
+    {
+      "case": "test_workspace_update.WorkspaceUpdate.test_01_welcome_and_all_workspaces_fit_three_sizes",
+      "result": "ok",
+      "log": "regresiones-interfaz-inicial.log"
+    },
+    {
+      "case": "test_workspace_update.WorkspaceUpdate.test_03_tactical_and_player_panels_keep_actions_reachable",
+      "result": "ok",
+      "log": "regresiones-interfaz-inicial.log"
+    },
+    {
+      "case": "test_workspace_update.WorkspaceUpdate.test_06_visible_offer_errors_and_mobile_menu",
+      "result": "ok",
+      "log": "regresiones-interfaz-inicial.log"
+    },
+    {
+      "case": "test_workspace_update.WorkspaceUpdate.test_11_secondary_controls_fit_low_desktop_and_mobile",
+      "result": "ok",
+      "log": "regresiones-interfaz-final.log"
+    },
+    {
+      "case": "test_professional_upgrade.ProfessionalUpgrade.test_all_professional_tabs_and_mobile_primary_action_are_visible",
+      "result": "ok",
+      "log": "regresiones-interfaz-inicial.log"
+    },
+    {
+      "case": "test_match_regulations_depth.MatchRegulationsDepth.test_competition_rules_are_snapshotted_and_extra_time_adds_one_change",
+      "result": "ok",
+      "log": "regresiones-interfaz-inicial.log"
+    },
+    {
+      "case": "test_match_regulations_depth.MatchRegulationsDepth.test_fewer_than_seven_abandons_without_fictional_scorers",
+      "result": "ok",
+      "log": "regresiones-interfaz-inicial.log"
+    },
+    {
+      "case": "test_match_regulations_depth.MatchRegulationsDepth.test_individual_shootout_order_excludes_extra_eligible_players",
+      "result": "ok",
+      "log": "regresiones-interfaz-inicial.log"
+    },
+    {
+      "case": "test_match_regulations_depth.MatchRegulationsDepth.test_live_formation_and_emergency_keeper_use_existing_players",
+      "result": "ok",
+      "log": "regresiones-interfaz-inicial.log"
+    },
+    {
+      "case": "test_match_regulations_depth.MatchRegulationsDepth.test_penalty_sequence_uses_the_actual_fallback_taker",
+      "result": "ok",
+      "log": "regresiones-interfaz-inicial.log"
+    },
+    {
+      "case": "test_match_regulations_depth.MatchRegulationsDepth.test_tactical_team_factors_reach_recorded_possessions",
+      "result": "ok",
+      "log": "regresiones-interfaz-inicial.log"
+    },
+    {
+      "case": "test_visual_workspace.VisualWorkspace.test_batched_market_sort_preserves_each_order_and_refreshes_observations",
+      "result": "ok",
+      "log": "regresiones-interfaz-final.log"
+    },
+    {
+      "case": "test_market_filters.MarketFilters.test_combined_exact_position_dual_nationality_location_age_and_wage",
+      "result": "ok",
+      "log": "regresiones-mercado.log"
+    },
+    {
+      "case": "test_market_filters.MarketFilters.test_drafts_cancel_invalid_ranges_and_clear_are_atomic",
+      "result": "ok",
+      "log": "regresiones-mercado.log"
+    },
+    {
+      "case": "test_market_filters.MarketFilters.test_mobile_dialog_remains_in_viewport_and_hidden_invalid_fields_are_explained",
+      "result": "ok",
+      "log": "regresiones-mercado.log"
+    },
+    {
+      "case": "test_market_filters.MarketFilters.test_scouting_has_separate_filters_and_applied_values_survive_reload",
+      "result": "ok",
+      "log": "regresiones-mercado.log"
+    },
+    {
+      "case": "test_market_filters.MarketFilters.test_specific_attributes_use_observations_and_scans_do_not_create_dossiers",
+      "result": "ok",
+      "log": "regresiones-mercado.log"
+    },
+    {
+      "case": "test_offer_form.OfferFormScenarios.test_01_forty_player_roster_explains_failure_and_links_to_squad",
+      "result": "ok",
+      "log": "regresiones-mercado.log"
+    },
+    {
+      "case": "test_offer_form.OfferFormScenarios.test_02_valid_actual_form_persists_and_signs_after_four_turns",
+      "result": "ok",
+      "log": "regresiones-mercado.log"
+    },
+    {
+      "case": "test_offer_form.OfferFormScenarios.test_03_insufficient_cash_preserves_terms_and_allows_corrected_resubmission",
+      "result": "ok",
+      "log": "regresiones-mercado.log"
+    },
+    {
+      "case": "test_offer_form.OfferFormScenarios.test_04_full_foreign_registration_does_not_block_offer",
+      "result": "ok",
+      "log": "regresiones-mercado.log"
+    },
+    {
+      "case": "test_offer_form.OfferFormScenarios.test_05_native_invalid_amount_is_reported_inside_form_and_integer_wage_is_valid",
+      "result": "ok",
+      "log": "regresiones-mercado.log"
+    },
+    {
+      "case": "test_offer_form.OfferFormScenarios.test_06_loan_mode_ignores_disabled_stale_purchase_terms_and_sends_once",
+      "result": "ok",
+      "log": "regresiones-mercado.log"
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+test_dashboard_message_opens_exact_reader_and_marks_read (test_visual_workspace.VisualWorkspace.test_dashboard_message_opens_exact_reader_and_marks_read) ... ok
+test_dashboard_panels_and_primary_match_action_fit (test_visual_workspace.VisualWorkspace.test_dashboard_panels_and_primary_match_action_fit) ... ok
+test_decoration_is_idempotent_and_does_not_replace_search_control (test_visual_workspace.VisualWorkspace.test_decoration_is_idempotent_and_does_not_replace_search_control) ... ok
+test_finance_chart_uses_recorded_cash_and_fits_its_card (test_visual_workspace.VisualWorkspace.test_finance_chart_uses_recorded_cash_and_fits_its_card) ... ok
+test_visual_player_attributes_do_not_reveal_scouting_secrets (test_visual_workspace.VisualWorkspace.test_visual_player_attributes_do_not_reveal_scouting_secrets) ... ok
+test_weekly_training_and_scouting_empty_state_are_actionable (test_visual_workspace.VisualWorkspace.test_weekly_training_and_scouting_empty_state_are_actionable) ... ok
+test_focused_search_survives_other_redraw_and_click_is_not_swallowed (test_market_search_and_speed.MarketSearchAndSpeed.test_focused_search_survives_other_redraw_and_click_is_not_swallowed) ... ok
+test_new_1x_is_three_times_slower_than_3x_with_live_interval (test_market_search_and_speed.MarketSearchAndSpeed.test_new_1x_is_three_times_slower_than_3x_with_live_interval) ... ok
+test_typing_across_debounce_keeps_focus_node_and_selection (test_market_search_and_speed.MarketSearchAndSpeed.test_typing_across_debounce_keeps_focus_node_and_selection) ... ok
+test_01_formation_bench_and_reserves_share_a_bounded_workspace (test_tactics_selection.TacticsSelection.test_01_formation_bench_and_reserves_share_a_bounded_workspace) ... ok
+test_02_keyboard_swap_and_reserve_assignment_need_no_tab_change (test_tactics_selection.TacticsSelection.test_02_keyboard_swap_and_reserve_assignment_need_no_tab_change) ... ok
+test_03_formation_updates_and_unavailable_reserves_keep_real_restrictions (test_tactics_selection.TacticsSelection.test_03_formation_updates_and_unavailable_reserves_keep_real_restrictions) ... ok
+test_01_pitch_decisions_and_new_panels_fit_small_viewports (test_match_centre_depth.MatchCentreDepth.test_01_pitch_decisions_and_new_panels_fit_small_viewports) ... ok
+test_02_replay_pauses_clock_and_preserves_every_result_record (test_match_centre_depth.MatchCentreDepth.test_02_replay_pauses_clock_and_preserves_every_result_record) ... ok
+test_03_assistant_and_stats_display_recorded_engine_data (test_match_centre_depth.MatchCentreDepth.test_03_assistant_and_stats_display_recorded_engine_data) ... ok
+test_04_phase_adjustment_changes_saved_tactic_and_does_not_advance (test_match_centre_depth.MatchCentreDepth.test_04_phase_adjustment_changes_saved_tactic_and_does_not_advance) ... ok
+test_05_replay_and_empty_shot_map_support_previous_match_records (test_match_centre_depth.MatchCentreDepth.test_05_replay_and_empty_shot_map_support_previous_match_records) ... ok
+test_06_early_chances_remain_replayable_and_shot_map_uses_origin (test_match_centre_depth.MatchCentreDepth.test_06_early_chances_remain_replayable_and_shot_map_uses_origin) ... ok
+test_07_live_refresh_preserves_pause_and_tab_controls (test_match_centre_depth.MatchCentreDepth.test_07_live_refresh_preserves_pause_and_tab_controls) ... ok
+test_01_welcome_and_all_workspaces_fit_three_sizes (test_workspace_update.WorkspaceUpdate.test_01_welcome_and_all_workspaces_fit_three_sizes) ... ok
+test_03_tactical_and_player_panels_keep_actions_reachable (test_workspace_update.WorkspaceUpdate.test_03_tactical_and_player_panels_keep_actions_reachable) ... ok
+test_06_visible_offer_errors_and_mobile_menu (test_workspace_update.WorkspaceUpdate.test_06_visible_offer_errors_and_mobile_menu) ... ok
+test_11_secondary_controls_fit_low_desktop_and_mobile (test_workspace_update.WorkspaceUpdate.test_11_secondary_controls_fit_low_desktop_and_mobile) ... ERROR
+test_all_professional_tabs_and_mobile_primary_action_are_visible (test_professional_upgrade.ProfessionalUpgrade.test_all_professional_tabs_and_mobile_primary_action_are_visible) ... ok
+test_competition_rules_are_snapshotted_and_extra_time_adds_one_change (test_match_regulations_depth.MatchRegulationsDepth.test_competition_rules_are_snapshotted_and_extra_time_adds_one_change) ... ok
+test_fewer_than_seven_abandons_without_fictional_scorers (test_match_regulations_depth.MatchRegulationsDepth.test_fewer_than_seven_abandons_without_fictional_scorers) ... ok
+test_individual_shootout_order_excludes_extra_eligible_players (test_match_regulations_depth.MatchRegulationsDepth.test_individual_shootout_order_excludes_extra_eligible_players) ... ok
+test_live_formation_and_emergency_keeper_use_existing_players (test_match_regulations_depth.MatchRegulationsDepth.test_live_formation_and_emergency_keeper_use_existing_players) ... ok
+test_penalty_sequence_uses_the_actual_fallback_taker (test_match_regulations_depth.MatchRegulationsDepth.test_penalty_sequence_uses_the_actual_fallback_taker) ... ok
+test_tactical_team_factors_reach_recorded_possessions (test_match_regulations_depth.MatchRegulationsDepth.test_tactical_team_factors_reach_recorded_possessions) ... ok
+
+======================================================================
+ERROR: test_11_secondary_controls_fit_low_desktop_and_mobile (test_workspace_update.WorkspaceUpdate.test_11_secondary_controls_fit_low_desktop_and_mobile)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/FM27/tests/test_workspace_update.py", line 194, in test_11_secondary_controls_fit_low_desktop_and_mobile
+    self.visible_in_viewport(selector)
+  File "/workspace/FM27/tests/test_workspace_update.py", line 58, in visible_in_viewport
+    result=self.page.locator(selector).first.evaluate('''e=>{const r=e.getBoundingClientRect();return {visible:!!e.getClientRects().length,top:r.top,bottom:r.bottom,left:r.left,right:r.right,width:innerWidth,height:innerHeight}}''')
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/playwright/sync_api/_generated.py", line 18092, in evaluate
+    self._sync(
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/playwright/_impl/_sync_base.py", line 115, in _sync
+    return task.result()
+           ^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/playwright/_impl/_locator.py", line 195, in evaluate
+    return await self._with_element(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/playwright/_impl/_locator.py", line 114, in _with_element
+    handle = await self.element_handle(timeout=timeout)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/playwright/_impl/_locator.py", line 325, in element_handle
+    handle = await self._frame.wait_for_selector(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/playwright/_impl/_frame.py", line 394, in wait_for_selector
+    await self._channel.send(
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/playwright/_impl/_connection.py", line 76, in send
+    return await self._connection.wrap_api_call(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/site-packages/playwright/_impl/_connection.py", line 632, in wrap_api_call
+    raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+playwright._impl._errors.TimeoutError: Locator.evaluate: Timeout 30000ms exceeded.
+Call log:
+  - waiting for locator("[data-tw-team=\"formation\"]:visible").first
+
+
+----------------------------------------------------------------------
+Ran 30 tests in 370.603s
+
+FAILED (errors=1)

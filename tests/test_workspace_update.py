@@ -96,12 +96,10 @@ class WorkspaceUpdate(unittest.TestCase):
 
     def test_03_tactical_and_player_panels_keep_actions_reachable(self):
         self.career();self.nav('tactics')
-        for pane in ['pitch','bench','team','player','plans','squad']:
+        for pane in ['pitch','team','phases','set-pieces','player','plans']:
             self.page.click(f'[data-ws-key="tactics"][data-ws-tab="{pane}"]');self.fit()
             if pane=='pitch':
                 for i in range(11):self.visible_in_viewport(f'[data-tw-slot="{i}"]')
-            if pane=='bench':
-                for i in range(11,18):self.visible_in_viewport(f'[data-tw-slot="{i}"]')
             if pane=='plans':self.visible_in_viewport('[data-tw-save]')
         self.page.evaluate('details(GameState.tactics.xi[0])')
         for tab in ['summary','attributes','progress','stats','contract','sources']:
@@ -140,6 +138,8 @@ class WorkspaceUpdate(unittest.TestCase):
     def test_06_visible_offer_errors_and_mobile_menu(self):
         self.career();self.page.set_viewport_size({'width':390,'height':844});self.page.click('[data-ws-menu="toggle"]')
         self.page.click('.ws-menu [data-view="market"]');self.assertFalse(self.page.locator('.ws-menu').is_visible())
+        # Ownership capacity is 40; a 32-player registration no longer blocks offers.
+        self.page.evaluate('''()=>{const n=40-mine().length;for(const p of GameState.players.filter(p=>p.clubId!==GameState.userClub.id&&p.id!==1068088).slice(0,n))p.clubId=GameState.userClub.id;WORLD_ENGINE.reindex();}''')
         self.page.evaluate('buy(1068088)');self.page.click('#negotiation button[type="submit"]')
         self.assertEqual(self.page.evaluate('GameState.offers.filter(o=>o.type==="buy").length'),0)
         self.visible_in_viewport('[data-offer-feedback]');self.assertIn('plazas',self.page.locator('[data-offer-error]').inner_text())
@@ -188,7 +188,7 @@ class WorkspaceUpdate(unittest.TestCase):
         for width,height in [(1280,720),(390,844)]:
             self.page.set_viewport_size({'width':width,'height':height})
             self.nav('tactics')
-            for pane,selectors in [('pitch',[f'[data-tw-slot="{i}"]' for i in range(11)]),('bench',[f'[data-tw-slot="{i}"]' for i in range(11,18)]),('team',['[data-tw-team="formation"]','[data-tw-team="style"]','#tw-pressing']),('plans',['[data-tw-plan-name]','[data-tw-save]'])]:
+            for pane,selectors in [('pitch',[f'[data-tw-slot="{i}"]' for i in range(11)]),('team',['[data-tw-team="style"]:visible','#tw-pressing']),('plans',['[data-tw-plan-name]','[data-tw-save]'])]:
                 self.page.click(f'[data-ws-key="tactics"][data-ws-tab="{pane}"]')
                 for selector in selectors:
                     self.visible_in_viewport(selector)

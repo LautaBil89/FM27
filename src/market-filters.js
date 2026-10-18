@@ -87,7 +87,7 @@ window.FM_MARKET_FILTERS = (() => {
   function matches(p,which='market') {
     if(!p||!active())return false;
     const f=typeof which==='string'?get(which):normalize(which),team=clubIndex.get(p.clubId);
-    const natural=FM_PLAYER.naturalPositions(p);
+    const natural=f.positions.length||f.position!=='ALL'?FM_PLAYER.naturalPositions(p):[];
     if(f.group!=='ALL'&&p.posicion!==f.group)return false;
     if(f.positions.length?(f.positionMode==='all'?!f.positions.every(pos=>natural.includes(pos)):!f.positions.some(pos=>natural.includes(pos))):f.position!=='ALL'&&!natural.includes(f.position))return false;
     const nations=p.nationalities?.length?p.nationalities:p.transfermarkt?.nationalities?.length?p.transfermarkt.nationalities:[p.nacionalidad];
@@ -130,6 +130,16 @@ window.FM_MARKET_FILTERS = (() => {
     const values=(Array.isArray(value)?value:[value]).map(norm),target=norm(r.value),same=values.some(v=>r.op==='contains'?v.includes(target):v===target);return r.op==='neq'?!same:same;
   }
   function compare(a,b,which='market'){const f=get(which),av=observedValue(a,f.sort),bv=observedValue(b,f.sort),direction=f.direction==='asc'?1:-1;return (av==null||bv==null?(av==null?(bv==null?0:1):-1):(typeof av==='string'?av.localeCompare(String(bv),'es'):Number(av)-Number(bv))*direction)||a.nombre.localeCompare(b.nombre,'es');}
+  const namesCollator=new Intl.Collator('es');
+  function sortPlayers(players,which='market'){
+    const f=get(which),direction=f.direction==='asc'?1:-1;
+    // Validate each observation once per sort, including in-place attribute changes.
+    // The comparator never serializes attributes or re-enters the scouting network.
+    return players.map(p=>({p,value:observedValue(p,f.sort)})).sort((a,b)=>{
+      const av=a.value,bv=b.value;
+      return (av==null||bv==null?(av==null?(bv==null?0:1):-1):(typeof av==='string'?namesCollator.compare(av,String(bv)):Number(av)-Number(bv))*direction)||namesCollator.compare(a.p.nombre,b.p.nombre);
+    }).map(row=>row.p);
+  }
   const columns=(which='market')=>get(which).columns.slice();
   const visibleColumn=(key,which='market')=>columns(which).includes(key);
   function presetStore(which=scope){const all=GameState.world.marketSearches??={},byClub=all[GameState.userClub.id]??={};return byClub[which]??=[];}
@@ -234,5 +244,5 @@ window.FM_MARKET_FILTERS = (() => {
     const error=validate();if(error){const input=error.group!=null?dialog.querySelector(`[data-mf-group="${error.group}"][data-mf-condition="${error.condition}"][data-mf-condition-key="value"]`):error.rule!=null?dialog.querySelector(`[data-mf-rule="${error.rule}"]`):dialog.querySelector(`[data-mf-key="${error.key}"]`);showTab(input.closest('[role="tabpanel"]').id.replace('mf-panel-',''));const box=dialog.querySelector('.mf-error');box.hidden=false;box.textContent=error.message;input.focus();return;}
     const which=scope,value=structuredClone(draft),query=draftQuery;persist(which,value);if(which==='market'){marketQuery=query;const prefs=GameState.world.depth?.preferences;if(prefs)prefs.marketQuery=query;}close(false);render();document.querySelector(`[data-market-filters-open="${which}"]`)?.focus({preventScroll:true});
   });
-  return {get,prepare,matches,toolbar,open,close,defaults,compare,columns,visibleColumn,savePreset,applyPreset,deletePreset,presets:(which='market')=>presetStore(which).map(p=>structuredClone(p)),normalize};
+  return {get,prepare,matches,toolbar,open,close,defaults,compare,sortPlayers,columns,visibleColumn,savePreset,applyPreset,deletePreset,presets:(which='market')=>presetStore(which).map(p=>structuredClone(p)),normalize};
 })();

@@ -1,0 +1,1113 @@
+{
+  "views": [
+    {
+      "view": "dashboard",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 900,
+      "children": [
+        {
+          "class": "v-dashboard",
+          "bottom": 884
+        }
+      ],
+      "prepare": [
+        {
+          "visible": true,
+          "bottom": 553.890625
+        }
+      ],
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "view": "squad",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 900,
+      "children": [
+        {
+          "class": "ws-workspace",
+          "bottom": 884
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "view": "tactics",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 900,
+      "children": [
+        {
+          "class": "ws-workspace tw-viewport-workspace",
+          "bottom": 884
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "view": "market",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 900,
+      "children": [
+        {
+          "class": "ws-workspace",
+          "bottom": 884
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "view": "inbox",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 900,
+      "children": [
+        {
+          "class": "fm-inbox",
+          "bottom": 884
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "view": "finances",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 900,
+      "children": [
+        {
+          "class": "cf-workspace",
+          "bottom": 884
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "view": "match",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 900,
+      "children": [
+        {
+          "class": "ws-workspace",
+          "bottom": 884
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "view": "training",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 900,
+      "children": [
+        {
+          "class": "ws-workspace",
+          "bottom": 884
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "view": "scouting",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 900,
+      "children": [
+        {
+          "class": "ws-workspace",
+          "bottom": 884
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "view": "tables",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 900,
+      "children": [
+        {
+          "class": "ws-workspace",
+          "bottom": 884
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "view": "office",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 900,
+      "children": [
+        {
+          "class": "ws-workspace",
+          "bottom": 884
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "view": "career",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 900,
+      "children": [
+        {
+          "class": "ws-workspace",
+          "bottom": 884
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "view": "dressing-room",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 900,
+      "children": [
+        {
+          "class": "dr-root",
+          "bottom": 884
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "view": "archive",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 900,
+      "children": [
+        {
+          "class": "card ma-archive",
+          "bottom": 309.328125
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "view": "professional",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 900,
+      "children": [
+        {
+          "class": "pro-workspace",
+          "bottom": 884
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "view": "player",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 900,
+      "children": [
+        {
+          "class": "fp-workspace",
+          "bottom": 884
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        1440,
+        900
+      ]
+    },
+    {
+      "view": "dashboard",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 768,
+      "children": [
+        {
+          "class": "v-dashboard",
+          "bottom": 752
+        }
+      ],
+      "prepare": [
+        {
+          "visible": true,
+          "bottom": 540.890625
+        }
+      ],
+      "viewport": [
+        1366,
+        768
+      ]
+    },
+    {
+      "view": "squad",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 768,
+      "children": [
+        {
+          "class": "ws-workspace",
+          "bottom": 752
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        1366,
+        768
+      ]
+    },
+    {
+      "view": "tactics",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 768,
+      "children": [
+        {
+          "class": "ws-workspace tw-viewport-workspace",
+          "bottom": 752
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        1366,
+        768
+      ]
+    },
+    {
+      "view": "market",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 768,
+      "children": [
+        {
+          "class": "ws-workspace",
+          "bottom": 752
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        1366,
+        768
+      ]
+    },
+    {
+      "view": "inbox",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 768,
+      "children": [
+        {
+          "class": "fm-inbox",
+          "bottom": 752
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        1366,
+        768
+      ]
+    },
+    {
+      "view": "finances",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 768,
+      "children": [
+        {
+          "class": "cf-workspace",
+          "bottom": 752
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        1366,
+        768
+      ]
+    },
+    {
+      "view": "match",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 768,
+      "children": [
+        {
+          "class": "ws-workspace",
+          "bottom": 752
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        1366,
+        768
+      ]
+    },
+    {
+      "view": "training",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 768,
+      "children": [
+        {
+          "class": "ws-workspace",
+          "bottom": 752
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        1366,
+        768
+      ]
+    },
+    {
+      "view": "scouting",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 768,
+      "children": [
+        {
+          "class": "ws-workspace",
+          "bottom": 752
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        1366,
+        768
+      ]
+    },
+    {
+      "view": "tables",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 768,
+      "children": [
+        {
+          "class": "ws-workspace",
+          "bottom": 752
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        1366,
+        768
+      ]
+    },
+    {
+      "view": "office",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 768,
+      "children": [
+        {
+          "class": "ws-workspace",
+          "bottom": 752
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        1366,
+        768
+      ]
+    },
+    {
+      "view": "career",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 768,
+      "children": [
+        {
+          "class": "ws-workspace",
+          "bottom": 752
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        1366,
+        768
+      ]
+    },
+    {
+      "view": "dressing-room",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 768,
+      "children": [
+        {
+          "class": "dr-root",
+          "bottom": 752
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        1366,
+        768
+      ]
+    },
+    {
+      "view": "archive",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 768,
+      "children": [
+        {
+          "class": "card ma-archive",
+          "bottom": 309.328125
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        1366,
+        768
+      ]
+    },
+    {
+      "view": "professional",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 768,
+      "children": [
+        {
+          "class": "pro-workspace",
+          "bottom": 752
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        1366,
+        768
+      ]
+    },
+    {
+      "view": "player",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 768,
+      "children": [
+        {
+          "class": "fp-workspace",
+          "bottom": 752
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        1366,
+        768
+      ]
+    },
+    {
+      "view": "dashboard",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 844,
+      "children": [
+        {
+          "class": "v-dashboard",
+          "bottom": 834
+        }
+      ],
+      "prepare": [
+        {
+          "visible": true,
+          "bottom": 736
+        }
+      ],
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "view": "squad",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 844,
+      "children": [
+        {
+          "class": "ws-workspace",
+          "bottom": 834
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "view": "tactics",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 844,
+      "children": [
+        {
+          "class": "ws-workspace tw-viewport-workspace",
+          "bottom": 834
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "view": "market",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 844,
+      "children": [
+        {
+          "class": "ws-workspace",
+          "bottom": 834
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "view": "inbox",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 844,
+      "children": [
+        {
+          "class": "fm-inbox",
+          "bottom": 834
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "view": "finances",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 844,
+      "children": [
+        {
+          "class": "cf-workspace",
+          "bottom": 834
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "view": "match",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 844,
+      "children": [
+        {
+          "class": "ws-workspace",
+          "bottom": 834
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "view": "training",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 844,
+      "children": [
+        {
+          "class": "ws-workspace",
+          "bottom": 834
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "view": "scouting",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 844,
+      "children": [
+        {
+          "class": "ws-workspace",
+          "bottom": 834
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "view": "tables",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 844,
+      "children": [
+        {
+          "class": "ws-workspace",
+          "bottom": 834
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "view": "office",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 844,
+      "children": [
+        {
+          "class": "ws-workspace",
+          "bottom": 834
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "view": "career",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 844,
+      "children": [
+        {
+          "class": "ws-workspace",
+          "bottom": 834
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "view": "dressing-room",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 844,
+      "children": [
+        {
+          "class": "dr-root",
+          "bottom": 834
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "view": "archive",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 844,
+      "children": [
+        {
+          "class": "card ma-archive",
+          "bottom": 352.625
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "view": "professional",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 844,
+      "children": [
+        {
+          "class": "pro-workspace",
+          "bottom": 834
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "view": "player",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 844,
+      "children": [
+        {
+          "class": "fp-workspace",
+          "bottom": 834
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "view": "dashboard",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 640,
+      "children": [
+        {
+          "class": "v-dashboard",
+          "bottom": 630
+        }
+      ],
+      "prepare": [
+        {
+          "visible": true,
+          "bottom": 619
+        }
+      ],
+      "viewport": [
+        360,
+        640
+      ]
+    },
+    {
+      "view": "squad",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 640,
+      "children": [
+        {
+          "class": "ws-workspace",
+          "bottom": 630
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        360,
+        640
+      ]
+    },
+    {
+      "view": "tactics",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 640,
+      "children": [
+        {
+          "class": "ws-workspace tw-viewport-workspace",
+          "bottom": 630
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        360,
+        640
+      ]
+    },
+    {
+      "view": "market",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 640,
+      "children": [
+        {
+          "class": "ws-workspace",
+          "bottom": 630
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        360,
+        640
+      ]
+    },
+    {
+      "view": "inbox",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 640,
+      "children": [
+        {
+          "class": "fm-inbox",
+          "bottom": 630
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        360,
+        640
+      ]
+    },
+    {
+      "view": "finances",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 640,
+      "children": [
+        {
+          "class": "cf-workspace",
+          "bottom": 630
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        360,
+        640
+      ]
+    },
+    {
+      "view": "match",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 640,
+      "children": [
+        {
+          "class": "ws-workspace",
+          "bottom": 630
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        360,
+        640
+      ]
+    },
+    {
+      "view": "training",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 640,
+      "children": [
+        {
+          "class": "ws-workspace",
+          "bottom": 630
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        360,
+        640
+      ]
+    },
+    {
+      "view": "scouting",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 640,
+      "children": [
+        {
+          "class": "ws-workspace",
+          "bottom": 630
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        360,
+        640
+      ]
+    },
+    {
+      "view": "tables",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 640,
+      "children": [
+        {
+          "class": "ws-workspace",
+          "bottom": 630
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        360,
+        640
+      ]
+    },
+    {
+      "view": "office",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 640,
+      "children": [
+        {
+          "class": "ws-workspace",
+          "bottom": 630
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        360,
+        640
+      ]
+    },
+    {
+      "view": "career",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 640,
+      "children": [
+        {
+          "class": "ws-workspace",
+          "bottom": 630
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        360,
+        640
+      ]
+    },
+    {
+      "view": "dressing-room",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 640,
+      "children": [
+        {
+          "class": "dr-root",
+          "bottom": 630
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        360,
+        640
+      ]
+    },
+    {
+      "view": "archive",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 640,
+      "children": [
+        {
+          "class": "card ma-archive",
+          "bottom": 352.625
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        360,
+        640
+      ]
+    },
+    {
+      "view": "professional",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 640,
+      "children": [
+        {
+          "class": "pro-workspace",
+          "bottom": 630
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        360,
+        640
+      ]
+    },
+    {
+      "view": "player",
+      "overflow": false,
+      "widthOverflow": false,
+      "contentBottom": 640,
+      "children": [
+        {
+          "class": "fp-workspace",
+          "bottom": 630
+        }
+      ],
+      "prepare": [],
+      "viewport": [
+        360,
+        640
+      ]
+    }
+  ],
+  "errors": []
+}

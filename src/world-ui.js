@@ -189,13 +189,16 @@
     const sourceClubs = clubs().filter(item=>item.id!==user.id && (ui.marketCountry==='all' || item.country===ui.marketCountry) && (ui.marketLeague==='all' || item.leagueId===ui.marketLeague)).sort((a,b)=>a.nombre.localeCompare(b.nombre)), clubIndex = new Map(clubs().map(item=>[item.id,item]));
     if (!['all','free'].includes(ui.marketClub) && !sourceClubs.some(item=>item.id===ui.marketClub)) ui.marketClub='all';
     const fold=value=>String(value).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es');
-    const query = fold(marketQuery).trim(), candidates = GameState.players.filter(p=>{
+    const query = fold(marketQuery).trim(), matched = GameState.players.filter(p=>{
+      if(p.clubId===user.id)return false;
+      const team = clubIndex.get(p.clubId);
+      if(query&&!fold(`${p.nombre} ${p.nacionalidad} ${team?.nombre || 'Agente libre'}`).includes(query))return false;
       if(window.FM_MARKET_FILTERS?!FM_MARKET_FILTERS.matches(p,'market'):window.FM_OFFICE&&!FM_OFFICE.matches(p,FM_OFFICE.filters.market))return false;
       if(p.clubId===user.id||!window.FM_MARKET_FILTERS&&(marketPos!=='ALL'&&p.posicion!==marketPos||ui.marketAge!=='all'&&p.edad>Number(ui.marketAge)||ui.marketBudget&&transferCost(p)>user.presupuesto_dolares))return false;
-      const team = clubIndex.get(p.clubId);
       if(!window.FM_MARKET_FILTERS&&(ui.marketCountry!=='all'&&team?.country!==ui.marketCountry||ui.marketLeague!=='all'&&team?.leagueId!==ui.marketLeague||ui.marketClub==='free'&&p.clubId||!['all','free'].includes(ui.marketClub)&&p.clubId!==ui.marketClub))return false;
-      return fold(`${p.nombre} ${p.nacionalidad} ${team?.nombre || 'Agente libre'}`).includes(query);
-    }).sort((a,b)=>window.FM_MARKET_FILTERS?FM_MARKET_FILTERS.compare(a,b,'market'):a.nombre.localeCompare(b.nombre));
+      return true;
+    });
+    const candidates=window.FM_MARKET_FILTERS?FM_MARKET_FILTERS.sortPlayers(matched,'market'):matched.sort((a,b)=>a.nombre.localeCompare(b.nombre));
     const pages = Math.max(1,Math.ceil(candidates.length/25)); ui.marketPage=Math.min(ui.marketPage,pages-1);
     const col=key=>!window.FM_MARKET_FILTERS||FM_MARKET_FILTERS.visibleColumn(key,'market');
     const displayed=candidates.slice(ui.marketPage*25,(ui.marketPage+1)*25), limit=limitFor(user.id);
@@ -285,6 +288,7 @@
     const body=search.querySelector('tbody'),newBody=next.content.querySelector('.fm-table-card tbody');
     const footer=search.querySelector('.fm-table-footer'),newFooter=next.content.querySelector('.fm-table-card .fm-table-footer');
     if(body&&newBody)body.replaceChildren(...newBody.childNodes);
+    window.FM_VISUAL?.enrichPlayers(search);
     if(footer&&newFooter)footer.replaceWith(newFooter);
   }
   function scheduleSearch(node,composing=false) {

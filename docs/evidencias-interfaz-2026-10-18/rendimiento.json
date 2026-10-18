@@ -1,0 +1,50 @@
+{
+  "scope": "Chromium local, 1440x960, idéntica semilla; 3 calentamientos y 15 renders completos por pantalla; incluye cálculo de layout. No mide carga, autoguardado ni simulación.",
+  "measurements": {
+    "anterior": {
+      "dashboard": {
+        "medianMs": 7.9,
+        "p95Ms": 16.3
+      },
+      "squad": {
+        "medianMs": 23,
+        "p95Ms": 28.3
+      },
+      "market": {
+        "medianMs": 692,
+        "p95Ms": 801.4
+      },
+      "tactics": {
+        "medianMs": 13.7,
+        "p95Ms": 18.4
+      },
+      "inbox": {
+        "medianMs": 5.8,
+        "p95Ms": 7.8
+      }
+    },
+    "actual": {
+      "dashboard": {
+        "medianMs": 9.7,
+        "p95Ms": 11
+      },
+      "squad": {
+        "medianMs": 20.9,
+        "p95Ms": 30.3
+      },
+      "market": {
+        "medianMs": 127.9,
+        "p95Ms": 232.9
+      },
+      "tactics": {
+        "medianMs": 11.8,
+        "p95Ms": 17.7
+      },
+      "inbox": {
+        "medianMs": 6.9,
+        "p95Ms": 9.3
+      }
+    }
+  },
+  "baselineCommit": "5171b963ea127f194e719b623ebf9d3b9f1deb7e"
+}

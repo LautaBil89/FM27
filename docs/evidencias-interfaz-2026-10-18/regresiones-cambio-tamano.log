@@ -1,0 +1,6 @@
+test_dashboard_message_opens_exact_reader_and_marks_read (test_visual_workspace.VisualWorkspace.test_dashboard_message_opens_exact_reader_and_marks_read) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 9.607s
+
+OK

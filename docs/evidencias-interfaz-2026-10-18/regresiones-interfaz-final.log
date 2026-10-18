@@ -1,0 +1,13 @@
+test_batched_market_sort_preserves_each_order_and_refreshes_observations (test_visual_workspace.VisualWorkspace.test_batched_market_sort_preserves_each_order_and_refreshes_observations) ... ok
+test_dashboard_message_opens_exact_reader_and_marks_read (test_visual_workspace.VisualWorkspace.test_dashboard_message_opens_exact_reader_and_marks_read) ... ok
+test_dashboard_panels_and_primary_match_action_fit (test_visual_workspace.VisualWorkspace.test_dashboard_panels_and_primary_match_action_fit) ... ok
+test_decoration_is_idempotent_and_does_not_replace_search_control (test_visual_workspace.VisualWorkspace.test_decoration_is_idempotent_and_does_not_replace_search_control) ... ok
+test_finance_chart_uses_recorded_cash_and_fits_its_card (test_visual_workspace.VisualWorkspace.test_finance_chart_uses_recorded_cash_and_fits_its_card) ... ok
+test_visual_player_attributes_do_not_reveal_scouting_secrets (test_visual_workspace.VisualWorkspace.test_visual_player_attributes_do_not_reveal_scouting_secrets) ... ok
+test_weekly_training_and_scouting_empty_state_are_actionable (test_visual_workspace.VisualWorkspace.test_weekly_training_and_scouting_empty_state_are_actionable) ... ok
+test_11_secondary_controls_fit_low_desktop_and_mobile (test_workspace_update.WorkspaceUpdate.test_11_secondary_controls_fit_low_desktop_and_mobile) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 75.873s
+
+OK
