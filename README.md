@@ -185,7 +185,7 @@ La bandeja tiene listado y panel de lectura, búsqueda y filtros de pendientes, 
 
 ## IA de los clubes y contratos
 
-Los clubes rivales administran caja, presupuesto salarial, necesidades de posición y preferencias de juego. Analizan oportunidades en las ventanas del simulador, compiten por jugadores, compran, piden préstamos y renuevan a futbolistas importantes. Buscan mantener cobertura y respetar el máximo de 32 jugadores, cupos y reservas para retornos de préstamos. Los jugadores de tu equipo permanecen bajo tu control: la IA envía una oferta y la venta requiere tu decisión.
+Los clubes rivales administran caja, presupuesto salarial, necesidades de posición y preferencias de juego. Analizan oportunidades en las ventanas del simulador, compiten por jugadores, compran, piden préstamos y renuevan a futbolistas importantes. Buscan mantener cobertura y respetar el máximo de 40 jugadores y las reservas para retornos de préstamos y ofertas pendientes. Los jugadores de tu equipo permanecen bajo tu control: la IA envía una oferta y la venta requiere tu decisión.
 
 Las **renovaciones** ya no se firman al pulsar el botón. El representante evalúa la propuesta desde el día siguiente, puede contraofertar y admite nuevas rondas dentro de su plazo. Se negocian salario, prima, duración, rol, aumento anual, cláusula y primas deportivas. Mientras se negocia sólo se reservan prima e incremento salarial; la firma revalida el presupuesto y conserva la confianza, los minutos y las promesas del vestuario. Los avisos utilizan la fecha exacta de vencimiento y el expediente se consulta desde la ficha, la bandeja o **Ofertas y contratos**. Una salida ya firmada impide renovar y una salida efectiva cancela las conversaciones pendientes.
 
@@ -199,7 +199,7 @@ La firmeza de cada club es simulada y cambia con su liquidez, deuda, cobertura d
 
 Se admiten pagos al contado o en 3/6/12 cuotas y préstamos de seis/doce meses con reparto salarial. En un préstamo se conserva el contrato y salario del propietario, se acuerda el rol con el jugador y se restaura su club al vencimiento. Las primas por aparición, gol y valla invicta se pagan por su participación real y se registran en finanzas. Un cedido no puede revenderse ni renovar con el prestatario. Las ofertas guardadas con el flujo anterior conservan su resolución compatible.
 
-La negociación muestra plazas del plantel, extranjeros inscritos, margen salarial y fondos disponibles. Si una oferta no puede enviarse, el motivo permanece visible dentro de la ventana, con acceso a Plantilla o Finanzas cuando corresponde. Algunos clubes comienzan con las 32 plazas ocupadas: deben concretar una salida antes de incorporar otro jugador. Los importes inválidos se explican en el mismo formulario y los salarios permiten valores enteros, sin exigir múltiplos de 100.
+La negociación muestra plazas del plantel, extranjeros inscritos, margen salarial y fondos disponibles. Si una oferta no puede enviarse, el motivo permanece visible dentro de la ventana, con acceso a Plantilla o Finanzas cuando corresponde. El club puede tener hasta 40 jugadores, independientemente de las plazas de inscripción y del cupo de extranjeros. Los refuerzos del usuario quedan sin inscribir: elegí sus listas desde Plantilla → Listas e inscripción. Los cupos deportivos se controlan al inscribir y convocar, no al negociar un fichaje. Los importes inválidos se explican en el mismo formulario y los salarios permiten valores enteros, sin exigir múltiplos de 100.
 
 El registro del mercado muestra las últimas operaciones y renovaciones de la IA, enlazadas a las fichas. Los historiales se limitan para mantener el guardado compacto. La IA y los contratos pertenecen a la simulación, no a un mercado real ni a fichajes posteriores verificados en Transfermarkt.
 
@@ -328,6 +328,7 @@ python3 tests/test_match_formats.py
 python3 tests/test_football_depth.py
 python3 tests/test_workspace_update.py
 python3 tests/test_offer_form.py
+python3 tests/test_squad_ownership.py
 python3 tests/test_daily_clock.py
 python3 tests/test_management.py
 python3 tests/test_world_game.py

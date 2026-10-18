@@ -195,7 +195,7 @@
     else if(stageKey==='PLAYOFF')buildStage(type,'R16',seededCross(cup.groupWinners,winners,(cup.year??GameState.year)+223,true));
     else{const next={R16:'QF',QF:'SF',SF:'FINAL'}[stageKey];buildStage(type,next,Array.from({length:winners.length/2},(_,i)=>[winners[i*2],winners[i*2+1]]))}
   }
-  function registerSquad(id) {const foreign=squad(id).filter(p=>isForeign(p,id)).sort((a,b)=>overall(b)-overall(a));for(const p of squad(id))p.registered=true;for(const p of foreign.slice(typeof registrationLimit==='function'?registrationLimit(id):foreignLimit(id)))p.registered=false}
+  function registerSquad(id) {if(id===GameState.userClub.id&&GameState.world.registration?.clubs?.[id]?.initialized){const ids=GameState.world.registration.clubs[id].domestic;for(const p of squad(id))p.registered=ids.includes(p.id);return}const foreign=squad(id).filter(p=>isForeign(p,id)).sort((a,b)=>overall(b)-overall(a));for(const p of squad(id))p.registered=true;for(const p of foreign.slice(typeof registrationLimit==='function'?registrationLimit(id):foreignLimit(id)))p.registered=false}
   let processingEvent=null;
   function syncSuspensions(p){
     const rows=Object.entries(p.suspensions||{}).filter(([,n])=>Number.isInteger(n)&&n>0);

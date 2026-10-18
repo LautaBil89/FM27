@@ -68,14 +68,9 @@
   }
   function canReceive(p,id,wage=p?.salario,options={}){
     const e=economy(id);if(!p||!e)return{ok:false,reason:'el club o el jugador ya no está disponible'};
-    const continuation=options.loanPurchaseId&&(GameState.world.ai?.contracts?.loans||[]).some(l=>l.id===options.loanPurchaseId&&l.status==='purchasing'&&l.playerId===p.id&&l.borrowerClub===id&&l.ownerClub===p.clubId);
     const excluded=options.excludeOfferId||null,returnSlots=liveLoans().filter(l=>l.ownerClub===id&&l.playerId!==p.id).length;
     if(p.clubId===id)return{ok:false,reason:'el jugador ya pertenece al club'};
-    if(squad(id).length+returnSlots+incomingSlots(id,excluded)>=32)return{ok:false,reason:'no quedan plazas: también se reservan los retornos de préstamos'};
-    const registry=!continuation&&window.FM_REGISTRATION?.canRegister(p,id);if(registry&&!registry.ok)return registry;
-    const foreign=WORLD_ENGINE.isForeign(p,id),limit=WORLD_ENGINE.foreignLimit(id),pendingForeign=GameState.offers.filter(o=>o.status==='pending'&&(o.toClub||(o.type==='buy'?userId():null))===id&&o.id!==excluded).filter(o=>WORLD_ENGINE.isForeign(player(o.playerId),id)).length;
-    const returningForeign=liveLoans().filter(l=>l.ownerClub===id&&l.playerId!==p.id&&WORLD_ENGINE.isForeign(player(l.playerId),id)).length;
-    if(foreign&&(!continuation||p.registered!==false)&&foreigners(id)+pendingForeign+returningForeign>=limit)return{ok:false,reason:'no quedan cupos de extranjeros'};
+    if(squad(id).filter(q=>q.id!==p.id).length+returnSlots+incomingSlots(id,excluded)>=40)return{ok:false,reason:'no quedan plazas en el plantel de 40: también se reservan los retornos de préstamos y ofertas pendientes'};
     if(!Number.isFinite(wage)||wage<0)return{ok:false,reason:'el salario no es válido'};
     if(wageBill(id)+reservedWages(id,excluded)+wage>positive(e.wageBudget))return{ok:false,reason:'se supera el presupuesto salarial'};
     return{ok:true,reason:''};

@@ -14,7 +14,7 @@ class LoanContinuity(unittest.TestCase):
         self.vacancy()
         return self.page.evaluate("""mode=>{const p=player(1068088);p.contract=2029;p.contractEnd='2029-06-30';p.salario=1000;p.appearances=12;GameState.userClub.wageBudget=10000000;
           const result=MARKET_CONTRACTS.executeTransfer({id:'continuity-loan',playerId:p.id,dealType:'loan',fromClub:p.clubId,toClub:'boca',fee:1000,wage:p.salario,loanMonths:12,wageShare:50,purchaseMode:mode,purchaseFee:Math.max(10000,p.valor_mercado),purchaseAppearances:10,playingTime:'Rotación'});
-          if(!result.ok)throw Error(result.reason);const loan=MARKET_CONTRACTS.ensure().loans.find(l=>l.playerId===p.id);window.loanCaseId=loan.id;return{id:loan.id,fee:loan.purchaseFee,owner:loan.ownerClub,end:loan.endDate};
+          if(!result.ok)throw Error(result.reason);const registered=FM_REGISTRATION.register(p.id,'boca','domestic',{transfer:true});if(!registered.ok)throw Error(registered.reason);autoLineup();const loan=MARKET_CONTRACTS.ensure().loans.find(l=>l.playerId===p.id);window.loanCaseId=loan.id;return{id:loan.id,fee:loan.purchaseFee,owner:loan.ownerClub,end:loan.endDate};
         }""",mode)
 
     def test_purchase_keeps_relationship_lineup_morale_and_exact_contract(self):

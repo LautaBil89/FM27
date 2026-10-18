@@ -112,12 +112,13 @@ class OfferFormScenarios(unittest.TestCase):
         self.assertEqual(feedback.get_attribute('role'), 'alert')
         self.assertRegex(self.page.locator('#negotiation [data-offer-error]').inner_text(), pattern)
 
-    def test_01_full_initial_roster_explains_failure_and_links_to_squad(self):
-        self.assertEqual(self.page.evaluate('mine().length'), 32)
+    def test_01_forty_player_roster_explains_failure_and_links_to_squad(self):
+        self.page.evaluate("()=>{for(const p of GameState.players.filter(p=>p.clubId!=='boca'&&p.id!==1068088&&!p.loanId).slice(0,40-mine().length)){p.clubId='boca';p.registered=false}WORLD_ENGINE.reindex()}")
+        self.assertEqual(self.page.evaluate('mine().length'), 40)
         self.open_market_offer()
         resources = self.page.locator('#negotiation [data-offer-resources]')
         self.assertTrue(resources.is_visible())
-        for label in ['32 / 32', '6 / 6', 'Margen salarial', 'Fondos disponibles']:
+        for label in ['40 / 40', '6 / 6', 'Margen salarial', 'Fondos disponibles']:
             self.assertIn(label, resources.inner_text())
         before = self.financial_snapshot()
         self.submit()
@@ -127,7 +128,7 @@ class OfferFormScenarios(unittest.TestCase):
         self.page.locator('[data-contract-help="squad"]').click()
         self.assertFalse(self.page.locator('#details').is_visible())
         self.assertEqual(self.page.evaluate('view'), 'squad')
-        self.assertEqual(self.page.evaluate('mine().length'), 32)
+        self.assertEqual(self.page.evaluate('mine().length'), 40)
 
     def test_02_valid_actual_form_persists_and_signs_after_four_turns(self):
         self.vacancy();self.open_market_offer()
@@ -146,7 +147,13 @@ class OfferFormScenarios(unittest.TestCase):
         for step in range(4):
             # Exercise exact response timing beneath the automatic Continue button.
             self.page.evaluate('WORLD_CLOCK.advance()')
-            self.assertEqual(self.page.evaluate('GameState.offers.find(o=>o.playerId===1068088).status'),'pending' if step<3 else 'accepted')
+            self.assertEqual(self.page.evaluate('GameState.offers.find(o=>o.playerId===1068088).status'),'pending')
+        self.assertTrue(self.page.evaluate('GameState.offers.find(o=>o.playerId===1068088).awaitingMedical'))
+        self.assertEqual(self.page.evaluate('GameState.userClub.presupuesto_dolares'),before['cash'])
+        self.page.evaluate('()=>{for(let i=0;i<4;i++)WORLD_CLOCK.advance({silent:true})}')
+        medical=self.page.evaluate('()=>{const o=GameState.offers.find(o=>o.playerId===1068088);return MARKET_CONTRACTS.respondMedical(o.id,true)}')
+        self.assertTrue(medical['ok'],medical)
+        self.assertEqual(self.page.evaluate('GameState.offers.find(o=>o.playerId===1068088).status'),'accepted')
         result=self.page.evaluate('({offer:GameState.offers.find(o=>o.playerId===1068088),p:player(1068088),cash:GameState.userClub.presupuesto_dolares,fees:GameState.finance.ledger.filter(r=>r.category==="fichajes")})')
         self.assertEqual(result['p']['clubId'],'boca');self.assertEqual(result['p']['salario'],entered['wage'])
         self.assertEqual(result['p']['clausula_rescision'],entered['releaseClause'])
@@ -166,7 +173,7 @@ class OfferFormScenarios(unittest.TestCase):
         self.assertEqual(self.page.evaluate('MARKET_CONTRACTS.pendingWages()'),0)
         self.assertEqual(self.page.evaluate('GameState.userClub.presupuesto_dolares'),cash)
 
-    def test_04_foreign_registration_failure_is_visible_and_links_to_squad(self):
+    def test_04_full_foreign_registration_does_not_block_offer(self):
         fixture = self.vacancy()
         self.assertEqual(fixture['foreign'], 6)
         target = self.page.evaluate("""()=>{
@@ -178,13 +185,10 @@ class OfferFormScenarios(unittest.TestCase):
             return {id:p.id,name:p.nombre};
         }""")
         self.open_market_offer(target['id'])
-        before = self.financial_snapshot(target['id'])
         self.submit()
-        self.visible_error('extranjeros')
-        self.assertEqual(self.financial_snapshot(target['id']), before)
-        self.page.locator('[data-contract-help="squad"]').click()
-        self.assertEqual(self.page.evaluate('view'), 'squad')
         self.assertFalse(self.page.locator('#details').is_visible())
+        self.assertEqual(self.page.evaluate('(id)=>GameState.offers.find(o=>o.playerId===id).stage',target['id']),'club')
+        self.assertFalse(self.page.evaluate('(id)=>FM_REGISTRATION.canRegister(player(id),"boca").ok',target['id']))
 
     def test_05_native_invalid_amount_is_reported_inside_form_and_integer_wage_is_valid(self):
         self.vacancy();self.open_market_offer();self.page.fill('#negotiation [name="fee"]','-1')

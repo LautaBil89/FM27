@@ -137,9 +137,8 @@
       const releasable = ai().canRelease(p,p.clubId);
       if (releasable===false || (releasable && releasable.ok===false)) return 'El club necesita conservar cobertura en esa posición';
     }
-    const registration=!continuity&&window.FM_REGISTRATION?.canRegister(p,to);if(registration&&!registration.ok)return registration.reason;
     const receiving=ai().canReceive(p,to,wage,{excludeOfferId:offer.id,loanPurchaseId:continuity?.id});
-    if ((receiving===false||(receiving&&receiving.ok===false))&&!(enforced&&receiving?.reason==='se supera el presupuesto salarial')) return receiving?.reason||'El club no puede inscribir al jugador';
+    if ((receiving===false||(receiving&&receiving.ok===false))&&!(enforced&&receiving?.reason==='se supera el presupuesto salarial')) return receiving?.reason||'El club no puede incorporar al jugador';
     if (!enforced&&amount(offer.fee)+amount(offer.bonus)+(offer.dealType==='loan'&&['mandatory','conditional'].includes(offer.purchaseMode)?amount(offer.purchaseFee)+amount(offer.purchaseTerms?.bonus):0)>ai().availableBudget(to,offer.id)) return 'No hay fondos para cubrir el pase y sus obligaciones';
     return '';
   }
@@ -208,7 +207,7 @@
   function offerResources() {
     const id=GameState.userClub.id,returns=returnSlots(id),incoming=GameState.offers.filter(o=>pending(o)&&(o.toClub||(o.type==='buy'?id:null))===id).length;
     const occupied=mine().length+returns+incoming,limit=WORLD_ENGINE.foreignLimit(id),wages=Math.max(0,GameState.userClub.wageBudget-ai().wageBill(id)-ai().reservedWages(id));
-    return `<div class="world-offer-resources" data-offer-resources><div><span>Plazas del plantel</span><strong>${occupied} / 32</strong><small>${returns+incoming} reservadas para regresos y ofertas</small></div><div><span>Extranjeros inscritos</span><strong>${limit>=32?'Sin límite':`${foreigners(id)} / ${limit}`}</strong></div><div><span>Margen salarial semanal</span><strong>${cash(wages)}</strong></div><div><span>Fondos disponibles</span><strong>${cash(ai().availableBudget(id))}</strong></div></div>`;
+    return `<div class="world-offer-resources" data-offer-resources><div><span>Plazas del plantel</span><strong>${occupied} / 40</strong><small>${returns+incoming} reservadas para regresos y ofertas</small></div><div><span>Extranjeros inscritos (no limita fichajes)</span><strong>${limit>=32?'Sin límite':`${foreigners(id)} / ${limit}`}</strong></div><div><span>Margen salarial semanal</span><strong>${cash(wages)}</strong></div><div><span>Fondos disponibles</span><strong>${cash(ai().availableBudget(id))}</strong></div></div>`;
   }
   function submitOffer(formOrObject) {
     const stage=typeof HTMLFormElement!=='undefined'&&formOrObject instanceof HTMLFormElement?formOrObject.dataset.stage:formOrObject?.stage;
