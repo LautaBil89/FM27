@@ -1,6 +1,6 @@
 # FM27 · Pasión continental
 
-Simulador de dirección técnica con **310 clubes, 16 ligas y 9.220 jugadores reales**, Libertadores y Sudamericana jugables. La aplicación completa está en **index.html**: no hay que instalar paquetes ni compilar para jugar.
+Simulador de dirección técnica con **565 clubes dirigibles, 30 ligas y 15.183 identidades reales**, Libertadores, Sudamericana y copas UEFA jugables. Se suman 80 invitados continentales con identidad documentada en UEFA y planteles ficticios de cobertura identificados. La aplicación completa está en **index.html**: no hay que instalar paquetes ni compilar para jugar.
 
 ## Jugar
 
@@ -13,11 +13,17 @@ Las partidas anteriores conservan sus equipos, calendarios, jugadores y condicio
 
 También se puede servir en desarrollo con `python3 -m http.server 8000 --directory .`.
 
+## Actualización de la auditoría
+
+Los [44 puntos revisados](docs/IMPLEMENTACION_AUDITORIA_2026-10-17.md) incorporan consentimiento personal en ventas, revisión médica antes de fichar, contratos futuros y renegociación de préstamos, 36 atributos individuales, tasaciones mensuales, retiros e inferiores con competiciones propias. Los empleados negocian contratos y responsabilidades, y la carrera del DT dispone de vacantes, entrevistas y fechas de incorporación.
+
+En el partido hay cambios de formación y posición, arquero de emergencia, reglas de convocatoria por competición y orden de penales. El archivo conserva 120 informes completos; las búsquedas admiten puestos múltiples, condiciones Y/O, orden, columnas y perfiles guardados. Las 25 situaciones aleatorias tienen contexto y consecuencias posteriores. La matriz enlazada distingue implementaciones, formatos adaptados y procedencia de los datos.
+
 ## Avance diario
 
 Las carreras ampliadas tienen **cuatro turnos por día**: Mañana (08:00), Mediodía (12:00), Tarde (18:00) y Noche (21:00). **Continuar** procesa los turnos hasta recibir una novedad en la bandeja (incluidos informes, ofertas y altas médicas) o llegar al próximo partido. El botón cambia a **Parar** durante la simulación; también se pausa al abrir otra gestión o salir de la ventana. Desde Noche pasa a la mañana del día siguiente. La API interna `WORLD_CLOCK.advance()` sigue avanzando exactamente un turno. La fecha, hora y progreso diario aparecen en el encabezado, y el dashboard muestra la agenda y la actividad reciente del club.
 
-Las carreras nuevas comienzan con una semana de preparación. El entrenamiento y la familiaridad táctica se trabajan una vez al día, al mediodía. La condición, las lesiones, las edades, los vencimientos y la actividad de los clubes se actualizan al pasar al siguiente día. Los salarios y patrocinios siguen siendo semanales, y los pagos de cuotas conservan sus fechas: cuatro turnos no multiplican esas operaciones. Las ofertas y las contraofertas aceptadas reciben respuesta a partir del día siguiente, aunque no haya partido.
+Las carreras nuevas permiten elegir la pretemporada de su país o la fecha de consulta de la base. En el segundo caso se simulan resultados previos sin imputarlos al DT recién incorporado; los planteles de referencia siguen identificados como una selección histórica. El entrenamiento y la familiaridad táctica se trabajan una vez al día, al mediodía. La condición, las lesiones, las edades, los vencimientos y la actividad de los clubes se actualizan al pasar al siguiente día. Los salarios y patrocinios siguen siendo semanales, y los pagos de cuotas conservan sus fechas: cuatro turnos no multiplican esas operaciones. Las ofertas y las contraofertas aceptadas reciben respuesta a partir del día siguiente, aunque no haya partido.
 
 Los partidos locales se juegan en el turno Tarde y los continentales en Noche. Las otras competiciones se simulan cuando llega su fecha y turno, incluso si tu equipo todavía no juega. Podés consultar el próximo rival y preparar la táctica antes, pero no iniciar el encuentro anticipadamente. Al llegar a tu partido, Continuar abre la previa y espera tu intervención. Después del informe permanecés en esa misma fecha y turno; el juego no salta al siguiente encuentro. Si tu club termina su calendario antes que otras competiciones, el mundo sigue avanzando hasta el cierre de temporada.
 
@@ -138,7 +144,7 @@ El catálogo combinado contiene **565 clubes, 30 competiciones y 15.183 identida
 
 **Bolivia:** no se pudo verificar la nómina nacional 2026. Se emplea un pool histórico RSSSF 2025 adaptado (Real Potosí, ya en Primera, se sustituye por Wilstermann). No equivale a los participantes, sorteo ni ligas departamentales oficiales 2026; sus planteles no verificados usan reservas ficticias. Otros suplementos históricos y adaptaciones de fases se identifican en la competición y la fuente.
 
-Las copas nacionales y UEFA no están cargadas; los cupos continentales domésticos se cubren con la clasificación de liga. Los promedios usan únicamente temporadas jugadas. Las fases y ventanas no equivalen a una reproducción completa de cada reglamento federativo.
+Hay Champions, Europa League y Conference con fase liga y eliminatorias, además de copas nacionales adaptadas a las divisiones incluidas. El acceso y los coeficientes UEFA son escenarios de carrera, sin reproducir íntegramente la lista federativa ni los bombos oficiales. Los campeones continentales y algunas copas domésticas influyen en la clasificación siguiente. Los promedios usan únicamente temporadas jugadas. Las fases y ventanas no equivalen a una reproducción completa de cada reglamento federativo.
 
 En **Competiciones → Ligas nacionales**, elegí la liga y alterná Fases y finales, Acumulada, Calendario, Promedios y Reglamento. Las etapas finales reciben únicamente equipos clasificados; los cruces opcionales quedan sin jugar cuando el reglamento resuelve el título automáticamente. Cada campeón se registra por su torneo y los objetivos consideran sus títulos, no únicamente la posición anual.
 
@@ -155,7 +161,7 @@ La temporada inicial utiliza los **ocho grupos reales de 2026 y sus 32 participa
 - Las fechas continentales alternan con el torneo local, de martes a jueves; las finales se juegan en fin de semana.
 - En temporadas siguientes, los campeones y la clasificación deportiva de cada país ordenan las plazas. Se conserva la distribución nacional de los grupos iniciales, con sorteos simulados sin repetir países dentro de un grupo.
 
-La edición comienza directamente en grupos: no incluye las fases preliminares. Las copas UEFA no están incluidas; las tablas europeas señalan zonas de referencia para objetivos deportivos.
+La edición CONMEBOL de 2026 conserva los grupos de referencia. Desde el siguiente ciclo se juegan las tres fases previas de Libertadores y los cruces nacionales de Sudamericana, incluyendo cuatro eliminados de la última previa de Libertadores. Las copas UEFA usan 36 equipos y ocho rivales en Champions/Europa, seis en Conference; los ocho primeros avanzan directamente a octavos y el 9º–24º juega playoff. Accesos, adversarios y fechas se adaptan al universo incluido.
 
 ## Fichas, tácticas y decisiones del club
 

@@ -15,9 +15,9 @@ class BackgroundSave(unittest.TestCase):
     def test_background_roundtrip_and_event_loop_remain_responsive(self):
         self.page.evaluate("""()=>{window.workerObserved=false;const Original=Worker;window.Worker=class extends Original{constructor(...args){super(...args);workerObserved=true}};window.saveFrames=[];window.savingFrames=true;let before=performance.now();function frame(now){saveFrames.push(now-before);before=now;if(savingFrames)requestAnimationFrame(frame)}requestAnimationFrame(frame);GameState.manager='Guardado en segundo plano';for(let i=0;i<8;i++)WORLD_STORAGE.scheduleSave()}""")
         self.settled()
-        result=self.page.evaluate("""()=>{savingFrames=false;const s=WORLD_STORAGE.decode(JSON.parse(localStorage.getItem(KEY)));return {worker:workerObserved,manager:s.manager,players:s.players.length,maxFrame:Math.max(...saveFrames),frames:saveFrames.length,format:JSON.parse(localStorage.getItem(KEY)).format}}""")
+        result=self.page.evaluate("""()=>{savingFrames=false;const s=WORLD_STORAGE.decode(JSON.parse(localStorage.getItem(KEY)));return {worker:workerObserved,manager:s.manager,players:s.players.length,currentPlayers:GameState.players.length,maxFrame:Math.max(...saveFrames),frames:saveFrames.length,format:JSON.parse(localStorage.getItem(KEY)).format}}""")
         self.assertTrue(result['worker']);self.assertEqual(result['manager'],'Guardado en segundo plano')
-        self.assertEqual(result['players'],15630);self.assertEqual(result['format'],'FM27-COMPACT-LZ')
+        self.assertEqual(result['players'],result['currentPlayers']);self.assertEqual(result['format'],'FM27-COMPACT-LZ')
         self.assertGreater(result['frames'],10)
         self.assertLess(result['maxFrame'],700,'Codec work must not block the UI for a second')
 

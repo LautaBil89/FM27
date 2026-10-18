@@ -23,11 +23,11 @@ window.FM_DEPTH=(()=>{
     const age=p.edad,upside=window.FM_SCOUT_NETWORK?FM_SCOUT_NETWORK.recommendation(p,id).upside:Math.max(0,(p.edad<23?8:3));
     return policy==='academy'?(age<=23?6+Math.min(6,upside*.5):age>29?-9:-1):policy==='balance'?(p.valor_mercado>cash*.3?-12:3)+(age>32?-4:0):age>=24&&age<=31?5:age<21?-3:0;
   }
-  function continental(id){return Object.values(GameState.world.cups||{}).some(c=>c.participants?.includes(id))}
+  function continental(id){return WORLD_ENGINE.hasContinentalCompetition(id)}
   function rivalOffers(p,offer={}){return ensure().rivalBids.filter(b=>b.playerId===p.id&&b.fromClub===p.clubId&&b.toClub!==(offer.toClub||GameState.userClub.id)&&b.status==='open'&&b.expires>=GameState.today)}
   function personal(p,offer){
     const id=offer.toClub||GameState.userClub.id,e=CLUB_AI.economy(id),rep=id===GameState.userClub.id?e.reputacion:e.reputation;
-    const former=CLUB_AI.economy(p.clubId),origin=(p.clubId===GameState.userClub.id?former?.reputacion:former?.reputation)||club(p.clubId)?.reputation||club(p.clubId)?.rating||60,role=offer.playingTime||'Rotación';
+    const originClub=offer.renewal?(window.MARKET_CONTRACTS?.ownerClub(p)||p.clubId):p.clubId,former=CLUB_AI.economy(originClub),origin=(originClub===GameState.userClub.id?former?.reputacion:former?.reputation)||club(originClub)?.reputation||club(originClub)?.rating||60,role=offer.playingTime||'Rotación';
     const group=squad(id).filter(q=>q.posicion===p.posicion).sort((a,b)=>overall(b)-overall(a));
     const rank=group.filter(q=>overall(q)>overall(p)).length,slots={POR:1,DEF:4,MED:3,DEL:3}[p.posicion];
     const rivals=rivalOffers(p,offer).length;
@@ -136,7 +136,7 @@ window.FM_DEPTH=(()=>{
     for(const title of won)s.honours.push({year:h.year,clubId:user,title});s.honours=s.honours.slice(-80);
     const dismissed=GameState.userClub.confianza_directiva<20&&!h.objectiveMet;
     s.reviews.push({year:h.year,clubId:user,leagueId:h.leagueId||GameState.world.userLeagueId,position:h.position,success:h.objectiveMet,dismissed});s.reviews=s.reviews.slice(-30);
-    const rep=GameState.userClub.reputacion+(h.objectiveMet?5:-5),candidates=GameState.world.clubs.filter(c=>c.id!==user).sort((a,b)=>{const da=Math.abs((a.reputation||a.rating)-rep),db=Math.abs((b.reputation||b.rating)-rep);return (da>=18)-(db>=18)||(da>=18?da-db:hash(h.year+a.id)-hash(h.year+b.id))}).slice(0,3);
+    const rep=GameState.userClub.reputacion+(h.objectiveMet?5:-5),candidates=GameState.world.clubs.filter(c=>!c.external&&c.careerSelectable!==false&&c.id!==user).sort((a,b)=>{const da=Math.abs((a.reputation||a.rating)-rep),db=Math.abs((b.reputation||b.rating)-rep);return (da>=18)-(db>=18)||(da>=18?da-db:hash(h.year+a.id)-hash(h.year+b.id))}).slice(0,3);
     s.jobs=candidates.map(c=>({clubId:c.id,year:h.year,status:'open',objective:window.FM_OFFICE?.objectiveFor(c.id)||((c.reputation||c.rating)>=80?'Salir Campeón':c.leagueId==='ARG2'?'Lograr el ascenso':'Terminar en la mitad superior')}));
     s.dismissed=dismissed;
     MANAGEMENT.addMessage(dismissed?'La directiva finaliza tu ciclo':'Propuestas para tu carrera',dismissed?'La confianza cayó por debajo de 20 y no cumpliste el objetivo. Elegí un proyecto en Carrera para continuar el próximo año.':'Otros clubes te ofrecen iniciar un proyecto la próxima temporada. Podés seguir en tu club o aceptar una propuesta en Carrera.','directiva',{action:'career'});
@@ -148,7 +148,7 @@ window.FM_DEPTH=(()=>{
   }
   function acceptJob(id){const s=ensure(),j=s.jobs.find(j=>j.clubId===id&&j.status==='open'&&j.year===GameState.year);if(!GameState.finished||!j||!club(id)||id===GameState.userClub.id||locked())return false;s.nextClub=id;for(const offer of s.jobs)offer.status=offer===j?'accepted':'declined';ui.notice='Proyecto aceptado. La incorporación se concreta al continuar la carrera, desde la fecha actual; el club conserva su calendario.';saveGame(true);render();return true}
   function switchClub(id){
-    const c=club(id);if(!active()||locked()||!c||id===GameState.userClub.id)return false;
+    const c=club(id);if(!active()||locked()||!c||c.careerSelectable===false||c.external||id===GameState.userClub.id)return false;
     const s=ensure(),e=CLUB_AI.economy(id),old=GameState.userClub;
     if(window.FM_OFFICE?.running?.active)FM_OFFICE.stop('Cambio de club');
     // Unsigned decisions belong to the outgoing management; signed obligations remain.
@@ -161,11 +161,15 @@ window.FM_DEPTH=(()=>{
     for(const r of window.FM_RENEWALS?.all()||[])if(r.status==='pending'&&r.fromClub===old.id)FM_RENEWALS.invalidatePlayer(r.playerId,'El DT dejó el club antes de firmar la renovación');
     for(const report of Object.values(s.reports))if(report.status==='active'){report.status='cancelled';report.reason='Cambio de club del DT';report.updated=GameState.today}
     for(const h of GameState.history)if(!h.clubId)h.clubId=s.reviews.find(r=>r.year===h.year&&(!h.leagueId||club(r.clubId)?.leagueId===h.leagueId))?.clubId||old.id;
+    window.FM_GOVERNANCE?.beforeClubChange?.(old.id,id);
+    window.FM_FINANCES?.beforeClubChange?.(old.id,id);
     s.clubWork??={};s.clubWork[old.id]={date:GameState.today,scouting:structuredClone(GameState.scouting),reports:structuredClone(s.reports),inbox:structuredClone(GameState.inbox),finance:structuredClone(GameState.finance),training:structuredClone(GameState.training),tactics:structuredClone(GameState.tactics),transferListed:[...GameState.transferListed]};
     const saved=s.clubWork[id];
     Object.assign(CLUB_AI.ensure().clubs[old.id],{cash:old.presupuesto_dolares,wageBudget:old.wageBudget,reputation:old.reputacion});
     const stint=s.stints.at(-1);if(stint)stint.end=GameState.today;s.stints.push({clubId:id,start:GameState.today,end:null});s.stints=s.stints.slice(-30);
     GameState.userClub={...structuredClone(c),presupuesto_dolares:e.cash,presupuesto_pesos:e.cash*FX,wageBudget:e.wageBudget,reputacion:e.reputation,debt:e.debt||0,confianza_directiva:65,presion_hinchada:35,cupos_extranjeros_usados:0,ticketPrice:18,objective:window.FM_OFFICE?.objectiveFor(id)||s.jobs.find(j=>j.clubId===id)?.objective||'Terminar en la mitad superior'};
+    window.FM_FINANCES?.afterClubChange?.(old.id,id);
+    window.FM_GOVERNANCE?.afterClubChange?.(old.id,id);
     GameState.world.userLeagueId=c.leagueId;GameState.world.dressingRoom=null;GameState.match=null;GameState.lastMatch=null;
     GameState.finance=saved?.finance?structuredClone(saved.finance):{ledger:[],openingBalance:e.cash,seasonIncome:0,seasonExpense:0};GameState.finance.lastFinancialDate=GameState.today;
     GameState.scouting=saved?.scouting?structuredClone(saved.scouting):{shortlist:[],reports:{}};s.reports=saved?.reports?structuredClone(saved.reports):{};

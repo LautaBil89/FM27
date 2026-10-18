@@ -52,7 +52,8 @@ class OfferFormScenarios(unittest.TestCase):
         self.page.locator('#club').select_option('boca')
         if self.page.locator("#careerCompetitionFormat").count():
             self.page.select_option("#careerCompetitionFormat", "classic")
-        self.page.click('[data-action="new"]')
+        # A new world initializes all squads, staff and competition calendars.
+        self.page.click('[data-action="new"]', timeout=30000)
         self.page.wait_for_function('GameState?.version===3')
 
     def tearDown(self):

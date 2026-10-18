@@ -80,9 +80,9 @@ window.FM_DRESSING_ROOM=(()=>{
   }
   function promiseMinutes(id){
     const p=selected(id),s=ensure(),r=s?.players[id];if(!p||!r||locked())return false;
-    if(p.injury||p.registered===false)return reply('Primero necesita recuperarse y estar inscrito para asumir un compromiso de minutos.');
+    if(p.injury)return reply('Primero necesita recuperarse para asumir un compromiso de minutos.');
     if(r.promise?.status==='active')return reply('Ya tiene una promesa de minutos en curso.');
-    const deadline=day(GameState.today,21),fixtures=GameState.calendar.filter(e=>!e.done&&e.date<=deadline&&fixture(e));if(fixtures.length<2)return reply('No hay suficientes partidos confirmados en las próximas tres semanas.');
+    const deadline=day(GameState.today,21),fixtures=GameState.calendar.filter(e=>!e.done&&e.date>=GameState.today&&e.date<=deadline&&fixture(e)&&(window.WORLD_ENGINE?.canPlay?WORLD_ENGINE.canPlay(p,e):p.registered!==false));if(fixtures.length<2)return reply('No hay dos partidos confirmados para los que esté habilitado en las próximas tres semanas.');
     r.promise={status:'active',start:GameState.today,deadline,target:180,baseline:r.minutes,paused:0,lastEvaluated:GameState.today};log(`Prometiste 180 minutos a ${p.nombre} hasta el ${date(deadline)}, inclusive.`,p.id);return reply('Promesa registrada: 180 minutos en 21 días. Una lesión puede prorrogar el plazo hasta siete días; los minutos siguen bajo tu control.');
   }
   function setRole(id,role){

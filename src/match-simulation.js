@@ -3,8 +3,10 @@
 window.FM_SIMULATION=(()=>{
   const bound=(n,a,b)=>Math.min(b,Math.max(a,Number(n)||0));
   const number=(n,f=50)=>Number.isFinite(Number(n))?Number(n):f;
-  let actionModifiers=null,actionContexts=null;
+  let actionModifiers=null,actionContexts=null,actionFactors=null;
   const active=(m,side)=>m.lineups[side].filter(id=>player(id)&&!m.red.includes(id)&&!m.injured.includes(id));
+  const keeperId=(m,side)=>window.FM_MATCH_RULES?.keeperId(m,side)??active(m,side).find(id=>player(id).posicion==='POR');
+  const attribute=(p,key)=>window.FM_ATTRIBUTES?.skill(p,key)??number(p?.[key]??p?.[({penales:'tiro',remate:'tiro',cabeceo:'tiro',balon_parado:'tiro'})[key]],55);
   const mean=(items,fn,f=55)=>items.length?items.reduce((n,p)=>n+fn(p),0)/items.length:f;
   function weighted(items,weight){if(!items.length)return null;let roll=Math.random()*items.reduce((n,p)=>n+Math.max(.01,weight(p)),0);for(const p of items){roll-=Math.max(.01,weight(p));if(roll<=0)return p}return items.at(-1)}
   const emptyPlayer=()=>({passes:0,completedPasses:0,received:0,dribbles:0,tackles:0,interceptions:0,touches:0});
@@ -26,15 +28,15 @@ window.FM_SIMULATION=(()=>{
   function tuning(m){return window.FM_CALIBRATION?.active()?FM_CALIBRATION.tuning(currentEvent()?.leagueId||club(m.home)?.leagueId):null}
   function fitness(p){return .72+bound(p.condicion_fisica,0,100)*.0028}
   function cohesion(p){if(actionModifiers?.has(p.id))return actionModifiers.get(p.id);const v=window.FM_DRESSING_ROOM?.matchModifier?.(p),value=typeof v==='number'?bound(v,.95,1.05):1;actionModifiers?.set(p.id,value);return value}
-  function skill(p,key){return number(p?.[key],55)*fitness(p)*cohesion(p)*(window.FM_MEDICINE?FM_MEDICINE.factor(p):1)}
+  function skill(p,key){return attribute(p,key)*fitness(p)*cohesion(p)*(window.FM_MEDICINE?FM_MEDICINE.factor(p):1)}
   function choosePlayer(m,side,progress,exclude=null){
     const ids=active(m,side),t=tactics(m,side),slots=window.FM_TACTICS?.slots(t.formation)||FORMATIONS[t.formation]||FORMATIONS['4-3-3'];
-    return weighted(ids.filter(id=>id!==exclude&&(progress<=25||player(id).posicion!=='POR')).map(player),p=>{
+    return weighted(ids.filter(id=>id!==exclude&&(progress<=25||id!==keeperId(m,side))).map(player),p=>{
       const i=m.lineups[side].indexOf(p.id),slot=slots[i]||p.posicion,front=['DC','EI','ED','MP','DEL'].includes(slot),back=['DFC','LI','LD','DEF'].includes(slot);
-      const expected=p.posicion==='POR'?8:front?77:back?31:53;
+      const expected=p.id===keeperId(m,side)?8:front?77:back?31:53;
       const instruction=window.FM_TACTICS?.instructionsFor?.(p.id,t)||{};
       const target=expected+(instruction.duty==='Ataque'?8:instruction.duty==='Defensa'?-8:0)+(instruction.runs==='Venir a recibir'?-8:instruction.runs==='Atacar espacios'?8:0);
-      return Math.max(.02,1-Math.abs(progress-target)/75)*(p.posicion==='POR'&&progress>25?.02:1)*(.65+skill(p,'pase')/150);
+      return Math.max(.02,1-Math.abs(progress-target)/75)*(p.id===keeperId(m,side)&&progress>25?.02:1)*(.65+skill(p,'pase')/150);
     });
   }
   function initialPositions(m,side){
@@ -49,7 +51,7 @@ window.FM_SIMULATION=(()=>{
         if(!live.has(base.id)){delete s.positions[base.id];continue}
         const person=player(base.id),instruction=window.FM_TACTICS?.instructionsFor?.(base.id,t)||{},baseProgress=progressAt(m,side,base);
         let progress=baseProgress;
-        if(person.posicion!=='POR'){
+        if(person.id!==keeperId(m,side)){
           progress+=(own?8:-5)+(number(t.line)-50)*.12+(p.outOfPossession.block==='Alto'?5:p.outOfPossession.block==='Bajo'?-5:0);
           progress+=(own?(s.progress-50)*.18:(50-s.progress)*.12);
           progress+=instruction.duty==='Ataque'?6:instruction.duty==='Defensa'?-5:0;
@@ -62,17 +64,23 @@ window.FM_SIMULATION=(()=>{
         if(!own&&p.outOfPossession.trap==='Fuera')lateral=50+(lateral-50)*1.08;
         if(s.coveringPlayer?.id===base.id&&s.coveringPlayer.until>=m.minute)progress=Math.min(progress,40);
         if(base.id===s.carrier){progress=s.progress;lateral=s.lateral}
-        const dest=worldPoint(m,side,bound(progress,person.posicion==='POR'?3:10,person.posicion==='POR'?17:94),lateral);
+        const dest=worldPoint(m,side,bound(progress,person.id===keeperId(m,side)?3:10,person.id===keeperId(m,side)?17:94),lateral);
         s.positions[base.id]={id:base.id,...dest};
       }
     }
     m.ball=worldPoint(m,s.owner,s.progress,s.lateral);
   }
   function positionsFor(m,side){if(!m?.simulation)return initialPositions(m,side).filter(p=>active(m,side).includes(p.id));return active(m,side).map(id=>m.simulation.positions[id]||initialPositions(m,side).find(p=>p.id===id)).filter(Boolean)}
-  function context(m,side){if(actionContexts?.has(side))return actionContexts.get(side);const a=active(m,side).map(player),b=active(m,1-side).map(player),t=tactics(m,side),op=tactics(m,1-side),p=plan(t),q=plan(op),result={a,b,t,op,p,q,passing:mean(a,x=>skill(x,'pase')),press:mean(b.filter(x=>x.posicion!=='POR'),x=>(skill(x,'defensa')+skill(x,'fisico'))/2),pace:mean(a.filter(x=>x.posicion!=='POR'),x=>skill(x,'ritmo')),defense:mean(b.filter(x=>x.posicion==='DEF'||x.posicion==='MED'),x=>skill(x,'defensa'))};actionContexts?.set(side,result);return result}
+  function context(m,side){
+    if(actionContexts?.has(side))return actionContexts.get(side);
+    const a=active(m,side).map(player),b=active(m,1-side).map(player),t=tactics(m,side),op=tactics(m,1-side),p=plan(t),q=plan(op),own=actionFactors?.[side],other=actionFactors?.[1-side];
+    const rawPassing=mean(a,x=>skill(x,'pase')),rawDefense=mean(b.filter(x=>x.posicion==='DEF'||x.posicion==='MED'),x=>skill(x,'defensa'));
+    const result={a,b,t,op,p,q,rawPassing,passing:number(own?.build,rawPassing),attack:number(own?.attack,mean(a.filter(x=>x.id!==keeperId(m,side)),x=>skill(x,'tiro'))),press:number(other?.defense,mean(b.filter(x=>x.id!==keeperId(m,1-side)),x=>(skill(x,'defensa')+skill(x,'fisico'))/2)),pace:mean(a.filter(x=>x.id!==keeperId(m,side)),x=>skill(x,'ritmo')),defense:number(other?.defense,rawDefense)};
+    actionContexts?.set(side,result);return result;
+  }
   function action(chain,type,side,p,receiver,from,to,success=true,extra={}){chain.actions.push({type,side,playerId:p?.id??null,receiverId:receiver?.id??null,from:{...from},to:{...to},success,...extra})}
   function loss(m,s,chain,actor,reason){
-    const side=s.owner,opp=1-side,from=worldPoint(m,side,s.progress,s.lateral),c=context(m,side),defender=weighted(active(m,opp).map(player).filter(p=>p.posicion!=='POR'),p=>{const instruction=window.FM_TACTICS?.instructionsFor?.(p.id,c.op)||{};return skill(p,'defensa')*(p.posicion==='DEF'?1.4:p.posicion==='MED'?1.2:.5)*(Number(instruction.markingTarget)===actor?.id?1.5:1)*(instruction.pressing==='Intensa'?1.1:instruction.pressing==='Contener'?.9:1)});
+    const side=s.owner,opp=1-side,from=worldPoint(m,side,s.progress,s.lateral),c=context(m,side),defender=weighted(active(m,opp).map(player).filter(p=>p.id!==keeperId(m,opp)),p=>{const instruction=window.FM_TACTICS?.instructionsFor?.(p.id,c.op)||{};return skill(p,'defensa')*(p.posicion==='DEF'?1.4:p.posicion==='MED'?1.2:.5)*(Number(instruction.markingTarget)===actor?.id?1.5:1)*(instruction.pressing==='Intensa'?1.1:instruction.pressing==='Contener'?.9:1)});
     s.teamMetrics[side].losses++;s.teamMetrics[opp].regains++;
     if(defender){s.playerActions[defender.id].interceptions++;s.playerActions[defender.id].tackles++;if(m.playerStats?.[defender.id])m.playerStats[defender.id].tackles++}
     action(chain,'intercepción',opp,defender,actor,from,from,true,{reason});
@@ -84,13 +92,13 @@ window.FM_SIMULATION=(()=>{
     if(counter){s.teamMetrics[opp].counters++;s.transition=3;const covered=s.coveringPlayer?.side===side&&s.coveringPlayer.until>=m.minute;s.counterCovered=covered?3:0;s.progress=bound(s.progress+(covered?0:5),3,92)}else{s.transition=0;s.counterCovered=0}
   }
   function shot(m,s,chain,c,kind='open'){
-    const side=s.owner,crossing=kind==='cross',setPiece=kind==='corner'||kind==='freeKick',live=active(m,side).map(player).filter(p=>p.posicion!=='POR');if(!live.length)return null;
+    const side=s.owner,crossing=kind==='cross',setPiece=kind==='corner'||kind==='freeKick',live=active(m,side).map(player).filter(p=>p.id!==keeperId(m,side));if(!live.length)return null;
     const cover=live.find(p=>p.id===Number(c.p.setPieces.stayBack)),specialist=live.find(p=>p.id===Number(kind==='corner'?c.p.setPieces.cornerTaker:c.p.setPieces.freeKickTaker));
     const players=setPiece?live.filter(p=>p.id!==cover?.id&&(kind==='freeKick'&&c.p.setPieces.freeKick==='Directo'||p.id!==specialist?.id)):live;if(!players.length)return null;
     if(setPiece&&cover)s.coveringPlayer={id:cover.id,side,until:m.minute+2};
     const target=Number(c.p.setPieces.corner==='Segundo palo'?c.p.setPieces.farPost:c.p.setPieces.corner==='Corto'?c.p.setPieces.edgeOfArea:c.p.setPieces.nearPost);
     const penalty=!setPiece&&Math.random()<.012;
-    let shooter=(penalty&&players.find(p=>p.id===Number(c.t.penaltyTaker)))||(!penalty&&!setPiece&&!crossing&&players.find(p=>p.id===s.carrier))||(setPiece&&players.find(p=>p.id===target))||weighted(players,p=>(p.posicion==='DEL'?4:p.posicion==='MED'?1.5:.6)*(crossing||setPiece?skill(p,'fisico')*.6+skill(p,'tiro')*.4:skill(p,'tiro')));
+    let shooter=(penalty&&(players.find(p=>p.id===Number(c.t.penaltyTaker))||[...players].sort((a,b)=>attribute(b,'penales')-attribute(a,'penales'))[0]))||(!penalty&&!setPiece&&!crossing&&players.find(p=>p.id===s.carrier))||(setPiece&&players.find(p=>p.id===target))||weighted(players,p=>(p.posicion==='DEL'?4:p.posicion==='MED'?1.5:.6)*(crossing||setPiece?skill(p,'fisico')*.6+skill(p,'tiro')*.4:skill(p,'tiro')));
     if(kind==='freeKick'&&c.p.setPieces.freeKick==='Directo')shooter=players.find(p=>p.id===Number(c.p.setPieces.freeKickTaker))||[...players].sort((a,b)=>skill(b,'tiro')-skill(a,'tiro'))[0];
     const takerId=kind==='corner'?c.p.setPieces.cornerTaker:kind==='freeKick'?c.p.setPieces.freeKickTaker:null;
     const possessionStart=chain.actions.findLastIndex(a=>a.type==='intercepción'||a.type==='recuperación');
@@ -104,6 +112,7 @@ window.FM_SIMULATION=(()=>{
     let type=penalty?'penal':kind==='corner'?'córner':kind==='freeKick'?(c.p.setPieces.freeKick==='Directo'?'tiro libre':'pelota parada'):crossing?'cabeza':breakaway?'mano a mano':s.progress>=77?'área':'lejos';
     let xg=type==='mano a mano'?.22:type==='área'?.10:type==='cabeza'?.075:type==='córner'?.085:type==='tiro libre'?.045:type==='pelota parada'?.075:.032;
     const familiarity=bound(c.p.setPieces.familiarity??35,0,100);
+    xg+=bound((c.attack-c.defense)*.00065,-.025,.035);
     if(setPiece)xg+=(familiarity-35)*.00025+(skill(shooter,'fisico')-c.defense)*.0005-(c.q.setPieces.defending==='Individual'?(c.defense-55)*.00025:0);
     if(crossing)xg+=(skill(shooter,c.p.inPossession.crosses==='Rasos'?'ritmo':'fisico')-c.defense)*.0005;
     if(c.p.inPossession.finalThird==='Elaborar'&&s.progress>=80)xg+=.018;
@@ -112,11 +121,11 @@ window.FM_SIMULATION=(()=>{
     action(chain,'remate',side,shooter,supplier,from,to,true,{reason});
     chain.side=side;chain.shooterId=shooter.id;chain.supplierId=supplier?.id??null;chain.context=type;chain.reason=reason;chain.end=to;chain.outcome='remate';
     const result={side,shooterId:shooter.id,supplierId:penalty?null:supplier?.id??null,type,xg:penalty?.76:bound(xg,.012,.38),reason:penalty?'Falta dentro del área tras la progresión ofensiva':reason,chainId:chain.id};
-    s.lastShot=result;s.owner=1-side;s.progress=15;s.lateral=50;s.carrier=active(m,1-side).map(player).find(p=>p.posicion==='POR')?.id??choosePlayer(m,1-side,15)?.id;s.transition=0;
+    s.lastShot=result;s.owner=1-side;s.progress=15;s.lateral=50;s.carrier=keeperId(m,1-side)??choosePlayer(m,1-side,15)?.id;s.transition=0;
     return result;
   }
   function step(m,factors={}){
-    actionModifiers=new Map();actionContexts=new Map();const s=ensure(m);s.lastShot=null;
+    actionModifiers=new Map();actionContexts=new Map();actionFactors=[factors.home,factors.away];const s=ensure(m);s.lastShot=null;
     const chain={id:`seq-${s.nextChain++}`,minute:m.minute,side:s.owner,start:worldPoint(m,s.owner,s.progress,s.lateral),end:null,actions:[],outcome:'circulación',reason:''};
     const tempo=mean([0,1],side=>number(tactics(m,side).tempo)),count=Math.round(bound(10+(tempo-50)*.035,8,13)),time=[0,0];let pending=null;
     for(let i=0;i<count;i++){
@@ -131,7 +140,7 @@ window.FM_SIMULATION=(()=>{
         const taker=active(m,side).map(player).find(p=>p.id===Number(c.p.setPieces.cornerTaker))||actor;
         const cornerPoint=worldPoint(m,side,97,s.lateral<50?3:97);action(chain,'córner',side,taker,null,cornerPoint,worldPoint(m,side,85,s.lateral));
         if(c.p.setPieces.corner==='Corto'){
-          const recipients=active(m,side).map(player).filter(p=>p.posicion!=='POR'&&p.id!==taker.id&&p.id!==Number(c.p.setPieces.stayBack));
+          const recipients=active(m,side).map(player).filter(p=>p.id!==keeperId(m,side)&&p.id!==taker.id&&p.id!==Number(c.p.setPieces.stayBack));
           const receiver=recipients.find(p=>p.id===Number(c.p.setPieces.edgeOfArea))||weighted(recipients,p=>skill(p,'pase'));
           if(receiver){s.progress=77;s.carrier=receiver.id;s.playerActions[taker.id].passes++;s.playerActions[taker.id].completedPasses++;s.playerActions[receiver.id].received++;m.stats[side].passes++;m.stats[side].completedPasses++;action(chain,'pase',side,taker,receiver,cornerPoint,worldPoint(m,side,77,s.lateral),true,{reason:'Córner corto al apoyo designado'})}
           continue;
@@ -143,11 +152,11 @@ window.FM_SIMULATION=(()=>{
       if(willing&&Math.random()<shotProbability*(tuning(m)?.shotFrequency??1)){pending=shot(m,s,chain,c);break}
       const cross=s.progress>60&&(s.lateral<28||s.lateral>72)&&c.p.inPossession.finalThird==='Centros'&&Math.random()<.38;
       if(cross){metrics.crosses++;const completion=bound(.40+(skill(actor,'pase')-c.defense)*.004,.20,.67);s.playerActions[actor.id].passes++;m.stats[side].passes++;if(Math.random()<completion){metrics.completedCrosses++;m.stats[side].completedPasses++;s.playerActions[actor.id].completedPasses++;action(chain,'centro',side,actor,null,from,worldPoint(m,side,85,50),true);s.progress=85;s.lateral=50;pending=shot(m,s,chain,c,'cross');break}action(chain,'centro',side,actor,null,from,worldPoint(m,side,82,50),false);loss(m,s,chain,actor,'Centro despejado por la defensa');continue}
-      const dribble=actor.posicion!=='POR'&&Math.random()<.10+(instruction.risk==='Arriesgado'?.04:0)+(instruction.dribbling==='Encarar'?.13:instruction.dribbling==='Soltar rápido'?-.08:0);
+      const dribble=actor.id!==keeperId(m,side)&&Math.random()<.10+(instruction.risk==='Arriesgado'?.04:0)+(instruction.dribbling==='Encarar'?.13:instruction.dribbling==='Soltar rápido'?-.08:0);
       if(dribble){const success=Math.random()<bound(.64+(skill(actor,'regate')-c.defense)*.004,.28,.86);if(success){const before=s.progress;s.progress=bound(s.progress+7+Math.random()*9,4,96);s.playerActions[actor.id].dribbles++;if(before<67&&s.progress>=67)metrics.finalThirdEntries++;action(chain,'conducción',side,actor,null,from,worldPoint(m,side,s.progress,s.lateral));}else{action(chain,'conducción',side,actor,null,from,from,false);loss(m,s,chain,actor,'El defensor gana el duelo individual')}continue}
       const short=c.p.inPossession.buildUp==='Corta'||c.p.inPossession.buildUp==='Mixta'&&c.t.style==='Tiki-Taka'||instruction.passing==='Cortos',risk=instruction.risk==='Arriesgado'?1:instruction.risk==='Seguro'?-1:0;
       let distance=(direct||instruction.passing==='Directos'?16:short?7:11)+Math.random()*9+(risk*3);
-      if(actor.posicion==='POR'&&c.p.transition.keeper==='Largo')distance=28+Math.random()*14;
+      if(actor.id===keeperId(m,side)&&c.p.transition.keeper==='Largo')distance=28+Math.random()*14;
       if(c.p.transition.onWin==='Conservar'&&s.transition>0)distance*=.65;
       if(instruction.runs==='Venir a recibir')distance*=.80;
       if(s.progress>75)distance*=.43;
@@ -156,7 +165,7 @@ window.FM_SIMULATION=(()=>{
       let nextX=bound(s.lateral+(Math.random()-.5)*(width?42:central?18:30),8,92);
       if(width&&Math.random()<.55)nextX=Math.random()<.5?15:85;
       if(central)nextX=50+(nextX-50)*.72;
-      if(actor.posicion==='POR'&&c.p.transition.keeper!=='Largo'){
+      if(actor.id===keeperId(m,side)&&c.p.transition.keeper!=='Largo'){
         const flanks=c.p.transition.keeper==='Laterales',slots=window.FM_TACTICS?.slots(c.t.formation)||[];
         const outlets=active(m,side).filter(id=>id!==actor.id).map(player).filter(p=>flanks?['LI','LD'].includes(slots[m.lineups[side].indexOf(p.id)]):['DFC','MCD'].includes(slots[m.lineups[side].indexOf(p.id)]));
         receiver=weighted(outlets,p=>skill(p,'pase'))||receiver;
@@ -165,7 +174,7 @@ window.FM_SIMULATION=(()=>{
       if(instruction.width==='Abrirse')nextX=nextX<50?bound(nextX-12,8,42):bound(nextX+12,58,92);
       if(instruction.width==='Cerrar hacia adentro')nextX=50+(nextX-50)*.55;
       const press=number(c.op.pressing)+(c.op.style==='Gegenpress'?7:0)+(c.q.outOfPossession.block==='Alto'&&s.progress<50?12:0)+(c.q.transition.onLoss==='Contrapresión'&&s.transition>0?10:0);
-      const completion=bound(.85+(skill(actor,'pase')-c.press)*.002+(short?.045:0)-(direct||actor.posicion==='POR'&&c.p.transition.keeper==='Largo'?.065:0)-(press-50)*.001-risk*.025-(m.weather==='Lluvia leve'?.018:0)+(c.p.transition.onWin==='Conservar'&&s.transition>0?.025:0)+(side===0&&!m.neutral?.006+(tuning(m)?.homeBias??0):0),.54,.96);
+      const completion=bound(.85+(skill(actor,'pase')-c.press)*.002+(c.passing-c.rawPassing)*.0018+(short?.045:0)-(direct||actor.id===keeperId(m,side)&&c.p.transition.keeper==='Largo'?.065:0)-(press-50)*.001-risk*.025-(m.weather==='Lluvia leve'?.018:0)+(c.p.transition.onWin==='Conservar'&&s.transition>0?.025:0)+(side===0&&!m.neutral?.006+(tuning(m)?.homeBias??0):0),.54,.96);
       const success=Math.random()<completion,to=worldPoint(m,side,nextProgress,nextX);
       s.playerActions[actor.id].passes++;m.stats[side].passes++;
       action(chain,'pase',side,actor,receiver,from,to,success,{reason:direct?'Pase directo':short?'Apoyo corto':'Pase de progresión'});
@@ -180,10 +189,10 @@ window.FM_SIMULATION=(()=>{
     move(m,s);
     const share=time[0]+time[1]?time[0]/(time[0]+time[1])*100:50;
     s.snapshots.push({minute:m.minute,shots:m.stats.map(x=>x.shots||0),xg:m.stats.map(x=>x.xg||0),entries:s.teamMetrics.map(x=>x.finalThirdEntries),losses:s.teamMetrics.map(x=>x.losses),counters:s.teamMetrics.map(x=>x.counters)});s.snapshots=s.snapshots.slice(-35);
-    actionModifiers=null;actionContexts=null;return {homeShare:share,side:pending?.side??s.owner,shot:!!pending,shotBoost:0,chainId:chain.id};
+    actionModifiers=null;actionContexts=null;actionFactors=null;return {homeShare:share,side:pending?.side??s.owner,shot:!!pending,shotBoost:0,chainId:chain.id};
   }
   function shotContext(m,side){const c=m.simulation?.lastShot;if(!c||c.side!==side)return null;const ids=active(m,side);if(!ids.includes(c.shooterId))return null;return {...c,shooter:player(c.shooterId),supplier:ids.includes(c.supplierId)?player(c.supplierId):null}}
-  function recordChance(m,chance){const s=m.simulation,c=s?.lastShot,chain=s?.chains.find(p=>p.id===c?.chainId);if(!c||!chain||chance.side!==c.side)return;chance.chainId=chain.id;chance.reason=chain.reason;chance.shotLocation={...(chain.actions.findLast(a=>a.type==='remate')?.from||chain.start)};chance.sequencePoints=chain.actions.filter(a=>a.side===chance.side&&a.success).map(a=>({...a.to}));chain.outcome=chance.outcome;chain.xg=chance.xg;chain.playerId=chance.playerId;if(chance.outcome==='gol'||chance.outcome==='anulado'){s.owner=1-chance.side;s.progress=50;s.lateral=50;s.carrier=choosePlayer(m,s.owner,50)?.id;move(m,s)}}
+  function recordChance(m,chance){const s=m.simulation,c=s?.lastShot,chain=s?.chains.find(p=>p.id===c?.chainId);if(!c||!chain||chance.side!==c.side)return;chance.chainId=chain.id;chance.reason=chain.reason;chance.shotLocation={...(chain.actions.findLast(a=>a.type==='remate')?.from||chain.start)};chance.sequencePoints=chain.actions.filter(a=>a.side===chance.side&&a.success).map(a=>({...a.to}));chain.outcome=chance.outcome;chain.xg=chance.xg;chain.playerId=chance.playerId;chain.shooterId=chance.playerId;const remate=chain.actions.findLast(a=>a.type==='remate');if(remate)remate.playerId=chance.playerId;if(chance.outcome==='gol'||chance.outcome==='anulado'){s.owner=1-chance.side;s.progress=50;s.lateral=50;s.carrier=choosePlayer(m,s.owner,50)?.id;move(m,s)}}
   function diagnostics(m=GameState?.match,side=m?.userSide){if(!m?.simulation)return [];const s=m.simulation,a=s.teamMetrics[side],b=s.teamMetrics[1-side],stats=m.stats[side],r=[],t=tactics(m,side),p=plan(t),last=s.chains.slice(-15),recentLosses=last.flatMap(c=>c.actions).filter(a=>a.type==='intercepción'&&a.side!==side).length;
     if(m.minute>=10&&recentLosses>=8)r.push({kind:'build',text:p.inPossession.buildUp==='Directa'?'Los envíos directos están cortando la circulación. Acercá apoyos si querés sostener la pelota.':'La presión rival está interrumpiendo la salida. Un pase directo puede saltar la primera línea.',evidence:`${recentLosses} intercepciones rivales en los últimos ${last.length} minutos; ${stats.completedPasses||0}/${stats.passes||0} pases completados.`});
     if(a.finalThirdEntries>=4)r.push({kind:'progress',text:`El equipo llega al último tercio ${p.inPossession.progression==='Bandas'?'buscando las bandas':p.inPossession.progression==='Centro'?'por dentro':'combinando carriles'}. ${stats.shots<3?'Falta convertir esas entradas en remates.':'Las ocasiones nacen de esa progresión.'}`,evidence:`${a.finalThirdEntries} entradas al último tercio · ${stats.shots||0} remates · ${Number(stats.xg||0).toFixed(2)} xG.`});

@@ -1,8 +1,29 @@
+/* Match-day limits are snapshotted on kickoff so saved games keep their rules. */
+window.FM_MATCH_RULES=(()=>{
+  const integer=(value,fallback,min,max)=>Number.isInteger(Number(value))?Math.max(min,Math.min(max,Number(value))):fallback;
+  const benches={ARG1:12,ARG2:9,BRA1:12,BRA2:12,GB1:9,GB2:9,ES1:12,ES2:12,IT1:15,IT2:15,L1:9,L2:9,FR1:9,FR2:9,CHI1:9,CHI2:9};
+  function profile(event=null){
+    event??=typeof GameState!=='undefined'?(GameState.match&&GameState.calendar.find(e=>e.id===GameState.match.eventId)||window.WORLD_CLOCK?.nextFixture?.()):null;
+    const competition=event?.type||'LPF',leagueId=event?.leagueId||window.WORLD_ENGINE?.userLeague?.()?.id||'ARG1';
+    const continental=['LIB','SUD','UCL','UEL','UECL','CHAMPIONS','EUROPA','CONFERENCE'].includes(competition),custom=event?.matchRules||{};
+    return {version:1,competition,leagueId,bench:integer(custom.bench,continental?12:benches[leagueId]??9,0,15),substitutions:integer(custom.substitutions,5,0,6),windows:integer(custom.windows,3,0,4),extraSubstitutions:integer(custom.extraSubstitutions,1,0,1),extraWindows:integer(custom.extraWindows,1,0,1),minimumPlayers:7,extraMinutes:30};
+  }
+  function limits(m=GameState?.match){const r=m?.rules||profile();return {...r,substitutions:r.substitutions+(m?.extraTime?r.extraSubstitutions:0),windows:r.windows+(m?.extraTime?r.extraWindows:0)}}
+  const freeWindow=m=>m.minute===0||m.minute===45||!!m.extraTime&&(m.minute===m.regulationEnd||m.minute===m.regulationEnd+15);
+  const active=(m,side)=>m.lineups[side].filter(id=>player(id)&&!m.red.includes(id)&&!m.injured.includes(id));
+  function keeperId(m,side){const ids=active(m,side),assigned=m.keeperIds?.[side];return ids.includes(assigned)?assigned:ids.find(id=>player(id).posicion==='POR')??null}
+  function keeperAbility(p){if(!p)return 20;const attr=(key,fallback)=>window.FM_ATTRIBUTES?.skill(p,key)??fallback;return p.posicion==='POR'?(attr('reflejos',p.defensa)*.45+attr('blocaje',p.defensa)*.30+attr('uno_contra_uno',p.defensa)*.25):(attr('reflejos',p.defensa*.45)*.35+attr('blocaje',p.fisico*.40)*.35+attr('colocacion',p.defensa)*.15+p.fisico*.15)*.68}
+  function shootout(m,side){const eligible=active(m,side),preferred=(m.shootoutOrder?.[side]||[]).filter(id=>eligible.includes(id)),score=id=>window.FM_ATTRIBUTES?.skill(player(id),'penales')??player(id).tiro,order=[...new Set([...preferred,...eligible.filter(id=>!preferred.includes(id)).sort((a,b)=>score(b)-score(a))])],count=Math.min(eligible.length,active(m,1-side).length),keeper=keeperId(m,side),excluded=[];while(order.length>count){const at=order.findLastIndex(id=>id!==keeper);if(at<0)break;excluded.unshift(order.splice(at,1)[0])}return {order,excluded}}
+  return {profile,limits,freeWindow,active,keeperId,keeperAbility,shootout};
+})();
 /* Tactical workbench: instructions and practice belong to the simulated career. */
 (() => {
   const oldTactics = tactics;
   const active = () => GameState?.worldVersion === 1;
   const live = () => Boolean(GameState?.match);
+  const liveEditable = () => Boolean(GameState?.match?.paused&&!GameState.match.done&&!GameState.match.pendingPenalties);
+  const benchCount = () => window.FM_MATCH_RULES?.profile()?.bench ??7;
+  const matchIds=t=>{const m=GameState?.match;if(m&&(t===GameState.tactics||t===m.aiTactics))return m.lineups[t===GameState.tactics?m.userSide:1-m.userSide];return t?.xi||[]};
   const bound = (value, low, high) => Math.min(high, Math.max(low, Number(value) || 0));
   const copy = value => structuredClone(value);
   const playerAt = id => id == null ? null : player(Number(id));
@@ -202,7 +223,7 @@
     ensure();return t.familiarity[key]?.value ??familiarity(t);
   }
   function phaseModifiers(t=GameState?.tactics,opponent=null) {
-    const p=matchPlan(t),enemy=opponent?matchPlan(opponent):null,ids=t?.xi||[],members=ids.map(playerAt).filter(Boolean),average=key=>members.length?members.reduce((sum,item)=>sum+(Number(item[key])||65),0)/members.length:65;
+    const p=matchPlan(t),enemy=opponent?matchPlan(opponent):null,ids=matchIds(t),members=ids.filter(id=>!GameState?.match?.red?.includes(id)&&!GameState?.match?.injured?.includes(id)).map(playerAt).filter(Boolean),average=key=>members.length?members.reduce((sum,item)=>sum+(Number(item[key])||65),0)/members.length:65;
     const technical=(average('pase')-65)/100,pace=(average('ritmo')-65)/100,physical=(average('fisico')-65)/100;
     const result={possession:1,progression:1,chanceQuality:1,width:1,press:1,transition:1,stamina:1,foulRisk:1,setPieceAttack:1,setPieceDefence:1};
     if(p.inPossession.buildUp==='Corta'){result.possession+=.055+technical*.12;result.progression-=.018;if(enemy?.outOfPossession.block==='Alto')result.progression+=technical*.20-.025}
@@ -229,7 +250,7 @@
   }
   function playerMatchFactor(p,t,expected) {
     if(!p||!t)return 1;
-    const m=t===GameState?.tactics?GameState?.match:null,ids=m?.lineups?.[m.userSide] || t.xi;
+    const m=GameState?.match,ids=matchIds(t);
     const index=ids?.indexOf(p.id) ??-1,slot=index>=0?slots(t.formation)[index]:({POR:'POR',DEF:'DFC',MED:'MC',DEL:'DC'}[expected] || expected || 'MC');
     const role=roleFor(p,t,slot),fit=roleFit(p,role,slot),instruction=instructionsFor(p.id,t);
     let factor=.945+fit*.0006+(familiarity(t)-35)*.0003;
@@ -243,7 +264,7 @@
   }
   function teamMatchModifiers(t=GameState?.tactics) {
     if(!t)return {attack:1,defence:1,movement:1,stamina:1,foulRisk:1};
-    const m=t===GameState?.tactics?GameState?.match:null,ids=m?.lineups?.[m.userSide] || t.xi || [];
+    const m=GameState?.match,ids=matchIds(t);
     const members=ids.filter(id=>!m?.red?.includes(id)&&!m?.injured?.includes(id)).map(playerAt).filter(Boolean);
     const denominator=Math.max(1,members.length);
     const count=(key,value)=>members.filter(p=>instructionsFor(p.id,t)[key]===value).length/denominator;
@@ -256,25 +277,35 @@
       foulRisk:bound(1+count('tackling','Fuerte')*.20-count('tackling','Suave')*.15+count('marking','Individual')*.03,.85,1.23)
     };
   }
-  function lineupArray(t=GameState.tactics) {return [...Array.from({length:11},(_,index)=>t.xi?.[index]??null),...Array.from({length:7},(_,index)=>t.bench?.[index]??null)]}
+  function matchLoad(t=GameState?.tactics) {const base=(t?.style==='Gegenpress'?1.16:1)*(.88+Number(t?.pressing??50)*.0024);return bound(base*teamMatchModifiers(t).stamina*phaseModifiers(t).stamina,.65,1.8)}
+  function lineupArray(t=GameState.tactics) {const m=GameState?.match,playing=m&&t===GameState.tactics,xi=playing?m.lineups[m.userSide]:t.xi,bench=playing?(m.bench[m.userSide]||[]).filter(id=>!m.used.includes(id)&&!m.lineups.flat().includes(id)):t.bench;return [...Array.from({length:11},(_,index)=>xi?.[index]??null),...Array.from({length:playing?bench.length:benchCount()},(_,index)=>bench?.[index]??null)]}
+  function refreshLiveShape(){const m=GameState.match;if(m?.simulation){m.simulation.positions={};if(!m.lineups[m.userSide].includes(m.simulation.carrier))m.simulation.carrier=null}WORLD_STORAGE.scheduleSave();return true}
+  function setLiveFormation(value){if(!liveEditable()||!validFormation(value))return false;GameState.tactics.formation=value;log('📋 Cambio de dibujo: '+value+'. Se conservan los jugadores en cancha.');return refreshLiveShape()}
+  function setEmergencyKeeper(id){const m=GameState?.match;if(!liveEditable()||!FM_MATCH_RULES.active(m,m.userSide).includes(Number(id)))return false;id=Number(id);const side=m.userSide,at=m.lineups[side].indexOf(id);if(at<0)return false;[m.lineups[side][0],m.lineups[side][at]]=[m.lineups[side][at],m.lineups[side][0]];m.keeperIds??=[null,null];m.keeperIds[side]=id;log('🧤 '+playerAt(id).nombre+' toma el puesto de arquero'+(playerAt(id).posicion==='POR'?'.':' de emergencia. Su capacidad bajo los palos es limitada.'));return refreshLiveShape()}
+  function setShootoutOrder(ids){const m=GameState?.match;if(!m||m.done||!m.paused||!Array.isArray(ids))return false;const eligible=FM_MATCH_RULES.active(m,m.userSide);ids=ids.map(Number);if(ids.length!==eligible.length||new Set(ids).size!==ids.length||ids.some(id=>!eligible.includes(id)))return false;m.shootoutOrder??=[[],[]];m.shootoutOrder[m.userSide]=[...ids];WORLD_STORAGE.scheduleSave();return true}
+
   function permittedAt(p,index) {return eligible(p)&&(index>=11||(index===0?p.posicion==='POR':p.posicion!=='POR'))}
   function commitLineup(all) {
     const ids=all.filter(id=>id!=null);
     if(new Set(ids).size!==ids.length)return false;
     const limit=(window.FM_REGISTRATION?FM_REGISTRATION.profile(GameState.userClub.id).foreignMatch:window.WORLD_ENGINE.foreignLimit()),foreign=ids.filter(id=>window.WORLD_ENGINE.isForeign(playerAt(id))).length;
     if(foreign>limit){toast(`La convocatoria supera el límite de ${limit} extranjeros.`);return false}
-    GameState.tactics.xi=all.slice(0,11);GameState.tactics.bench=all.slice(11,18);ui.moveSource=null;ui.alternative=null;WORLD_STORAGE.scheduleSave();return true;
+    GameState.tactics.xi=all.slice(0,11);GameState.tactics.bench=all.slice(11,11+benchCount()).filter(id=>id!=null);ui.moveSource=null;ui.alternative=null;WORLD_STORAGE.scheduleSave();return true;
   }
   function swapSlots(from,to) {
-    if(!active()||live()){if(active())toast('Durante el partido, cambiá jugadores desde el banco de suplentes.');return false}
-    from=Number(from);to=Number(to);if(!Number.isInteger(from)||!Number.isInteger(to)||from<0||from>17||to<0||to>17||from===to)return false;
+    if(!active())return false;
+    from=Number(from);to=Number(to);
+    if(live()){const m=GameState.match;if(!liveEditable()||from<0||to<0||from>10||to>10||from===to)return false;const keeper=FM_MATCH_RULES.keeperId(m,m.userSide);if((from===0||to===0)&&!((from===0?m.lineups[m.userSide][to]:m.lineups[m.userSide][from])===keeper)){toast('Para cambiar de arquero usá la asignación de arquero de emergencia.');return false}[m.lineups[m.userSide][from],m.lineups[m.userSide][to]]=[m.lineups[m.userSide][to],m.lineups[m.userSide][from]];ui.moveSource=null;return refreshLiveShape()}
+    if(!Number.isInteger(from)||!Number.isInteger(to)||from<0||from>=11+benchCount()||to<0||to>=11+benchCount()||from===to)return false;
     const all=lineupArray(),a=playerAt(all[from]),b=playerAt(all[to]);
     if(a&&!permittedAt(a,to)||b&&!permittedAt(b,from)){toast('El arquero ocupa el primer puesto. Elegí jugadores disponibles para intercambiar.');return false}
     [all[from],all[to]]=[all[to],all[from]];const result=commitLineup(all);if(result)ui.selectedSlot=to;return result;
   }
   function assignSlot(index,id) {
-    if(!active()||live()){if(active())toast('La convocatoria se prepara antes del partido.');return false}
-    index=Number(index);id=Number(id);if(!Number.isInteger(index)||index<0||index>17)return false;
+    if(!active())return false;
+    index=Number(index);id=Number(id);
+    if(live()){const at=GameState.match.lineups[GameState.match.userSide].indexOf(id);return index<11&&at>=0?swapSlots(index,at):false}
+    if(!Number.isInteger(index)||index<0||index>=11+benchCount())return false;
     const p=playerAt(id);if(!permittedAt(p,index)){toast(index===0?'El primer puesto necesita un arquero disponible.':'Elegí un jugador disponible y apto para ese puesto.');return false}
     const all=lineupArray(),previous=playerAt(all[index]),other=all.indexOf(id);
     if(other===index)return true;
@@ -296,13 +327,13 @@
   function selectLineup(t=GameState.tactics,preferred=[]) {
     const pool=mine().filter(eligible),chosen=[],limit=(window.FM_REGISTRATION?FM_REGISTRATION.profile(GameState.userClub.id).foreignMatch:window.WORLD_ENGINE.foreignLimit());let foreign=0;
     const canSelect=(p,index)=>!chosen.includes(p.id)&&permittedAt(p,index)&&(!window.WORLD_ENGINE.isForeign(p)||foreign<limit);
-    for(let index=0;index<18;index++){
+    for(let index=0;index<11+benchCount();index++){
       const wanted=pool.find(p=>p.id===preferred[index]&&canSelect(p,index));
       const options=pool.filter(p=>canSelect(p,index)).sort((a,b)=>selectionScore(b,index,t)-selectionScore(a,index,t));
       // Reserve one goalkeeper on the bench whenever the registered squad has two.
       const reserve=index===11?options.find(p=>p.posicion==='POR'):null;
       const selected=wanted || reserve || options[0];
-      chosen.push(selected?.id??null);if(selected&&window.WORLD_ENGINE.isForeign(selected))foreign++;
+      if(selected||index<11)chosen.push(selected?.id??null);if(selected&&window.WORLD_ENGINE.isForeign(selected))foreign++;
     }return chosen;
   }
   function autoSelect() {
@@ -313,7 +344,7 @@
     if(!active())return {valid:true,issues:[]};
     const all=lineupArray(),issues=[];
     if(all.slice(0,11).some(id=>id==null))issues.push('Completá los once titulares.');
-    if(all.slice(11).some(id=>id==null))issues.push('Completá los siete suplentes.');
+    if(all.slice(11).filter(id=>id!=null).length>benchCount())issues.push('El banco supera el máximo de esta competición.');
     if(new Set(all.filter(id=>id!=null)).size!==all.filter(id=>id!=null).length)issues.push('Un jugador está asignado más de una vez.');
     if(playerAt(all[0])?.posicion!=='POR'||all.slice(1,11).some(id=>playerAt(id)?.posicion==='POR'))issues.push('El once necesita un arquero en el primer puesto y diez jugadores de campo.');
     const registrationReason=window.FM_REGISTRATION?.lineupReason(all.filter(id=>id!=null),GameState.userClub.id,GameState.calendar.find(e=>e.id===GameState.match?.eventId)||window.WORLD_CLOCK?.nextFixture());if(registrationReason)issues.push(registrationReason);
@@ -336,8 +367,9 @@
     const id=`plan-${t.nextPlanId++}`;t.savedPlans.push({id,name:cleaned,...snapshot(t),savedDate:GameState.today});saveGame(true);toast(`Plan «${cleaned}» guardado.`);return id;
   }
   function loadPlan(id) {
-    const t=ensure();if(!t||live())return false;
+    const t=ensure();if(!t||live()&&!liveEditable())return false;
     const plan=t.savedPlans.find(item=>item.id===String(id));if(!plan)return false;
+    if(live()){t.formation=plan.formation;for(const key of TEAM_FIELDS.filter(key=>!['formation','captain','penaltyTaker'].includes(key)))if(plan[key]!=null)t[key]=plan[key];const ids=new Set(GameState.match.lineups[GameState.match.userSide]);for(const pid of ids){if(plan.roles?.[pid])t.roles[pid]=plan.roles[pid];if(plan.instructions?.[pid])t.instructions[pid]=copy(plan.instructions[pid])}t.phases=phasePlan(plan);t.setPieces={...copy(plan.setPieces||{}),familiarity:t.setPieces.familiarity};ensure();log('📋 Plan '+plan.name+' aplicado a los jugadores en cancha.');return refreshLiveShape()}
     const candidate={...t,...Object.fromEntries(TEAM_FIELDS.map(key=>[key,plan[key]??t[key]])),roles:copy(plan.roles||{}),instructions:copy(plan.instructions||{}),phases:phasePlan(plan),setPieces:{...copy(plan.setPieces||{}),familiarity:t.setPieces.familiarity}};
     candidate.formation=plan.formation;candidate.style=STYLES.includes(plan.style)?plan.style:t.style;
     for(const key of ['tempo','width','line','pressing'])candidate[key]=bound(candidate[key],10,90);
@@ -376,11 +408,11 @@
   function slotButton(index,layout=null) {
     const t=GameState.tactics,id=lineupArray(t)[index],p=playerAt(id),slot=index<11?slots(t.formation)[index]:'SUP',fit=index<11?positionFit(p,slot):100;
     const name=p?p.nombre.split(' ').slice(-2).join(' '):'Sin asignar',label=p?`${index<11?POSITION_LABELS[slot]:`Suplente ${index-10}`}: ${p.nombre}, ${Math.round(p.condicion_fisica)}% de condición`:`${index<11?POSITION_LABELS[slot]:`Suplente ${index-10}`}, sin asignar`;
-    return `<button type="button" class="tw-player-chip ${index<11?'tw-pitch-chip':'tw-bench-chip'} ${ui.selectedSlot===index?'selected':''} ${ui.moveSource===index?'moving':''} ${p&&!eligible(p)||fit<60?'warning':''}" data-tw-slot="${index}" draggable="${!live()&&Boolean(p)}" aria-label="${esc(label)}${live()?'':'. Seleccionar para intercambiar'}" aria-pressed="${ui.moveSource===index}" ${layout?`style="left:${layout[1]}%;top:${layout[2]}%"`:''}><span class="tw-shirt">${p?.shirtNumber || (index+1)}${p&&index<11?`<i class="tw-position-dot ${fit===100?'good':fit>=60?'partial':'bad'}"></i>`:''}</span><strong>${esc(name)}</strong><span class="tw-chip-detail">${index<11?slot:p?naturalPositions(p).join('/'):'SUP'} · ${p?`${Math.round(p.condicion_fisica)}%`:'—'}</span></button>`;
+    return `<button type="button" class="tw-player-chip ${index<11?'tw-pitch-chip':'tw-bench-chip'} ${ui.selectedSlot===index?'selected':''} ${ui.moveSource===index?'moving':''} ${p&&!eligible(p)||fit<60?'warning':''}" data-tw-slot="${index}" draggable="${(!live()||liveEditable()&&index<11)&&Boolean(p)}" aria-label="${esc(label)}${live()?'':'. Seleccionar para intercambiar'}" aria-pressed="${ui.moveSource===index}" ${layout?`style="left:${layout[1]}%;top:${layout[2]}%"`:''}><span class="tw-shirt">${p?.shirtNumber || (index+1)}${p&&index<11?`<i class="tw-position-dot ${fit===100?'good':fit>=60?'partial':'bad'}"></i>`:''}</span><strong>${esc(name)}</strong><span class="tw-chip-detail">${index<11?slot:p?naturalPositions(p).join('/'):'SUP'} · ${p?`${Math.round(p.condicion_fisica)}%`:'—'}</span></button>`;
   }
   function pitchView() {
     const t=GameState.tactics;
-    return `<section class="card tw-pitch-card"><div class="fm-panel-title"><h2>Once titular</h2><label class="tw-formation-control"><span>Formación</span><select data-tw-team="formation" aria-label="Formación del once titular" ${live()?'disabled':''}>${selectOptions(Object.keys(FORMATIONS),t.formation)}</select></label><span class="badge">${esc(t.style)}</span></div><div class="tw-pitch" aria-label="Cancha táctica, once titular"><svg viewBox="0 0 100 120" preserveAspectRatio="none" aria-hidden="true"><rect x="3" y="3" width="94" height="114" fill="none"/><path d="M3 60H97M32 3V22H68V3M39 3V11H61V3M32 117V98H68V117M39 117V109H61V117"/><circle cx="50" cy="60" r="12"/><circle cx="50" cy="60" r=".6" fill="currentColor"/><path d="M41 22a11 11 0 0 0 18 0M41 98a11 11 0 0 1 18 0"/></svg>${formationLayout(t.formation).map((layout,index)=>slotButton(index,layout)).join('')}</div><div class="tw-interaction-note" aria-live="polite">${live()?'Partido en curso: ajustá las instrucciones. Los cambios se realizan desde la pantalla del partido.':ui.moveSource!=null?`Seleccionaste ${esc(playerAt(lineupArray()[ui.moveSource])?.nombre || 'un puesto vacío')}. Elegí el destino para intercambiar. <button data-tw-cancel>Cancelar</button>`:'Arrastrá entre puestos o seleccioná origen y destino. Para una reserva, elegí el puesto y pulsá Asignar. Teclado: Enter y flechas; Escape cancela.'}</div><div class="tw-fit-legend"><span><i class="good"></i>Natural</span><span><i class="partial"></i>Adaptable</span><span><i class="bad"></i>Fuera de posición</span></div><div class="tw-bench-title">Banco de suplentes <span>7 puestos</span></div><div class="tw-bench">${Array.from({length:7},(_,index)=>slotButton(index+11)).join('')}</div></section>`;
+    return `<section class="card tw-pitch-card"><div class="fm-panel-title"><h2>Once titular</h2><label class="tw-formation-control"><span>Formación</span><select data-tw-team="formation" aria-label="Formación del once titular" ${live()&&!liveEditable()?'disabled':''}>${selectOptions(Object.keys(FORMATIONS),t.formation)}</select></label><span class="badge">${esc(t.style)}</span></div><div class="tw-pitch" aria-label="Cancha táctica, once titular"><svg viewBox="0 0 100 120" preserveAspectRatio="none" aria-hidden="true"><rect x="3" y="3" width="94" height="114" fill="none"/><path d="M3 60H97M32 3V22H68V3M39 3V11H61V3M32 117V98H68V117M39 117V109H61V117"/><circle cx="50" cy="60" r="12"/><circle cx="50" cy="60" r=".6" fill="currentColor"/><path d="M41 22a11 11 0 0 0 18 0M41 98a11 11 0 0 1 18 0"/></svg>${formationLayout(t.formation).map((layout,index)=>slotButton(index,layout)).join('')}</div><div class="tw-interaction-note" aria-live="polite">${live()?(liveEditable()?'Partido pausado: podés intercambiar puestos del once sin gastar cambios.':'Pausá el partido para cambiar el dibujo o intercambiar puestos.'):ui.moveSource!=null?`Seleccionaste ${esc(playerAt(lineupArray()[ui.moveSource])?.nombre || 'un puesto vacío')}. Elegí el destino para intercambiar. <button data-tw-cancel>Cancelar</button>`:'Arrastrá entre puestos o seleccioná origen y destino. Para una reserva, elegí el puesto y pulsá Asignar. Teclado: Enter y flechas; Escape cancela.'}</div><div class="tw-fit-legend"><span><i class="good"></i>Natural</span><span><i class="partial"></i>Adaptable</span><span><i class="bad"></i>Fuera de posición</span></div><div class="tw-bench-title">Banco de suplentes <span>Hasta ${benchCount()} puestos</span></div><div class="tw-bench">${lineupArray().slice(11).map((_,index)=>slotButton(index+11)).join('')}</div></section>`;
   }
   function teamOptions() {
     const t=GameState.tactics,value=familiarity(t),limit=(window.FM_REGISTRATION?FM_REGISTRATION.profile(GameState.userClub.id).foreignMatch:window.WORLD_ENGINE.foreignLimit());
@@ -431,7 +463,7 @@
   }
   function plansView() {
     const t=GameState.tactics;
-    return `<section class="card tw-plans"><div class="fm-panel-title"><div><h2>Planes de partido</h2><p class="small muted">Guardá formación, convocatoria, roles e instrucciones. Los jugadores ausentes se reemplazan al cargar.</p></div><span class="badge">${t.savedPlans.length} / 5</span></div><div class="tw-save-plan"><label class="field">Nombre del nuevo plan<input data-tw-plan-name maxlength="40" placeholder="Por ejemplo: presión en casa" ${live()?'disabled':''}></label><button data-tw-save ${live()||t.savedPlans.length>=5?'disabled':''}>Guardar plan actual</button></div><div class="tw-plan-list">${t.savedPlans.map(plan=>`<article><div><strong>${esc(String(plan.name || 'Plan').slice(0,40))}</strong><span>${esc(plan.formation)} · ${esc(plan.style || 'Gegenpress')}</span></div><div class="tw-plan-actions"><button data-tw-load="${esc(plan.id)}" ${live()?'disabled':''}>Cargar</button><button data-tw-rename="${esc(plan.id)}" ${live()?'disabled':''} aria-label="Renombrar ${esc(String(plan.name || 'Plan').slice(0,40))}">Renombrar</button><button data-tw-delete="${esc(plan.id)}" ${live()?'disabled':''} aria-label="Eliminar ${esc(String(plan.name || 'Plan').slice(0,40))}">Eliminar</button></div>${ui.renameId===plan.id?`<form class="tw-rename-form" data-tw-rename-form="${esc(plan.id)}"><label class="field">Nuevo nombre<input name="planName" maxlength="40" value="${esc(String(plan.name || '').slice(0,40))}" required></label><button type="submit">Confirmar nombre</button><button type="button" data-tw-rename-cancel>Cancelar</button></form>`:''}</article>`).join('') || '<p class="small muted tw-no-plans">Todavía no guardaste un plan. Prepará variantes para proteger una ventaja o buscar el partido.</p>'}</div></section>`;
+    return `<section class="card tw-plans"><div class="fm-panel-title"><div><h2>Planes de partido</h2><p class="small muted">Guardá formación, convocatoria, roles e instrucciones. Los jugadores ausentes se reemplazan al cargar.</p></div><span class="badge">${t.savedPlans.length} / 5</span></div><div class="tw-save-plan"><label class="field">Nombre del nuevo plan<input data-tw-plan-name maxlength="40" placeholder="Por ejemplo: presión en casa" ${live()?'disabled':''}></label><button data-tw-save ${live()||t.savedPlans.length>=5?'disabled':''}>Guardar plan actual</button></div><div class="tw-plan-list">${t.savedPlans.map(plan=>`<article><div><strong>${esc(String(plan.name || 'Plan').slice(0,40))}</strong><span>${esc(plan.formation)} · ${esc(plan.style || 'Gegenpress')}</span></div><div class="tw-plan-actions"><button data-tw-load="${esc(plan.id)}" ${live()&&!liveEditable()?'disabled':''}>Cargar</button><button data-tw-rename="${esc(plan.id)}" ${live()?'disabled':''} aria-label="Renombrar ${esc(String(plan.name || 'Plan').slice(0,40))}">Renombrar</button><button data-tw-delete="${esc(plan.id)}" ${live()?'disabled':''} aria-label="Eliminar ${esc(String(plan.name || 'Plan').slice(0,40))}">Eliminar</button></div>${ui.renameId===plan.id?`<form class="tw-rename-form" data-tw-rename-form="${esc(plan.id)}"><label class="field">Nuevo nombre<input name="planName" maxlength="40" value="${esc(String(plan.name || '').slice(0,40))}" required></label><button type="submit">Confirmar nombre</button><button type="button" data-tw-rename-cancel>Cancelar</button></form>`:''}</article>`).join('') || '<p class="small muted tw-no-plans">Todavía no guardaste un plan. Prepará variantes para proteger una ventaja o buscar el partido.</p>'}</div></section>`;
   }
   function squadView() {
     const all=lineupArray(),members=mine().filter(p=>!all.includes(p.id)).sort((a,b)=>['POR','DEF','MED','DEL'].indexOf(a.posicion)-['POR','DEF','MED','DEL'].indexOf(b.posicion)||overall(b)-overall(a));
@@ -439,13 +471,13 @@
     return `<section class="card tw-reserves"><div class="fm-panel-title"><h2>Reservas <span class="tw-roster-count">${members.length}</span></h2><span class="small muted">Sin convocar</span></div><div class="tw-reserve-target">Asignar a: <strong>${esc(slot)}</strong></div><div class="tw-reserve-list" data-list-region="tactical-reserves" role="list" aria-label="Jugadores fuera de la convocatoria">${members.map(p=>{const state=p.injury?`${p.injury} días de lesión`:!available(p)?suspended(p)?'Suspendido':'Sin inscripción para esta competición':'';return `<div class="tw-reserve-row ${state?'unavailable':''}" role="listitem" data-tw-reserve="${p.id}"><div class="tw-reserve-identity"><button class="fm-player-link" data-player="${p.id}" title="${esc(p.nombre)}">${esc(p.nombre)}</button><span class="tw-reserve-meta">${esc(naturalPositions(p).join(' / '))} · ${p.edad} años · Media ${overall(p)}</span>${state?`<span class="tw-reserve-status">${esc(state)}</span>`:''}</div><span class="tw-reserve-condition ${p.condicion_fisica<65?'red':'green'}" title="Condición física">${Math.round(p.condicion_fisica)}%</span><button type="button" data-tw-use="${p.id}" aria-label="Asignar a ${esc(p.nombre)} como ${esc(slot)}" ${live()||!permittedAt(p,index)?'disabled':''}>Asignar</button></div>`}).join('')||'<p class="tw-reserve-empty">Todos los jugadores están convocados.</p>'}</div></section>`;
   }
   function renderWorkbench() {
-    if(!active())return oldTactics();ensure();ui.selectedSlot=Math.round(bound(ui.selectedSlot,0,17));
+    if(!active())return oldTactics();ensure();ui.selectedSlot=Math.round(bound(ui.selectedSlot,0,lineupArray().length-1));
     const check=validateLineup();
     return `<div class="fm-page-intro"><div><div class="fm-kicker">Cuerpo técnico</div><h2>Laboratorio táctico</h2><p>Prepará el equipo, compará alternativas y entrená tu identidad de juego.</p></div><button data-tw-auto ${live()?'disabled':''}>Elegir mejor equipo</button></div>${!check.valid&&!live()?`<div class="tw-lineup-warning" role="status">${check.issues.map(issue=>`<span>${esc(issue)}</span>`).join('')}</div>`:''}<div class="tw-workbench">${teamOptions()}${pitchView()}${inspector()}</div>${phasesView()}${setPiecesView()}${plansView()}${squadView()}`;
   }
   function repaint(focusSlot=null) {render();if(focusSlot!=null)document.querySelector(`[data-tw-slot="${focusSlot}"]`)?.focus()}
   function handleSlot(index) {
-    if(live()){ui.selectedSlot=index;ui.moveSource=null;ui.alternative=null;repaint(index);return}
+    if(live()&&(!liveEditable()||index>=11)){ui.selectedSlot=index;ui.moveSource=null;ui.alternative=null;repaint(index);return}
     if(ui.moveSource==null){ui.moveSource=index;ui.selectedSlot=index;ui.alternative=null}
     else if(ui.moveSource===index){ui.moveSource=null}
     else {const from=ui.moveSource;if(!swapSlots(from,index))ui.moveSource=null;ui.selectedSlot=index;ui.alternative=null}
@@ -484,8 +516,7 @@
     if(node.hasAttribute('data-tw-team')){
       const t=ensure(),key=node.dataset.twTeam,value=node.value;
       if(key==='formation'){
-        if(live()||!validFormation(value))return;
-        t.formation=value;autoSelect();
+        if(!validFormation(value))return;if(live()){if(!setLiveFormation(value))return}else {t.formation=value;autoSelect();}
       }else if(key==='style'){if(!STYLES.includes(value))return;t.style=value}
       else if(key==='mentality'){if(!['Cauta','Equilibrada','Ofensiva'].includes(value))return;t.mentality=value}
       else if(['tempo','width','line','pressing'].includes(key))t[key]=bound(value,10,90);
@@ -508,23 +539,23 @@
     const index=Number(node.dataset.twSlot);
     if(event.key==='Escape'){event.preventDefault();ui.moveSource=null;return repaint(index)}
     const offset={ArrowLeft:-1,ArrowRight:1,ArrowUp:-1,ArrowDown:1}[event.key];
-    if(offset){event.preventDefault();const next=(index+offset+18)%18;document.querySelector(`[data-tw-slot="${next}"]`)?.focus()}
+    if(offset){event.preventDefault();const next=(index+offset+lineupArray().length)%lineupArray().length;document.querySelector(`[data-tw-slot="${next}"]`)?.focus()}
   });
   document.addEventListener('dragstart',event=>{
-    if(!active()||live())return;
+    if(!active()||live()&&!liveEditable())return;
     const node=event.target.closest('[data-tw-slot]');if(!node)return;
     const index=Number(node.dataset.twSlot);event.dataTransfer.setData('text/plain',`fm27-slot:${index}`);event.dataTransfer.effectAllowed='move';ui.moveSource=index;node.classList.add('moving');
   });
   document.addEventListener('dragover',event=>{
-    if(!active()||live()||ui.moveSource==null)return;
+    if(!active()||live()&&!liveEditable()||ui.moveSource==null)return;
     const node=event.target.closest('[data-tw-slot]');if(!node)return;event.preventDefault();event.dataTransfer.dropEffect='move';
   });
   document.addEventListener('drop',event=>{
-    if(!active()||live())return;
+    if(!active()||live()&&!liveEditable())return;
     const node=event.target.closest('[data-tw-slot]');if(!node)return;
     const value=event.dataTransfer.getData('text/plain'),match=/^fm27-slot:(\d{1,2})$/.exec(value);if(!match)return;
     event.preventDefault();event.stopImmediatePropagation();const to=Number(node.dataset.twSlot);swapSlots(Number(match[1]),to);ui.moveSource=null;repaint(to);
   });
   document.addEventListener('dragend',()=>{if(active()){ui.moveSource=null;document.querySelectorAll('.tw-player-chip.moving').forEach(node=>node.classList.remove('moving'))}});
-  window.FM_TACTICS={ensure,render:renderWorkbench,slots,formationLayout,naturalPositions,positionFit,roleFor,instructionsFor,playerMatchFactor,teamMatchModifiers,matchPlan,phaseModifiers,phaseSummary,assessment,phaseFields,phasesView,setPiecesView,setPhase,setPiece,setMarkingTarget,markingOpponents,trainFamiliarity,familiarity,recommendations,validateLineup,assignSlot,swapSlots,autoSelect,savePlan,loadPlan,renamePlan,deletePlan,setInstruction};
+  window.FM_TACTICS={ensure,render:renderWorkbench,slots,formationLayout,naturalPositions,positionFit,roleFor,instructionsFor,playerMatchFactor,teamMatchModifiers,matchLoad,lineupArray,benchCount,setLiveFormation,setEmergencyKeeper,setShootoutOrder,liveEditable,matchPlan,phaseModifiers,phaseSummary,assessment,phaseFields,phasesView,setPiecesView,setPhase,setPiece,setMarkingTarget,markingOpponents,trainFamiliarity,familiarity,recommendations,validateLineup,assignSlot,swapSlots,autoSelect,savePlan,loadPlan,renamePlan,deletePlan,setInstruction};
 })();

@@ -157,6 +157,76 @@ const WORLD_STORAGE = (() => {
     for (const child of Object.values(value)) cupNodes(child, clubs, depth + 1);
   }
 
+  function validateIncidents(value,clubs){
+    if(value==null)return;
+    const known=new Set(['boots','school','bus','meal','birthday','rain','interview','family','grass','supporters','sponsor','power','oldboys','lostkit','community','film','collector','music','scientists','reunion','goat','cat','mascot','replica','balloon']),seen=new Set(),pendingClubs=new Set();let highest=0;
+    if(!object(value)||!integer(value.nextId,1,1e9)||!Array.isArray(value.history)||value.history.length>100||!object(value.cooldowns)||!object(value.lastEvents)||(value.lastDay!=null&&!validDate(value.lastDay))||(value.lastClub!=null&&!clubs.has(value.lastClub)))fail('registro de situaciones inesperadas no válido');
+    if(Object.keys(value.cooldowns).length>30000||Object.values(value.cooldowns).some(d=>!validDate(d))||Object.entries(value.lastEvents).some(([id,d])=>!clubs.has(id)||!validDate(d)))fail('fechas de situaciones inesperadas no válidas');
+    for(const e of value.history){
+      if(!object(e)||!string(e.id,100)||!/^unexpected-[1-9]\d*$/.test(e.id)||seen.has(e.id)||!known.has(e.definitionId)||!clubs.has(e.clubId)||!validDate(e.date)||!validDate(e.deadline)||e.deadline<e.date||!finite(e.unit,0,1000000)||!['pending','resolved','expired','cancelled'].includes(e.status)||(e.choice!=null&&!['a','b'].includes(e.choice))||(e.resolvedDate!=null&&!validDate(e.resolvedDate)))fail('situación inesperada desconocida o no válida');
+      seen.add(e.id);highest=Math.max(highest,Number(e.id.slice(11)));if(e.status==='pending'){if(pendingClubs.has(e.clubId))fail('situaciones pendientes duplicadas');pendingClubs.add(e.clubId);}
+      if(e.context!=null&&(!object(e.context)||(e.context.playerId!=null&&!integer(e.context.playerId,1,Number.MAX_SAFE_INTEGER))||(e.context.playerName!=null&&(typeof e.context.playerName!=='string'||e.context.playerName.length>150))||(e.context.fixtureDate!=null&&!validDate(e.context.fixtureDate))))fail('contexto de situación inesperada no válido');
+      const f=e.followup;if(f!=null&&(!object(f)||!validDate(f.dueDate)||!['scheduled','applied','cancelled'].includes(f.status)||!['player','squad'].includes(f.scope)||!object(f.effect)||Object.entries(f.effect).some(([key,n])=>!['morale','condition','pressure','reputation'].includes(key)||!finite(n,-100,100))||(f.appliedDate!=null&&!validDate(f.appliedDate))))fail('seguimiento de situación inesperada no válido');
+    }
+    if(value.nextId<=highest)fail('secuencia de situaciones inesperadas no válida');
+  }
+  function validateArchive(value,clubs){
+    if(value==null)return;
+    if(!object(value)||value.version!==1||!Array.isArray(value.reports)||value.reports.length>120)fail('archivo de partidos no válido');
+    const seen=new Set();for(const r of value.reports){
+      if(!object(r)||!string(r.fixtureId,200)||seen.has(r.fixtureId)||!validDate(r.date)||!clubs.has(r.home)||!clubs.has(r.away)||r.home===r.away||!object(r.result)||!string(r.competition,250)||!Array.isArray(r.stats)||r.stats.length!==2||r.stats.some(row=>!object(row)||Object.values(row).some(n=>typeof n==='number'&&!finite(n,0,100000)))||!Array.isArray(r.players)||r.players.length>60)fail('informe archivado no válido');
+      seen.add(r.fixtureId);result(r.result,r.home,r.away,clubs);
+      const players=new Set();for(const p of r.players){if(!object(p)||!integer(p.id,1,Number.MAX_SAFE_INTEGER)||players.has(p.id)||!string(p.name,150)||![0,1].includes(p.side)||!finite(p.rating,0,10)||!finite(p.minutes,0,200)||['goals','assists','shots','yellow'].some(k=>p[k]!=null&&!finite(p[k],0,1000)))fail('rendimiento individual archivado no válido');players.add(p.id);}
+      if(!Array.isArray(r.feed)||r.feed.length>400||r.feed.some(f=>!object(f)||!finite(f.minute,0,200)||typeof f.text!=='string'||f.text.length>6000))fail('relato archivado no válido');
+      if(r.abandoned!=null&&(!object(r.abandoned)||![0,1].includes(r.abandoned.side)||!string(r.abandoned.reason,6000)||!Array.isArray(r.abandoned.playedScore)||r.abandoned.playedScore.length!==2||r.abandoned.playedScore.some(n=>!integer(n,0,100))))fail('abandono archivado no válido');
+      if(r.shootout!=null&&(!Array.isArray(r.shootout)||r.shootout.length>300||r.shootout.some(k=>!object(k)||![0,1].includes(k.side)||!integer(k.playerId,1,Number.MAX_SAFE_INTEGER)||typeof k.scored!=='boolean'||(k.keeperId!=null&&!integer(k.keeperId,1,Number.MAX_SAFE_INTEGER)))))fail('tanda archivada no válida');
+      for(const [key,max]of [['lineups',2],['plans',2],['finalPlans',2],['decisions',60],['aiDecisions',12],['chances',100],['keyPlays',60],['chains',60],['teamMetrics',2]])if(r[key]!=null&&(!Array.isArray(r[key])||r[key].length>max))fail('detalle de informe archivado no válido');
+    }
+  }
+  function validateSearches(value,clubs){
+    if(value==null)return;
+    if(!object(value)||Object.keys(value).length>1200)fail('búsquedas guardadas no válidas');
+    for(const [id,scopes]of Object.entries(value)){if(!clubs.has(id)||!object(scopes))fail('club de búsqueda guardada no válido');for(const [scope,rows]of Object.entries(scopes)){
+      if(!['market','scouting'].includes(scope)||!Array.isArray(rows)||rows.length>20)fail('lista de búsquedas guardadas no válida');const seen=new Set();
+      for(const row of rows){if(!object(row)||!string(row.id,150)||seen.has(row.id)||!string(row.name,60)||typeof row.query!=='string'||row.query.length>120||!object(row.filters))fail('búsqueda guardada no válida');seen.add(row.id);const f=row.filters;
+        if(f.positions!=null&&(!Array.isArray(f.positions)||f.positions.length>10||f.positions.some(p=>!['POR','DFC','LI','LD','MCD','MC','MP','EI','ED','DC'].includes(p))))fail('puestos de búsqueda guardada no válidos');
+        if(f.rules!=null&&(!Array.isArray(f.rules)||f.rules.length>36||f.rules.some(r=>!object(r)||typeof r.attribute!=='string')))fail('atributos de búsqueda guardada no válidos');
+        if(f.groups!=null&&(!Array.isArray(f.groups)||f.groups.length>6||f.groups.some(g=>!object(g)||!['all','any'].includes(g.mode)||!Array.isArray(g.rules)||g.rules.length>12||g.rules.some(r=>!object(r)||typeof r.field!=='string'||!['eq','neq','contains','gte','lte'].includes(r.op)||typeof r.value!=='string'||r.value.length>120))))fail('grupos de búsqueda guardada no válidos');
+      }
+    }}
+  }
+
+  function validatePurchaseClaims(value,clubs){
+    if(value==null)return;
+    if(!Array.isArray(value)||value.length>10000)fail('reclamaciones de compra no válidas');
+    const seen=new Set();
+    for(const claim of value){
+      if(!object(claim)||!string(claim.id,200)||!string(claim.loanId,150)||claim.id!=='claim-'+claim.loanId||seen.has(claim.id)||!integer(claim.playerId,1,Number.MAX_SAFE_INTEGER)||!clubs.has(claim.fromClub)||!clubs.has(claim.toClub)||claim.fromClub===claim.toClub||!finite(claim.amount,0,1e10)||!['pending','settled'].includes(claim.status)||!validDate(claim.date)||!string(claim.reason,6000))fail('reclamación de compra no válida');
+      seen.add(claim.id);
+      if(claim.status==='settled'&&(!validDate(claim.settledDate)||claim.settledDate<claim.date||!finite(claim.compensation,0,claim.amount)||claim.settlementMode!=='simulated-mutual-agreement'))fail('liquidación de reclamación de compra no válida');
+      if(claim.status==='pending'&&(claim.settledDate!=null||claim.compensation!=null||claim.settlementMode!=null))fail('reclamación pendiente con liquidación incompatible');
+    }
+  }
+
+  function validateExtraCompetitions(value,clubs,events,today){
+    if(value==null)return false;
+    if(!object(value)||value.version!==1||!object(value.cups)||Object.keys(value.cups).length>300||!object(value.preliminaries)||Object.keys(value.preliminaries).length>300)fail('copas adicionales no válidas');
+    for(const [id,cup]of Object.entries(value.cups)){
+      if(!object(cup)||cup.id!==id||!['UCL','UEL','UEC','CUP','LIB_PRE','SUD_PRE'].includes(cup.type)||!integer(cup.year,2020,2300)||!string(cup.name,200)||!Array.isArray(cup.participants)||cup.participants.length<2||cup.participants.length>256||cup.participants.some(id=>!clubs.has(id))||new Set(cup.participants).size!==cup.participants.length||!Array.isArray(cup.stages)||cup.stages.length>20||!Array.isArray(cup.eventIds)||cup.eventIds.length>100||cup.eventIds.some(id=>!string(id,150))||!['league','knockout','completed'].includes(cup.status))fail('competición adicional no válida');
+      cupNodes(cup,clubs);if(cup.table!=null)table(cup.table,cup.participants);
+      for(const stage of cup.stages){if(!object(stage)||!Array.isArray(stage.ties)||stage.ties.length>128)fail('fase adicional no válida');for(const tie of stage.ties){if(!object(tie)||!cup.participants.includes(tie.home)||!cup.participants.includes(tie.away)||!Array.isArray(tie.legs)||!tie.legs.length||tie.legs.length>2||tie.legs.some(l=>!object(l)||!string(l.eventId,150)||!validDate(l.date)))fail('eliminatoria adicional no válida');}}
+    }
+    for(const e of events)if(e.extraCupId!=null&&(!value.cups[e.extraCupId]||value.cups[e.extraCupId].type!==e.type||!value.cups[e.extraCupId].eventIds.includes(e.id)||e.games.some(g=>!value.cups[e.extraCupId].participants.includes(g.home)||!value.cups[e.extraCupId].participants.includes(g.away))))fail('referencia de copa adicional no válida');
+    for(const [year,p]of Object.entries(value.preliminaries)){
+      if(!object(p)||!integer(p.year,2020,2300)||String(p.year)!==year||!['pending','resolved'].includes(p.status)||!object(p.rankings))fail('clasificación preliminar no válida');
+      for(const [key,count]of [['direct',28],['phase1',6],['phase2',13],['sudDirect',12],['sudNational',32],['libQualified',32],['sudQualified',28],['libLosers',4]])if(p[key]!=null&&(!Array.isArray(p[key])||p[key].length!==count||p[key].some(id=>!clubs.has(id))||new Set(p[key]).size!==p[key].length))fail('participantes preliminares no válidos');
+      if(Object.values(p.rankings).some(ids=>!Array.isArray(ids)||ids.length>100||ids.some(id=>!clubs.has(id))||new Set(ids).size!==ids.length))fail('ranking preliminar no válido');
+    }
+    const p=value.preliminaries[Number(today.slice(0,4))];if(p?.status!=='pending')return false;
+    const lib=value.cups[`LIB_PRE:${p.year}`],sud=value.cups[`SUD_PRE:${p.year}`];
+    return !!lib&&lib.type==='LIB_PRE'&&lib.participants.length===47&&!!sud&&sud.type==='SUD_PRE'&&sud.participants.length===44&&['direct','phase1','phase2','sudDirect','sudNational'].every(k=>Array.isArray(p[k]))&&[lib,sud].every(c=>c.eventIds.some(id=>events.some(e=>e.id===id&&e.extraCupId===c.id)));
+  }
+
   function validateWorld(s, aliases = true) {
     if (!object(s) || s.version !== 3 || s.worldVersion !== 1 || !object(s.world) || !Array.isArray(s.world.clubs) || !Array.isArray(s.world.leagues) || !Array.isArray(s.players) || !Array.isArray(s.calendar) || !object(s.userClub) || !object(s.tactics) || !object(s.world.cups)) fail('estructura de carrera mundial incompatible');
     if (!string(s.manager, 100) || !integer(s.year, 2020, 2300) || !validDate(s.today) || !integer(s.eventIndex, 0, s.calendar.length) || !finite(s.userClub.presupuesto_dolares, -1e13) || !finite(s.userClub.presupuesto_pesos, -1e16, 1e16)) fail('datos de carrera no válidos');
@@ -177,7 +247,8 @@ const WORLD_STORAGE = (() => {
       for (const id of l.clubIds) membership.add(id);
       leagues.set(l.id, l); table(l.standings, l.clubIds);
     }
-    if (membership.size !== clubs.size || s.world.clubs.some(c => !leagues.get(c.leagueId)?.clubIds.includes(c.id))) fail('pertenencia de clubes no válida');
+    const guests=s.world.clubs.filter(c=>c.external===true&&c.leagueId==='UEFA_GUESTS');
+    if (membership.size !== clubs.size-guests.length || s.world.clubs.some(c => !(c.external===true&&c.leagueId==='UEFA_GUESTS')&&!leagues.get(c.leagueId)?.clubIds.includes(c.id)) || guests.some(c=>membership.has(c.id))) fail('pertenencia de clubes no válida');
     const userLeague = leagues.get(s.world.userLeagueId);
     if (!userLeague || !userLeague.clubIds.includes(s.userClub.id)) fail('club del entrenador no válido');
     if (Array.isArray(s.external)) for (const c of s.external) {
@@ -194,13 +265,17 @@ const WORLD_STORAGE = (() => {
         if (!integer(ref, 1, Number.MAX_SAFE_INTEGER) || referenceIds.has(ref)) fail('identidad real duplicada o no válida');
         referenceIds.add(ref);
       }
+      if(p.form!=null&&(!Array.isArray(p.form)||p.form.length>100||p.form.some(n=>!finite(n,0,10))))fail('historial de notas no válido');
+      if(p.lastRating!=null&&!finite(p.lastRating,0,10))fail('última nota de jugador no válida');
+      if(p.attributes!=null&&(!object(p.attributes)||Object.keys(p.attributes).length>50||Object.values(p.attributes).some(n=>!finite(n,1,99))))fail('atributos específicos no válidos');
       ids.add(p.id);
     }
+    validateIncidents(s.world.incidents,clubs);validateArchive(s.world.matchArchive,clubs);validateSearches(s.world.marketSearches,clubs);validatePurchaseClaims(s.world.ai?.contracts?.purchaseClaims,clubs);
     const lineup = [...(s.tactics.xi || []), ...(s.tactics.bench || [])].filter(id => id != null);
-    if (!Array.isArray(s.tactics.xi) || !Array.isArray(s.tactics.bench) || s.tactics.xi.length > 11 || s.tactics.bench.length > 7 || lineup.some(id => !ids.has(id)) || new Set(lineup).size !== lineup.length || !FORMATIONS[s.tactics.formation]) fail('alineación no válida');
+    if (!Array.isArray(s.tactics.xi) || !Array.isArray(s.tactics.bench) || s.tactics.xi.length > 11 || s.tactics.bench.length > 15 || lineup.some(id => !ids.has(id)) || new Set(lineup).size !== lineup.length || !FORMATIONS[s.tactics.formation]) fail('alineación no válida');
     const events = new Set(); let previousDate = '';
     for (const e of s.calendar) {
-      if (!object(e) || !string(e.id, 150) || events.has(e.id) || !['LPF', 'LIB', 'SUD'].includes(e.type) || !validDate(e.date) || e.date < previousDate || typeof e.done !== 'boolean' || !Array.isArray(e.games) || e.games.length > 300 || (e.type === 'LPF' && !leagues.has(e.leagueId))) fail('calendario no válido');
+      if (!object(e) || !string(e.id, 150) || events.has(e.id) || !['LPF','LIB','SUD','UCL','UEL','UEC','CUP','LIB_PRE','SUD_PRE'].includes(e.type) || !validDate(e.date) || e.date < previousDate || typeof e.done !== 'boolean' || !Array.isArray(e.games) || e.games.length > 300 || (e.type === 'LPF' && !leagues.has(e.leagueId))) fail('calendario no válido');
       previousDate = e.date; events.add(e.id);
       const used = new Set();
       for (const g of e.games) {
@@ -214,7 +289,8 @@ const WORLD_STORAGE = (() => {
         used.add(g.home); used.add(g.away); result(g.result, g.home, g.away, clubs);
       }
     }
-    if (!object(s.world.cups.LIB) || !object(s.world.cups.SUD)) fail('faltan competiciones continentales');
+    const preliminaryPending=validateExtraCompetitions(s.world.extraCompetitions,clubs,s.calendar,s.today);
+    if ((!object(s.world.cups.LIB) || !object(s.world.cups.SUD))&&!preliminaryPending) fail('faltan competiciones continentales');
     for (const cup of Object.values(s.world.cups)) {
       if (!object(cup) || !Array.isArray(cup.groups) || cup.groups.length > 32 || !Array.isArray(cup.stages) || cup.stages.length > 10 || cup.stages.some(stage => !object(stage) || !Array.isArray(stage.ties) || stage.ties.length > 64 || stage.ties.some(tie => !object(tie) || !Array.isArray(tie.legs) || tie.legs.length > 2))) fail('competición continental no válida');
       if (cup.participants != null && (!Array.isArray(cup.participants) || cup.participants.length > 128 || cup.participants.some(id => !clubs.has(id)) || new Set(cup.participants).size !== cup.participants.length)) fail('participantes continentales no válidos');
@@ -232,6 +308,14 @@ const WORLD_STORAGE = (() => {
       if (!object(m) || !clubs.has(m.home) || !clubs.has(m.away) || m.home === m.away || !integer(m.minute, 0, 130) || ![0, 1].includes(m.userSide) || !Array.isArray(m.lineups) || m.lineups.length !== 2 || m.lineups.some(list => !Array.isArray(list) || list.length > 11) || m.lineups.flat().some(id => !ids.has(id)) || new Set(m.lineups.flat()).size !== m.lineups.flat().length || !Array.isArray(m.score) || m.score.length !== 2 || !m.score.every(n => integer(n, 0, 100)) || !Array.isArray(m.stats) || m.stats.length !== 2 || !object(m.ratings) || !Array.isArray(m.feed) || !['red', 'injured', 'used'].every(key => Array.isArray(m[key]) && m[key].every(id => ids.has(id)))) fail('partido en curso no válido');
       if (Object.entries(m.ratings).some(([id, rating]) => !ids.has(Number(id)) || !finite(rating, 0, 10))) fail('calificaciones del partido no válidas');
       for (const stats of m.stats) if (!object(stats) || Object.values(stats).some(value => typeof value === 'number' && !finite(value, 0, 100000))) fail('estadísticas del partido no válidas');
+      if(m.rules!=null&&(!object(m.rules)||!integer(m.rules.bench,0,15)||!integer(m.rules.substitutions,0,6)||!integer(m.rules.windows,0,4)||!integer(m.rules.minimumPlayers,7,7)))fail('reglamento del partido no válido');
+      if(m.keeperIds!=null&&(!Array.isArray(m.keeperIds)||m.keeperIds.length!==2||m.keeperIds.some(id=>id!=null&&!ids.has(id))))fail('arqueros del partido no válidos');
+      if(m.shootoutOrder!=null&&(!Array.isArray(m.shootoutOrder)||m.shootoutOrder.length!==2||m.shootoutOrder.some(row=>!Array.isArray(row)||row.length>32||row.some(id=>!ids.has(id))||new Set(row).size!==row.length)))fail('orden de penales no válido');
+      if(m.pendingPenalties!=null&&typeof m.pendingPenalties!=='boolean')fail('estado de tanda no válido');
+      if(m.minimumPlayersPending!=null&&![0,1].includes(m.minimumPlayersPending))fail('equipo con jugadores insuficientes no válido');
+      if(m.abandoned!=null&&(!object(m.abandoned)||![0,1].includes(m.abandoned.side)||typeof m.abandoned.reason!=='string'||!Array.isArray(m.abandoned.playedScore)||m.abandoned.playedScore.length!==2||m.abandoned.playedScore.some(n=>!integer(n,0,100))))fail('informe de abandono no válido');
+      if(m.pen?.kicks!=null&&(!Array.isArray(m.pen.kicks)||m.pen.kicks.length>300||m.pen.kicks.some(k=>!object(k)||![0,1].includes(k.side)||!ids.has(k.playerId)||typeof k.scored!=='boolean'||(k.keeperId!=null&&!ids.has(k.keeperId)))))fail('tanda de penales no válida');
+
     }
     if (aliases) {
       if (!Array.isArray(s.league) || s.league.length !== userLeague.clubIds.length || s.league.some(c => !userLeague.clubIds.includes(c.id)) || new Set(s.league.map(c => c.id)).size !== s.league.length || !Array.isArray(s.continental)) fail('clubes de la carrera no válidos');
@@ -311,7 +395,7 @@ const WORLD_STORAGE = (() => {
     if(saveWorker||workerFailed)return saveWorker;
     if(typeof Worker==='undefined'||typeof Blob==='undefined'){workerFailed=true;return null}
     try{
-      const definitions={own,object,same,copy,fail,string,integer,finite,validDate,mask,playerReference,identity,residual,packRecords,table,result,cupNodes,validateWorld,encode,serialize};
+      const definitions={own,object,same,copy,fail,string,integer,finite,validDate,mask,playerReference,identity,residual,packRecords,table,result,cupNodes,validateIncidents,validateArchive,validateSearches,validatePurchaseClaims,validateExtraCompetitions,validateWorld,encode,serialize};
       const source=`const FORMAT='${FORMAT}',COMPRESSED_FORMAT='${COMPRESSED_FORMAT}',CODEC_VERSION=${CODEC_VERSION},alphabet=${JSON.stringify(alphabet)},missing=Symbol('absent'),identityTemplates=new Map();let dbPlayers,dbClubs,dbLeagues,FORMATIONS;const WORLD_ENGINE={hydratePlayerIdentity:${WORLD_ENGINE.hydratePlayerIdentity.toString()}};const f=String.fromCharCode,LZString={_compress:${LZString._compress.toString()},compressToUTF16:${LZString.compressToUTF16.toString()}};`+Object.entries(definitions).map(([name,fn])=>`const ${name}=${fn.toString()};`).join('\n')+`self.onmessage=({data})=>{if(data.init){dbPlayers=new Map(data.init.players.map(p=>[p.playerId,p]));dbClubs=new Map(data.init.clubs.map(c=>[c.id,c]));dbLeagues=new Map(data.init.leagues.map(l=>[l.id,l]));FORMATIONS=data.init.formations;return}try{self.postMessage({id:data.id,text:serialize(data.state),snapshot:{manager:data.state.manager,today:data.state.today,year:data.state.year,userClub:{id:data.state.userClub.id,nombre:data.state.userClub.nombre}}})}catch(error){self.postMessage({id:data.id,error:error.message})}};`;
       const url=URL.createObjectURL(new Blob([source],{type:'text/javascript'}));
       try{saveWorker=new Worker(url)}finally{URL.revokeObjectURL(url)}

@@ -32,7 +32,7 @@ window.FM_INBOX = (() => {
     if(supported.has(message.action))m.action=message.action;
     if(lookup(message.playerId))m.playerId=Number(message.playerId);
     if(typeof message.offerId==='string'||Number.isSafeInteger(message.offerId))m.offerId=String(message.offerId).slice(0,160);
-    for(const key of ['contractAtCreation','contractEndAtCreation','issue','matchDate','incidentId'])if(typeof message[key]==='string'||Number.isSafeInteger(message[key]))m[key]=message[key];
+    for(const key of ['contractAtCreation','contractEndAtCreation','issue','matchDate','fixtureId','incidentId'])if(typeof message[key]==='string'||Number.isSafeInteger(message[key]))m[key]=message[key];
     GameState.inbox.unshift(m);GameState.inbox=GameState.inbox.slice(0,150);return m;
   }
   function onMessage(message) {
@@ -48,19 +48,35 @@ window.FM_INBOX = (() => {
     const settings=ui();
     if(!force&&settings.lastAlertDay===GameState.today)return;
     settings.lastAlertDay=GameState.today;
-    const members=mine(),month=GameState.today.slice(0,7);
+    const members=mine(),month=GameState.today.slice(0,7),episodes=settings.alertEpisodes??={};
+    const episode=(key,applies,message)=>{
+      const old=episodes[key]??={active:false,sequence:0};
+      if(!applies){old.active=false;return;}
+      if(old.active)return;
+      old.active=true;old.sequence++;old.started=GameState.today;
+      const notice=push({...message,sourceKey:`alert:${key}:${GameState.today}:${old.sequence}`});
+      if(notice)old.messageId=notice.id;
+    };
+    // End the episode when the underlying problem clears, not when its message is read.
+    for(const [key,e]of Object.entries(episodes))if(key.startsWith('medical:')){
+      const [,id,kind]=key.split(':'),p=lookup(id);
+      if(!owned(p)||(kind==='injury'?!(p.injury>0):p.injury>0||p.condicion_fisica>=65))e.active=false;
+    }
+    const oldKeys=Object.keys(episodes);if(oldKeys.length>160)for(const key of oldKeys.filter(k=>!episodes[k].active).slice(0,oldKeys.length-160))delete episodes[key];
     const important=members.filter(p=>!p.loanId&&!window.FM_RENEWALS?.current(p.id)&&Number.isInteger(p.contract)&&MARKET_CONTRACTS.contractEnd(p)<=MARKET_CONTRACTS.addMonths(GameState.today,12)).sort((a,b)=>a.contract-b.contract||overall(b)-overall(a)).slice(0,8);
     for(const p of important) {
       if(GameState.inbox.some(m=>m.action==='contract'&&m.playerId===p.id&&m.contractAtCreation===p.contract&&(!m.contractEndAtCreation||m.contractEndAtCreation===MARKET_CONTRACTS.contractEnd(p))&&!m.dismissed))continue;
       push({title:`Revisar contrato: ${p.nombre}`,body:`El vínculo termina el ${date(MARKET_CONTRACTS.contractEnd(p))}. Su salario es ${money(p.salario)} por semana. Podés renovar desde este mensaje; revisá la prima y el margen salarial antes de firmar.`,type:'contratos',action:'contract',playerId:p.id,contractAtCreation:p.contract,contractEndAtCreation:MARKET_CONTRACTS.contractEnd(p),sourceKey:`contract:${p.id}:${MARKET_CONTRACTS.contractEnd(p)}:${month}`});
     }
     for(const p of members.filter(p=>p.injury>0||p.condicion_fisica<65).sort((a,b)=>b.injury-a.injury||a.condicion_fisica-b.condicion_fisica).slice(0,4)) {
-      if(GameState.inbox.some(m=>m.action==='medical'&&m.playerId===p.id&&!m.dismissed&&isPending(m)))continue;
-      push({title:p.injury>0?`Parte médico: ${p.nombre}`:`Fatiga: ${p.nombre}`,body:p.injury>0?`Tiene ${p.injury} días de lesión. No estará disponible hasta recuperarse. Prepará un reemplazo y asigná un plan individual de recuperación.`:`Su condición está en ${Math.round(p.condicion_fisica)}%. Un plan de recuperación ayuda al avanzar los días; evaluá darle descanso en el próximo partido.`,type:'medico',action:'medical',playerId:p.id,sourceKey:`medical:${p.id}:${month}`});
+      const key=`medical:${p.id}:${p.injury>0?'injury':'fatigue'}`,body=p.injury>0?`Tiene ${p.injury} días de lesión. No estará disponible hasta recuperarse. Prepará un reemplazo y asigná un plan individual de recuperación.`:`Su condición está en ${Math.round(p.condicion_fisica)}%. Un plan de recuperación ayuda al avanzar los días; evaluá darle descanso en el próximo partido.`;
+      episode(key,true,{title:p.injury>0?`Parte médico: ${p.nombre}`:`Fatiga: ${p.nombre}`,body,type:'medico',action:'medical',playerId:p.id});
+      const existing=GameState.inbox.find(m=>m.id===episodes[key]?.messageId);if(existing)existing.body=body;
     }
     if(lineupNeedsAttention()&&!GameState.match)push({title:'La alineación necesita una revisión',body:'El once tiene plazas vacías o futbolistas no disponibles. Revisá titulares y banco antes de confirmar el próximo partido.',type:'plantel',action:'tactics',issue:'lineup',sourceKey:`lineup:${GameState.today}`});
-    if(members.length&&members.reduce((sum,p)=>sum+p.condicion_fisica,0)/members.length<73)push({title:'El plantel necesita bajar la carga',body:'La condición media del equipo está por debajo del 73%. Podés aplicar recuperación colectiva con intensidad baja y revisar quiénes necesitan descansar.',type:'plantel',action:'recovery',sourceKey:`recovery:${month}`});
-    if(GameState.userClub.presupuesto_dolares<0||MANAGEMENT.wageBill()>GameState.userClub.wageBudget)push({title:'Revisar el equilibrio financiero',body:GameState.userClub.presupuesto_dolares<0?'La caja está en negativo. Revisá gastos, ventas y compromisos pendientes.':'Los salarios semanales superan el margen aprobado por la directiva. Revisá contratos y el presupuesto salarial.',type:'directiva',action:'finance',sourceKey:`finance:${month}`});
+    episode('recovery',members.length>0&&members.reduce((sum,p)=>sum+p.condicion_fisica,0)/members.length<73,{title:'El plantel necesita bajar la carga',body:'La condición media del equipo está por debajo del 73%. Podés aplicar recuperación colectiva con intensidad baja y revisar quiénes necesitan descansar.',type:'plantel',action:'recovery'});
+    episode('finance:cash',GameState.userClub.presupuesto_dolares<0,{title:'Revisar el equilibrio financiero',body:'La caja está en negativo. Revisá gastos, ventas y compromisos pendientes.',type:'directiva',action:'finance'});
+    episode('finance:wages',MANAGEMENT.wageBill()>GameState.userClub.wageBudget,{title:'Revisar el presupuesto salarial',body:'Los salarios semanales superan el margen aprobado por la directiva. Revisá contratos y el presupuesto salarial.',type:'directiva',action:'finance'});
   }
   function ensure() {
     if(!active())return false;
@@ -93,7 +109,7 @@ window.FM_INBOX = (() => {
   function isPending(m) {
     if(!active()||m.dismissed)return false;
     const p=lookup(m.playerId),o=m.offerId?offerFor(m):null;
-    if(m.offerId)return !!o&&!o.awaitingRegistration&&!o.saleResponsePending&&o.status==='pending'&&(o.type!=='renewal'||o.awaitingUser&&(!o.lastMessageId||o.lastMessageId===m.id))&&(o.type!=='sell'||owned(p));
+    if(m.offerId)return !!o&&!o.awaitingRegistration&&!o.awaitingPlayerConsent&&(!o.awaitingMedical||o.medicalReport&&o.awaitingUser)&&!o.saleResponsePending&&o.status==='pending'&&(o.type!=='renewal'||o.awaitingUser&&(!o.lastMessageId||o.lastMessageId===m.id))&&(o.type!=='sell'||owned(p));
     if(m.action==='incident')return !!window.FM_INCIDENTS?.pending(m.incidentId);
     if(m.action==='career')return m.date.slice(0,4)===String(GameState.year)&&!!GameState.world.depth?.jobs?.some(j=>j.status==='open');
     if(m.action==='contract')return owned(p)&&!p.loanId&&!window.FM_RENEWALS?.current(p.id)&&MARKET_CONTRACTS.contractEnd(p)<=MARKET_CONTRACTS.addMonths(GameState.today,12)&&(!m.contractEndAtCreation||m.contractEndAtCreation===MARKET_CONTRACTS.contractEnd(p))&&(!Number.isInteger(m.contractAtCreation)||p.contract===m.contractAtCreation);
@@ -106,7 +122,7 @@ window.FM_INBOX = (() => {
   function status(m) {
     if(m.action==='incident'){const e=window.FM_INCIDENTS?.get(m.incidentId);return ({pending:isPending(m)?'Tu decisión':'Fuera de plazo',resolved:'Decisión aplicada',expired:'Resuelto por vencimiento',cancelled:'Archivado por cambio de club'})[e?.status]||'Archivado';}
     if(m.offerId) {
-      const o=offerFor(m);if(!o)return 'Oferta archivada';if(o.awaitingRegistration)return 'Inscripción el '+date(o.registrationDate);if(o.saleResponsePending)return 'Esperando al comprador';if(o.type==='renewal'&&o.lastMessageId&&o.lastMessageId!==m.id)return 'Propuesta anterior · ver estado actual';
+      const o=offerFor(m);if(!o)return 'Oferta archivada';if(o.awaitingPlayerConsent)return 'Jugador negociando con el comprador';if(o.awaitingMedical)return o.medicalReport&&o.awaitingUser?'Dictamen médico · tu decisión':'Reconocimiento médico programado';if(o.awaitingRegistration)return 'Inscripción el '+date(o.registrationDate);if(o.saleResponsePending)return 'Esperando al comprador';if(o.type==='renewal'&&o.lastMessageId&&o.lastMessageId!==m.id)return 'Propuesta anterior · ver estado actual';
       return ({pending:o.type==='sell'||o.awaitingUser?'Tu decisión':'En negociación',accepted:'Acuerdo cerrado',rejected:'Oferta rechazada',expired:'Oferta vencida',cancelled:'Oferta retirada',canceled:'Oferta retirada'})[o.status]||'Negociación finalizada';
     }
     if(m.dismissed)return 'Revisado';
@@ -119,11 +135,13 @@ window.FM_INBOX = (() => {
     const result=[],p=lookup(m.playerId),o=m.offerId?offerFor(m):null,blocked=locked();
     const add=(id,label,disabled=false,primary=false)=>result.push({id,label,disabled,primary});
     if(m.action==='incident'){for(const c of window.FM_INCIDENTS?.choices(m.incidentId)||[])add('incident:'+c.id,c.label,blocked||c.disabled);return result;}
-    if(o?.status==='pending'&&!o.awaitingRegistration) {
+    if(o?.status==='pending'&&!o.awaitingRegistration&&!o.awaitingPlayerConsent) {
+      if(o.awaitingMedical){if(o.medicalReport&&o.awaitingUser)add('medical-report','Revisar dictamen médico y decidir',blocked,true);add('offer-cancel','Retirar incorporación',blocked);}
+      else
       if(o.type==='renewal'&&owned(p)){add('renewal-open',o.counter?'Contraofertar renovación':'Ver renovación',blocked);if(!o.lastMessageId||o.lastMessageId===m.id){if(o.counter)add('renewal-accept','Aceptar condiciones',blocked,true);add('renewal-cancel','Retirar propuesta',blocked);}}
       else if(o.type==='sell'&&owned(p)&&!o.saleResponsePending){add('negotiate-counter','Contraofertar',blocked);add('sale-accept','Aceptar oferta',blocked,true);add('sale-reject','Rechazar oferta',blocked);}
       else if(o.type==='buy'){if(o.awaitingUser&&o.counter){add('negotiate-counter','Contraofertar',blocked);add('counter-accept','Aceptar contraoferta',blocked,true);add('counter-reject','Rechazar contraoferta',blocked);}add('offer-cancel','Retirar oferta',blocked);}
-      if(o.type==='buy'&&o.awaitingPlayerTerms)add('personal-contract','Negociar contrato',blocked,true);
+      if(o.type==='buy'&&!o.awaitingMedical&&o.awaitingPlayerTerms)add('personal-contract','Negociar contrato',blocked,true);
     }
     if(p) {
       if(window.FM_DEPTH?.ensure()?.reports?.[p.id]?.status==='active')add('scout-cancel','Cancelar observación · sin reintegro',blocked);
@@ -158,14 +176,13 @@ window.FM_INBOX = (() => {
   function offerInfo(m) {
     const o=offerFor(m);if(!o)return '';
     const parts=MARKET_CONTRACTS.offerPresentation(o).facts;
-    if(o.awaitingRegistration)parts.unshift(['Etapa','Acuerdo firmado · inscripción el '+date(o.registrationDate)]);else if(o.awaitingPlayerTerms)parts.unshift(['Etapa','Club de acuerdo · falta negociar con el jugador']);else if(o.awaitingUser&&o.counter)parts.unshift(['Etapa',o.stage==='player'?'Contraoferta del representante pendiente':'Contraoferta del club pendiente']);else if(o.status==='pending')parts.unshift(['Etapa',o.type==='sell'?(o.saleResponsePending?'Comprador evaluando contraoferta':'Propuesta recibida · tu decisión'):o.stage==='player'?'Representante evaluando contrato':o.dealType==='loan'?'Club evaluando la cesión':'Club evaluando el pase']);
+    if(o.awaitingPlayerConsent)parts.unshift(['Etapa','Clubes de acuerdo · el jugador negocia con el comprador']);else if(o.awaitingMedical)parts.unshift(['Etapa',o.medicalReport?'Dictamen médico disponible · revisá antes de firmar':'Reconocimiento médico programado para '+date(o.medicalDate)]);else if(o.awaitingRegistration)parts.unshift(['Etapa','Acuerdo firmado · inscripción el '+date(o.registrationDate)]);else if(o.awaitingPlayerTerms)parts.unshift(['Etapa','Club de acuerdo · falta negociar con el jugador']);else if(o.awaitingUser&&o.counter)parts.unshift(['Etapa',o.stage==='player'?'Contraoferta del representante pendiente':'Contraoferta del club pendiente']);else if(o.status==='pending')parts.unshift(['Etapa',o.type==='sell'?(o.saleResponsePending?'Comprador evaluando contraoferta':'Propuesta recibida · tu decisión'):o.stage==='player'?'Representante evaluando contrato':o.dealType==='loan'?'Club evaluando la cesión':'Club evaluando el pase']);
     return `<div class="fm-inbox-facts">${parts.map(([label,value])=>`<div><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`).join('')}</div>${o.reason?`<p class="fm-inbox-note">${esc(o.reason)}</p>`:''}`;
   }
   function reportInfo(m) {
     if(m.action==='match') {
-      const r=GameState.lastMatch;if(!r||r.date!==(m.matchDate||m.date))return '<p class="muted">Este informe ya quedó en el historial de la temporada. Consultá las competiciones para revisar sus resultados.</p><button data-inbox-go="tables">Ver resultados</button>';
-      const score=r.result||{},stats=r.stats||[{},{}];
-      return `<section class="fm-inbox-report"><h3>${esc(clubName(r.home))} ${Number(score.home)||0}–${Number(score.away)||0} ${esc(clubName(r.away))}</h3><div class="fm-inbox-facts">${[['Tiros',stats[0]?.shots,stats[1]?.shots],['Faltas',stats[0]?.fouls,stats[1]?.fouls],['Amarillas',stats[0]?.yellow,stats[1]?.yellow],['Expulsiones',stats[0]?.red,stats[1]?.red]].map(([label,a,b])=>`<div><span>${label}</span><strong>${Number(a)||0} – ${Number(b)||0}</strong></div>`).join('')}</div>${r.motm&&lookup(r.motm)?`<p>Figura: <button data-inbox-player="${r.motm}">${esc(lookup(r.motm).nombre)}</button></p>`:''}${(r.feed||[]).slice(0,6).map(f=>`<p class="small"><strong>${Number(f.minute)||0}′</strong> ${esc(f.text||'')}</p>`).join('')}</section>`;
+      if(window.FM_MATCH_ARCHIVE)return FM_MATCH_ARCHIVE.reportHTML(m.fixtureId||m);
+      return '<p class="muted">No hay un informe conservado para este encuentro.</p>';
     }
     const report=GameState.scouting.reports[m.playerId];
     return report?`<section class="fm-inbox-report"><h3>Informe de ojeo · ${date(report.date)}</h3><div class="fm-inbox-facts"><div><span>Media</span><strong>${Number(report.rating)||0}</strong></div><div><span>Potencial</span><strong>${Number(report.potential)||0}</strong></div></div><p>${esc(report.verdict||'')}</p><p class="muted">${esc(report.risk||'')}</p></section>`:'';
@@ -174,7 +191,7 @@ window.FM_INBOX = (() => {
     const o=m.offerId?offerFor(m):null,p=lookup(m.playerId),pending=isPending(m),r=p&&window.FM_DEPTH?FM_DEPTH.ensure()?.reports?.[p.id]:null;
     const sender=o?(o.type==='renewal'?MARKET_CONTRACTS.negotiationProfile(p,o).name+' · representante simulado':clubName(o.type==='sell'?o.toClub:o.fromClub)):r?.staffName&&category(m)==='ojeo'?r.staffName:({ojeo:'Secretaría técnica',contratos:'Secretaría técnica',directiva:'Directiva del club',plantel:'Cuerpo técnico y servicios médicos',partidos:'Analista de rendimiento',mercado:'Departamento de fichajes',prensa:'Resumen de prensa',sistema:'Secretaría del club'})[category(m)]||'Secretaría del club';
     const deadline=o?.status==='pending'?(o.expiresAt||o.expiresDate):null;
-    const next=o?.awaitingRegistration?'El acuerdo está firmado. El jugador permanece en su club hasta la fecha de inscripción; los fondos y la plaza quedan comprometidos.':o?.status==='pending'?(o.type==='sell'?(o.saleResponsePending?'El comprador está evaluando tu contraoferta. Avanzá el tiempo para recibir respuesta.':'Evaluá las condiciones: podés aceptar, rechazar o enviar una contraoferta.'):o.awaitingPlayerTerms?'El pase está acordado. Abrí la negociación del contrato con el jugador.':o.awaitingUser&&o.counter?'Revisá la contraoferta del club.':'La contraparte está evaluando la propuesta; avanzá el tiempo para recibir respuesta.'):pending?'Revisá el informe y elegí una de las acciones disponibles.':'Mensaje informativo; no requiere una decisión pendiente.';
+    const next=o?.awaitingPlayerConsent?'Los clubes acordaron la operación. El comprador y el representante negocian el contrato; el futbolista puede aceptar, contraofertar o rechazar. Avanzá el tiempo para recibir la respuesta.':o?.awaitingMedical?(o.medicalReport?'El dictamen está disponible. Revisá el informe antes de confirmar la incorporación o retirarte sin pagar el pase.':'El reconocimiento está programado. Avanzá el tiempo para recibir el dictamen antes de firmar.'):o?.awaitingRegistration?'El acuerdo está firmado. El jugador permanece en su club hasta la fecha de inscripción; los fondos y la plaza quedan comprometidos.':o?.status==='pending'?(o.type==='sell'?(o.saleResponsePending?'El comprador está evaluando tu contraoferta. Avanzá el tiempo para recibir respuesta.':'Evaluá las condiciones: podés aceptar, rechazar o enviar una contraoferta.'):o.awaitingPlayerTerms?'El pase está acordado. Abrí la negociación del contrato con el jugador.':o.awaitingUser&&o.counter?'Revisá la contraoferta del club.':'La contraparte está evaluando la propuesta; avanzá el tiempo para recibir respuesta.'):pending?'Revisá el informe y elegí una de las acciones disponibles.':'Mensaje informativo; no requiere una decisión pendiente.';
     return `<section class="office-inbox-context"><p><b>De:</b> ${esc(sender)} · <b>${pending?'Requiere atención':'Información'}</b></p>${deadline?`<p><b>Vencimiento:</b> ${date(deadline)}</p>`:''}<p><b>Próximo paso:</b> ${esc(next)}</p>${r&&category(m)==='ojeo'?`<p>Observación: ${r.level}% · ${r.status==='active'?'en curso':r.status==='cancelled'?'cancelada':'finalizada'}${r.duration?' · plazo '+r.duration+' días':''}${r.status==='active'&&r.dueDate?' · fecha prevista '+date(r.dueDate):''}.</p>`:''}</section>`;
   }
   function readPanel(m) {
@@ -198,6 +215,7 @@ window.FM_INBOX = (() => {
     if(action==='renewal-open')return FM_RENEWALS.open(p.id);
     if(action==='renewal-accept'||action==='renewal-cancel'){const result=FM_RENEWALS.respond(m.offerId,action==='renewal-accept');if(!result.ok)toast(result.reason);return}
     if(action==='negotiate-counter')return MARKET_CONTRACTS.openCounterNegotiation(m.offerId);
+    if(action==='medical-report')return MARKET_CONTRACTS.openMedical(m.offerId);
     if(action==='personal-contract')return MARKET_CONTRACTS.openPlayerNegotiation(m.offerId);
     if(action==='sale-accept'||action==='sale-reject'){return window.CLUB_AI.respondToSaleOffer(m.offerId,action==='sale-accept');}
     if(action==='counter-accept'||action==='counter-reject'){return window.MARKET_CONTRACTS.respondCounter(m.offerId,action==='counter-accept');}

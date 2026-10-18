@@ -48,9 +48,10 @@ class CareerHandover(unittest.TestCase):
         self.assertTrue(result['source']);self.assertFalse(result['summary'])
 
     def test_returning_to_club_restores_club_files_without_retroactive_staff_pay(self):
-        result=self.page.evaluate("""()=>{GameState.scouting.shortlist=[1068088];GameState.scouting.reports[1068088]={verdict:'Archivo de Boca'};const staff=FM_OFFICE.office(),staffIds=staff.staff.map(e=>e.id);staff.payDate='2020-01-01';FM_DEPTH.switchClub('river');GameState.scouting.shortlist=[mine()[0].id];const riverList=[...GameState.scouting.shortlist];FM_DEPTH.switchClub('boca');return{shortlist:GameState.scouting.shortlist,report:GameState.scouting.reports[1068088],staff:FM_OFFICE.office().staff.map(e=>e.id),staffIds,payDate:FM_OFFICE.office().payDate,today:GameState.today,riverList,archived:FM_DEPTH.ensure().clubWork.river.scouting.shortlist,xi:GameState.tactics.xi.map(id=>player(id).clubId)}}""")
+        result=self.page.evaluate("""()=>{GameState.scouting.shortlist=[1068088];GameState.scouting.reports[1068088]={verdict:'Archivo de Boca'};const staff=FM_OFFICE.office(),staffIds=staff.staff.map(e=>e.id);staff.payDate='2020-01-01';FM_DEPTH.switchClub('river');GameState.scouting.shortlist=[mine()[0].id];const riverList=[...GameState.scouting.shortlist];GameState.today=new Date(Date.parse(GameState.today)+60*86400000).toISOString().slice(0,10);FM_DEPTH.switchClub('boca');return{staffDue:FM_OFFICE.office().staff.reduce((n,e)=>n+FM_GOVERNANCE.staffSalaryDue(e),0),shortlist:GameState.scouting.shortlist,report:GameState.scouting.reports[1068088],staff:FM_OFFICE.office().staff.map(e=>e.id),staffIds,payDate:FM_OFFICE.office().payDate,today:GameState.today,riverList,archived:FM_DEPTH.ensure().clubWork.river.scouting.shortlist,xi:GameState.tactics.xi.map(id=>player(id).clubId)}}""")
         self.assertEqual(result['shortlist'],[1068088]);self.assertEqual(result['report']['verdict'],'Archivo de Boca')
         self.assertEqual(result['staff'],result['staffIds']);self.assertEqual(result['payDate'],result['today'])
+        self.assertEqual(result['staffDue'],0,'El nuevo DT no paga retroactivamente el período bajo control de la IA')
         self.assertEqual(result['archived'],result['riverList']);self.assertEqual(result['xi'],['boca']*11)
 
     def test_same_year_at_two_clubs_has_two_reviews_without_duplicate_titles(self):

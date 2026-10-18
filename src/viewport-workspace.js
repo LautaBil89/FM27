@@ -78,6 +78,7 @@
   }
   function profile(content) {
     const page=content.querySelector('.fp-workspace'),body=page?.querySelector('.fp-tab-content');if(!body)return;
+    if(FM_PLAYER.state.tab==='stats'&&window.FM_MATCH_ARCHIVE){const rows=FM_MATCH_ARCHIVE.playerRecords(FM_PLAYER.state.id);if(rows.length){const archive=element('section','card ma-player-reports');archive.innerHTML='<h3>Informes de partidos dirigidos</h3><div class="scroll"><table><thead><tr><th>Fecha</th><th>Partido</th><th>Nota / Minutos</th><th>Informe</th></tr></thead><tbody>'+rows.map(r=>`<tr><td>${date(r.date)}</td><td>${esc(club(r.home)?.nombre||r.home)} ${r.result.home}–${r.result.away} ${esc(club(r.away)?.nombre||r.away)}</td><td>${Number(r.rating).toFixed(1)} / ${Math.round(r.minutes)}′</td><td><button data-match-archive="${esc(r.fixtureId)}">Ver informe</button></td></tr>`).join('')+'</tbody></table></div>';const grid=body.querySelector('.fp-two-columns,.fp-summary-grid');if(grid)grid.append(archive);else body.append(archive);}}
     const grid=body.querySelector('.fp-summary-grid,.fp-attributes-grid,.fp-two-columns,.fp-source-tab');
     if(grid){const sections=[...grid.children];panels(body,sections.map((n,i)=>({id:String(i),label:title(n,i?'Detalles':'Informe'),nodes:[n],cls:n.querySelector('table')?'':'ws-reader'})),'profile-'+FM_PLAYER.state.tab)}
     else body.classList.add('ws-reader');
@@ -103,6 +104,7 @@
     if(window.FM_OFFICE){const b=element('button',view==='office'?'active':'');b.dataset.view='office';b.innerHTML='⚙ <span class="fm-nav-label">DT y empleados</span>';nav.append(b)}
     if(window.FM_DEPTH){const b=element('button',view==='career'?'active':'');b.dataset.view='career';b.innerHTML=`${FMUI.icon('trust')}<span class="fm-nav-label">Carrera y proyectos</span>`;nav.append(b)}
     if(window.FM_DRESSING_ROOM){const b=element('button',view==='dressing-room'?'active':'');b.dataset.view='dressing-room';b.innerHTML=`${FMUI.icon('users')}<span class="fm-nav-label">Vestuario</span>`;nav.append(b)}
+    if(window.FM_MATCH_ARCHIVE){const b=element('button',view==='archive'?'active':'');b.dataset.view='archive';b.innerHTML='▤ <span class="fm-nav-label">Archivo de partidos</span>';nav.append(b)}
     const button=element('button','ws-menu-toggle');button.dataset.wsMenu='toggle';button.setAttribute('aria-label','Abrir menú');button.innerHTML='☰';aside.prepend(button);
     const drawer=element('section','ws-menu');drawer.hidden=!ui.menu;drawer.innerHTML=`<div class="row between"><strong>${esc(GameState.userClub.nombre)}</strong><button data-ws-menu="close">Cerrar</button></div><nav>${nav.innerHTML}</nav><div class="row"><button data-action="save">Guardar</button><button data-action="export">Exportar</button><button data-action="import">Importar</button></div>`;shell.append(drawer);
   }
@@ -111,6 +113,7 @@
     if(!GameState)return welcome();
     const shell=document.querySelector('.shell'),content=document.querySelector('#content');if(!content)return;shell.dataset.workspaceView=view;
     const handlers={dashboard,market,tables:competitions,tactics,player:profile,inbox,match:liveMatch};
+    if(view==='archive'&&window.FM_MATCH_ARCHIVE){content.innerHTML=FM_MATCH_ARCHIVE.page();const heading=document.querySelector('.fm-topbar h1');if(heading)heading.textContent='Archivo de partidos';}
     if(view==='office'&&window.FM_OFFICE){content.innerHTML=FM_OFFICE.page();document.querySelector('.fm-topbar h1').textContent='DT y empleados';cardGroups(content,'office')}
     else if(view==='career'&&window.FM_DEPTH){content.innerHTML=FM_DEPTH.career()+(window.FM_INTEGRITY?.page()||'');document.querySelector('.fm-topbar h1').textContent='Carrera';cardGroups(content,'career')}
     else if(view==='dressing-room'&&window.FM_DRESSING_ROOM){content.innerHTML=FM_DRESSING_ROOM.render();document.querySelector('.fm-topbar h1').textContent='Vestuario'}
@@ -119,7 +122,7 @@
     else if(handlers[view])handlers[view](content);
     else if(['squad','training','scouting','finances'].includes(view))cardGroups(content,view);
     if(['career','dressing-room'].includes(view)){for(const button of shell.querySelectorAll('aside nav [data-view]'))button.classList.remove('active');const crumb=shell.querySelector('.fm-breadcrumb');if(crumb)crumb.textContent=GameState.userClub.nombre+' / '+(view==='career'?'Carrera':'Vestuario')}
-    window.FM_DRESSING_ROOM?.ensure();menu(shell);window.FM_MATCH_REALISM?.decorate();window.FM_DEPTH?.decorate();window.FM_MATCH_CENTRE?.decorate();window.FM_OFFICE?.decorate();window.FM_DEVELOPMENT?.decorate();window.FM_REGISTRATION?.decorate();
+    window.FM_DRESSING_ROOM?.ensure();window.FM_MATCH_ARCHIVE?.links();menu(shell);window.FM_MATCH_REALISM?.decorate();window.FM_DEPTH?.decorate();window.FM_MATCH_CENTRE?.decorate();window.FM_OFFICE?.decorate();window.FM_DEVELOPMENT?.decorate();window.FM_REGISTRATION?.decorate();
   }
   render=function(){const focus=document.activeElement,focusId=focus?.id,selection=focusId&&focus.tagName==='INPUT'?[focus.selectionStart,focus.selectionEnd,focus.selectionDirection]:null;const requested=view;if(active()&&view==='match'&&!ui.menu&&!document.querySelector('.ws-menu:not([hidden])')&&window.FM_MATCH_CENTRE?.refresh())return;if(active()&&['dressing-room','career','office'].includes(view))view='squad';try{original()}finally{view=requested}layout();if(focusId&&['marketQuery','inboxSearch','worldClubSearch','worldCareerSearch','manager'].includes(focusId)){const replacement=document.getElementById(focusId);if(replacement){replacement.focus({preventScroll:true});if(selection&&typeof selection[0]==='number')replacement.setSelectionRange(...selection)}}};
   document.addEventListener('click',e=>{if(e.target.closest('[data-view],[data-action]'))ui.menu=false;if(e.target.closest('[data-inbox-open]'))ui.tabs['inbox-mobile']='reading'},true);

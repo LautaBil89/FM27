@@ -37,7 +37,7 @@ window.FM_MEDICINE=(()=>{
   }
   function work(p,entry){const r=state(p);if(r.work.some(x=>x.id===entry.id))return false;r.work.push(entry);r.work=r.work.filter(x=>elapsed(entry.date,x.date)<=34).slice(-100);return true}
   function trainingLoad(p,load,{date=GameState.today,recovery=false,random=Math.random}={}){
-    const r=state(p,date);if(!r||p.injury>0)return {applied:false,injured:false};const dose=bound(load,0,3),entry={id:'training-'+date,date,load:Math.round(dose*35),minutes:0,distance:0};
+    const r=state(p,date);if(!r||p.injury>0)return {applied:false,injured:false};if(r.restUntil&&date<=r.restUntil){recovery=true;load=0}const dose=bound(load,0,3),entry={id:'training-'+date,date,load:Math.round(dose*35),minutes:0,distance:0};
     if(!work(p,entry))return {applied:false,injured:false};
     if(recovery){r.tissueFatigue=bound(r.tissueFatigue-5);p.condicion_fisica=bound(p.condicion_fisica+2.5);r.sharpness=bound(r.sharpness-.15)}
     else {r.tissueFatigue=bound(r.tissueFatigue+dose*2.4);p.condicion_fisica=bound(p.condicion_fisica-Math.max(0,dose-.6)*1.35);r.sharpness=bound(r.sharpness+Math.min(.5,dose*.4));}
@@ -57,12 +57,12 @@ window.FM_MEDICINE=(()=>{
         if(!p.injury){r.returnUntil=add(current,Math.min(28,Math.max(7,Math.round(injury.days*.35))));r.injury=null;p.injuryType=null;p.condicion_fisica=Math.min(88,p.condicion_fisica);notify(p,'Alta médica con vuelta progresiva',`${p.nombre} tiene el alta tras ${injury.label.toLowerCase()}. Ritmo competitivo ${Math.round(r.sharpness)}%; límite recomendado ${minuteLimit(p)} minutos. El riesgo de recaída continúa elevado durante la reintegración.`)}
       }
     }
-    r.lastDay=day;r.work=r.work.filter(x=>elapsed(day,x.date)<=34);if(r.returnUntil&&day>r.returnUntil)r.returnUntil=null;return true;
+    r.lastDay=day;if(r.restUntil&&day>r.restUntil)r.restUntil=null;r.work=r.work.filter(x=>elapsed(day,x.date)<=34);if(r.returnUntil&&day>r.returnUntil)r.returnUntil=null;return true;
   }
   function onDay(day){const s=ensure();if(!s)return false;let changed=false;for(const p of GameState.players){if(!s.players[p.id]&&p.injury===0&&p.condicion_fisica>=100)continue;changed=recoverPlayer(p,day)||changed;}if(day>s.lastDay)s.lastDay=day;return changed}
   function minuteLimit(p){const r=state(p);if(p.injury)return 0;return r.returnUntil&&GameState.today<=r.returnUntil?Math.max(20,Math.min(60,Math.round(r.sharpness*.65))):r.sharpness<55?45:r.sharpness<70?65:90}
-  function intensity(m,side){const t=side===m.userSide?GameState.tactics:m.aiTactics||{},press=Number(t.pressing??50);return (t.style==='Gegenpress'||side===m.userSide&&GameState.tactics.style==='Gegenpress'?1.16:1)*(m.derby?1.15:1)*(.88+press*.0024)}
-  function minuteFatigue(p,m,side){const r=state(p),rate=p.posicion==='POR'?.075:.155+Math.max(0,65-(p.fisico||65))*.0007,load=intensity(m,side);p.condicion_fisica=bound(p.condicion_fisica-rate*load*(r.sharpness<60?1.1:1));r.tissueFatigue=bound(r.tissueFatigue+(p.posicion==='POR'?.025:.10)*load)}
+  function intensity(m,side){const t=side===m.userSide?GameState.tactics:m.aiTactics||{},press=Number(t.pressing??50);return (window.FM_TACTICS?.matchLoad?.(t)??((t.style==='Gegenpress'?1.16:1)*(.88+press*.0024)))*(m.derby?1.15:1)}
+  function minuteFatigue(p,m,side){const r=state(p),endurance=window.FM_ATTRIBUTES?.skill(p,'resistencia')??p.fisico??65,rate=p.posicion==='POR'?.075:.155+Math.max(0,65-endurance)*.0007,load=intensity(m,side);p.condicion_fisica=bound(p.condicion_fisica-rate*load*(r.sharpness<60?1.1:1));r.tissueFatigue=bound(r.tissueFatigue+(p.posicion==='POR'?.025:.10)*load)}
   function onMinute(m){
     if(!active()||!m||!m.lineups||m.minute<=0)return false;m.medical??={minutes:{},lastMinute:0,closed:false};if(m.medical.lastMinute>=m.minute)return false;
     // The engine calls once after advancing its actual minute; no extra time is invented here.
@@ -88,7 +88,7 @@ window.FM_MEDICINE=(()=>{
     const r=state(p,date),time=bound(minutes,0,130);if(!time||!work(p,{id,date,minutes:time,load:Math.round(time*load+Math.min(35,distance/160)),distance:Math.round(distance)}))return false;
     if(fatigue){p.condicion_fisica=bound(p.condicion_fisica-time*(p.posicion==='POR'?.075:.155)*load);r.tissueFatigue=bound(r.tissueFatigue+time*.1*load)}
     if(distance>0){const travelCost=Math.min(5,distance/1800);p.condicion_fisica=bound(p.condicion_fisica-travelCost);r.tissueFatigue=bound(r.tissueFatigue+travelCost*1.4)}
-    r.sharpness=bound(r.sharpness+Math.min(8,time*.075));r.lastMatch=date;
+    r.sharpness=bound(r.sharpness+Math.min(8,time*.075));r.lastMatch=date;if(!String(id).startsWith('reserve-'))p.lastSeniorDate=date;
     if(fatigue&&!p.injury&&random()<(INCIDENCE.match/60000)*time*risk(p,date).multiplier)injure(p,{source:'match',date,random});return true;
   }
   function afterMatch(m){
@@ -102,9 +102,10 @@ window.FM_MEDICINE=(()=>{
   }
   function afterQuickMatch(event,g,result,lineups){
     if(!active())return false;const journey=travel(g.home,g.away,event?.neutral),length=result?.extraTime?120:90;let count=0;
-    for(let side=0;side<2;side++){const ids=lineups?.[side]||WORLD_ENGINE.aiXI?.(side?g.away:g.home)||[];for(const id of ids){const p=player(id);if(p&&appearance(p,{id:`match-${event?.id||event?.date}-${g.home}-${g.away}`,date:event?.date||GameState.today,minutes:length,load:1,distance:side?journey.km*2:0}))count++}}
+    for(let side=0;side<2;side++){const ids=lineups?.[side]||WORLD_ENGINE.aiXI?.(side?g.away:g.home)||[];for(const id of ids){const p=player(id);if(p&&appearance(p,{id:`match-${event?.id||event?.date}-${g.home}-${g.away}`,date:event?.date||GameState.today,minutes:length,load:window.FM_TACTICS?.matchLoad?.(CLUB_AI.tacticsFor(side?g.away:g.home))??1,distance:side?journey.km*2:0}))count++}}
     return count>0;
   }
+  function resting(p,day=GameState.today){const r=state(p);return !!(r?.restUntil&&day<=r.restUntil)}
   function factor(p){const r=state(p);return bound(.93+r.sharpness*.0007-r.tissueFatigue*.0003,.90,1)}
   function setRehab(id,plan){const p=player(Number(id));if(!p||p.clubId!==GameState.userClub.id||!['Normal','Especialista','Prudente'].includes(plan)||locked())return false;const r=state(p),injury=r.injury;if(!injury||r.rehab===plan)return false;
     const receipts=ensure().receipts,key=injury.id+':specialist';if(plan==='Especialista'&&!receipts[key]){const cost=Math.max(1500,Math.round((p.salario||1500)*.6));if((window.FM_FINANCES?.operatingAvailable?.()??CLUB_AI.availableBudget())<cost){toast('No hay caja disponible para la consulta especializada');return false}MANAGEMENT.transaction(-cost,`Consulta y rehabilitación especializada: ${p.nombre}`,'medico');receipts[key]={date:GameState.today,cost};
@@ -119,5 +120,5 @@ window.FM_MEDICINE=(()=>{
   }
   document.addEventListener('change',e=>{if(e.target.dataset.medRehab)setRehab(e.target.dataset.medRehab,e.target.value)});
   document.addEventListener('click',e=>{const n=e.target.closest('[data-med-rest]');if(n){const p=player(Number(n.dataset.medRest));setRest(p.id,state(p).restUntil?0:2)}});
-  return {incidence:INCIDENCE,ensure,state,types,loads,risk,injure,trainingLoad,recoverPlayer,onDay,minuteLimit,onMinute,maybeInjury,travel,appearance,afterMatch,afterQuickMatch,factor,setRehab,setRest,report,page};
+  return {incidence:INCIDENCE,ensure,state,types,loads,risk,injure,trainingLoad,recoverPlayer,onDay,minuteLimit,onMinute,maybeInjury,travel,appearance,afterMatch,afterQuickMatch,factor,setRehab,setRest,resting,report,page};
 })();
