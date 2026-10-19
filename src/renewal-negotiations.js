@@ -65,7 +65,8 @@ window.FM_RENEWALS=(()=>{
     if(r&&fields.every(k=>t[k]===r.counter[k]))return {ok:false,reason:'Modificá una condición o aceptá la contraoferta del representante'};
     let row=r;
     if(!row){const s=state();row={id:`renewal-${GameState.year}-${s.nextId++}`,type:'renewal',stage:'player',playerId:p.id,fromClub:ownership(p),toClub:ownership(p),fee:0,status:'pending',createdDate:GameState.today,expiresDate:addDays(GameState.today,MARKET_CONTRACTS.negotiationProfile(p,{...t,toClub:ownership(p),renewal:true}).patience),counterRounds:0,negotiationHistory:[],baselineEnd:MARKET_CONTRACTS.contractEnd(p)};s.renewals.unshift(row)}else row.counterRounds++;
-    Object.assign(row,t,{awaitingUser:false,responseDate:addDays(GameState.today,1),acceptedCounter:false});delete row.counter;record(row,'DT');
+    const bargaining=row.wage==null?{stage:'player',bestValue:MARKET_CONTRACTS.bargainingValue(t),concessions:0,stalled:0}:MARKET_CONTRACTS.bargainingProgress(row,t);
+    Object.assign(row,t,{bargaining,awaitingUser:false,responseDate:addDays(GameState.today,1),acceptedCounter:false});delete row.counter;record(row,'DT');
     notify(row,r?'Nueva propuesta de renovación':'Renovación propuesta',`${p.nombre}: salario ${money(t.wage)}/semana, prima ${money(t.bonus)}, hasta ${date(t.endDate)} y papel de ${t.playingTime.toLowerCase()}. El representante responderá desde el ${date(row.responseDate)}. Se reserva la prima y sólo el incremento salarial; todavía no se paga ni se cambia el vínculo.`);
     WORLD_STORAGE.scheduleSave();return {ok:true,negotiation:row};
   }
@@ -89,11 +90,12 @@ window.FM_RENEWALS=(()=>{
       const wanted=expectations(p,r),round=r.counterRounds||0;
       if(wanted.refuse){finish(r,'rejected',wanted.refuse);continue}
       if(round>wanted.patience){finish(r,'rejected','Las posiciones no se acercaron y el representante se retiró');continue}
-      const wage=Math.ceil(wanted.wage*(1-Math.min(.06,round*.015))/100)*100,bonus=Math.round(wanted.bonus*(1-Math.min(.15,round*.035)));
+      r.bargaining??=MARKET_CONTRACTS.bargainingProgress(r);const progress=r.bargaining.concessions||0;
+      const wage=Math.ceil(wanted.wage*(1-Math.min(.06,progress*.015))/100)*100,bonus=Math.round(wanted.bonus*(1-Math.min(.15,progress*.035)));
       const credit=Math.max(0,r.wage-wage)*Math.min(104,r.years*52),bonusNeeded=Math.max(0,bonus-credit);
       if(!r.acceptedCounter&&(r.wage<wage||r.bonus<bonusNeeded||r.years<wanted.years||r.releaseClause>wanted.maxClause)){
         r.counter={...Object.fromEntries(fields.map(k=>[k,r[k]])),wage:Math.max(r.wage,wage),bonus:Math.max(r.bonus,bonusNeeded),years:Math.max(r.years,wanted.years),releaseClause:Math.min(r.releaseClause,wanted.maxClause),endDate:contractEnd(p,Math.max(r.years,wanted.years),`${Number(r.endDate.slice(0,4))-r.years}-01-01`)};r.awaitingUser=true;r.counterDate=GameState.today;r.expectations=wanted;record(r,'Representante',r.counter);
-        notify(r,'Contraoferta de renovación',`${p.nombre} propone ${money(r.counter.wage)}/semana, prima ${money(r.counter.bonus)}, ${r.counter.years} años y papel de ${r.counter.playingTime.toLowerCase()}. ${wanted.reasons.join('. ')}. Podés aceptar, contraofertar o retirarte antes del ${date(r.expiresDate)}.`);continue;
+        notify(r,'Contraoferta de renovación',`${p.nombre} propone ${money(r.counter.wage)}/semana, prima ${money(r.counter.bonus)}, ${r.counter.years} años y papel de ${r.counter.playingTime.toLowerCase()}. ${wanted.reasons.join('. ')}. ${r.bargaining.stalled?'El paquete no mejoró frente a la mejor propuesta anterior; las rondas por sí solas no rebajan las exigencias. ':''}Podés aceptar, contraofertar o retirarte antes del ${date(r.expiresDate)}.`);continue;
       }
       if(!CLUB_AI.transaction(r.fromClub,-r.bonus,`Prima de renovación: ${p.nombre}`,'contratos')){finish(r,'rejected','La caja no alcanza para la prima');continue}
       const loan=outgoing(p),borrowerCost=loan?MARKET_CONTRACTS.loanWageFor(p,loan.borrowerClub):0;

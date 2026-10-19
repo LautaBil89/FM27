@@ -1,0 +1,100 @@
+test_only_current_firm_rival_proposals_affect_player_demands (test_market_frequency.MarketFrequency.test_only_current_firm_rival_proposals_affect_player_demands) ... FAIL
+test_pending_limit_and_existing_career_history_are_respected (test_market_frequency.MarketFrequency.test_pending_limit_and_existing_career_history_are_respected) ... ok
+test_rival_bids_are_occasional_and_negative_rolls_persist (test_market_frequency.MarketFrequency.test_rival_bids_are_occasional_and_negative_rolls_persist) ... FAIL
+test_yearly_contact_volume_spacing_cooldowns_and_reload (test_market_frequency.MarketFrequency.test_yearly_contact_volume_spacing_cooldowns_and_reload) ... FAIL
+
+======================================================================
+FAIL: test_only_current_firm_rival_proposals_affect_player_demands (test_market_frequency.MarketFrequency.test_only_current_firm_rival_proposals_affect_player_demands)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/FM27/tests/test_market_frequency.py", line 61, in test_only_current_firm_rival_proposals_affect_player_demands
+    self.run_case('confirmed-only')
+  File "/workspace/FM27/tests/test_market_frequency.py", line 49, in run_case
+    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+AssertionError: 1 != 0 : evalmachine.<anonymous>:26
+  function continental(id){return WORLD_ENGINE.hasContinentalCompetition(id)}
+                                               ^
+
+TypeError: WORLD_ENGINE.hasContinentalCompetition is not a function
+    at continental (evalmachine.<anonymous>:26:48)
+    at Object.personal (evalmachine.<anonymous>:38:8)
+    at [eval]:30:141
+    at runScriptInThisContext (node:internal/vm:219:10)
+    at node:internal/process/execution:451:12
+    at [eval]-wrapper:6:24
+    at runScriptInContext (node:internal/process/execution:449:60)
+    at evalFunction (node:internal/process/execution:283:30)
+    at evalTypeScript (node:internal/process/execution:295:3)
+    at node:internal/main/eval_string:71:3
+
+Node.js v24.19.0
+
+
+======================================================================
+FAIL: test_rival_bids_are_occasional_and_negative_rolls_persist (test_market_frequency.MarketFrequency.test_rival_bids_are_occasional_and_negative_rolls_persist)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/FM27/tests/test_market_frequency.py", line 58, in test_rival_bids_are_occasional_and_negative_rolls_persist
+    self.run_case('rivals')
+  File "/workspace/FM27/tests/test_market_frequency.py", line 49, in run_case
+    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+AssertionError: 1 != 0 : node:internal/assert/utils:77
+    throw err;
+    ^
+
+AssertionError [ERR_ASSERTION]: ordinary negotiations should have occasional competition: 0
+    at [eval]:26:3
+    at runScriptInThisContext (node:internal/vm:219:10)
+    at node:internal/process/execution:451:12
+    at [eval]-wrapper:6:24
+    at runScriptInContext (node:internal/process/execution:449:60)
+    at evalFunction (node:internal/process/execution:283:30)
+    at evalTypeScript (node:internal/process/execution:295:3)
+    at node:internal/main/eval_string:71:3 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}
+
+Node.js v24.19.0
+
+
+======================================================================
+FAIL: test_yearly_contact_volume_spacing_cooldowns_and_reload (test_market_frequency.MarketFrequency.test_yearly_contact_volume_spacing_cooldowns_and_reload)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/FM27/tests/test_market_frequency.py", line 52, in test_yearly_contact_volume_spacing_cooldowns_and_reload
+    self.run_case('cadence')
+  File "/workspace/FM27/tests/test_market_frequency.py", line 49, in run_case
+    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+AssertionError: 1 != 0 : node:internal/assert/utils:77
+    throw err;
+    ^
+
+AssertionError [ERR_ASSERTION]: []
+    at [eval]:16:56
+    at runScriptInThisContext (node:internal/vm:219:10)
+    at node:internal/process/execution:451:12
+    at [eval]-wrapper:6:24
+    at runScriptInContext (node:internal/process/execution:449:60)
+    at evalFunction (node:internal/process/execution:283:30)
+    at evalTypeScript (node:internal/process/execution:295:3)
+    at node:internal/main/eval_string:71:3 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}
+
+Node.js v24.19.0
+
+
+----------------------------------------------------------------------
+Ran 4 tests in 1.526s
+
+FAILED (failures=3)

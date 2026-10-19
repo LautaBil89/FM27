@@ -13,6 +13,14 @@ Las partidas anteriores conservan sus equipos, calendarios, jugadores y condicio
 
 También se puede servir en desarrollo con `python3 -m http.server 8000 --directory .`.
 
+## Pulido de las funciones existentes
+
+La [actualización del 19 de octubre](docs/PULIDO_JUGABILIDAD_2026-10-19.md) revisa negociaciones, decisiones de los clubes, partidos, entrenamiento, mensajes y rendimiento. Las contrapropuestas tienen memoria del mejor paquete ofrecido: bajar y subir importes sin superar esa propuesta consume paciencia y no compra descuentos. Las primas garantizadas también cuentan en la negociación personal.
+
+La IA distingue titulares y recambios por puesto, protege especialistas y evalúa los préstamos por su costo de cesión. El entrenamiento personalizado respeta descanso, edad, carga individual y recuperación tras jugar, incluso si la jornada todavía tiene encuentros pendientes. En el partido, el rival dosifica la presión ante fatiga y expulsiones. La bandeja mantiene una sola decisión actual por negociación y conserva pendientes entre las noticias; buscar mensajes mantiene el cursor y el campo de escritura.
+
+Se mantiene la interfaz visual y se puede continuar una carrera existente. Para trasladarla a otra carpeta, exportala e importala desde **Mis carreras**.
+
 ## Interfaz visual
 
 La [renovación visual](docs/INTERFAZ_VISUAL_2026-10-18.md) incorpora un escritorio con próximo partido, disponibilidad, jugadores destacados, tabla, mensajes y agenda. Navegación, fichajes, plantillas, bandeja, finanzas, empleados, competiciones y dirección deportiva comparten tipografía, colores, controles y jerarquía.

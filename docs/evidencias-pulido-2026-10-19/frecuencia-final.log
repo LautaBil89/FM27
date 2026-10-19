@@ -1,0 +1,10 @@
+test_fully_covered_position_can_improve_without_buying_equal_duplicates (test_market_frequency.MarketFrequency.test_fully_covered_position_can_improve_without_buying_equal_duplicates) ... ok
+test_only_current_firm_rival_proposals_affect_player_demands (test_market_frequency.MarketFrequency.test_only_current_firm_rival_proposals_affect_player_demands) ... ok
+test_pending_limit_and_existing_career_history_are_respected (test_market_frequency.MarketFrequency.test_pending_limit_and_existing_career_history_are_respected) ... ok
+test_rival_bids_are_occasional_and_negative_rolls_persist (test_market_frequency.MarketFrequency.test_rival_bids_are_occasional_and_negative_rolls_persist) ... ok
+test_yearly_contact_volume_spacing_cooldowns_and_reload (test_market_frequency.MarketFrequency.test_yearly_contact_volume_spacing_cooldowns_and_reload) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.661s
+
+OK

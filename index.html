@@ -17794,6 +17794,7 @@ const MANAGEMENT = (() => {
   const updateAges=()=>{for(const p of GameState.players)if(p.fecha_nacimiento)p.edad=ageAtDate(p.fecha_nacimiento,GameState.today)};
   const wageBill = () => GameState?.worldVersion&&window.CLUB_AI?CLUB_AI.wageBill(GameState.userClub.id):mine().reduce((total,p)=>total+p.salario,0);
   const addMessage = (title,body,type='club',options={}) => {
+    if(GameState?.worldVersion&&window.FM_INBOX)return FM_INBOX.push({...options,title,body,type});
     if(!GameState.inbox)GameState.inbox=[];
     GameState.inbox.unshift({...options,id:GameState.nextMessageId++,title,body,date:GameState.today,read:false,type});
     GameState.inbox=GameState.inbox.slice(0,150);
@@ -21626,15 +21627,24 @@ window.WORLD_STORAGE = WORLD_STORAGE;
     const roster=squad(id).filter(q=>!loanFor(q));
     if(roster.length<=18)return{ok:false,reason:'la salida dejaría menos de 18 jugadores'};
     if(roster.filter(q=>q.posicion===p.posicion).length<=(MINIMUM[p.posicion]||2))return{ok:false,reason:`faltaría cobertura en ${p.posicion}; se conservan dos arqueros y un once equilibrado`};
+    if(id!==userId()){
+      const required={};for(const slot of window.FM_TACTICS?.slots(tacticsFor(id)?.formation||'4-3-3')||[])required[slot]=(required[slot]||0)+1;
+      for(const slot of natural(p))if(required[slot]&&roster.filter(q=>q.id!==p.id&&natural(q).includes(slot)).length<required[slot])return{ok:false,reason:`el club conserva a su especialista en ${slot} hasta cubrir ese puesto`};
+    }
     return{ok:true,reason:''};
   }
   function summaryOf(id){
     const roster=squad(id),sorted=[...roster].sort((a,b)=>overall(b)-overall(a)),positions={};
-    for(const pos of Object.keys(TARGET)){const group=sorted.filter(p=>p.posicion===pos),starters=group.slice(0,pos==='POR'?1:pos==='DEF'?4:3),quality=starters.length?starters.reduce((n,p)=>n+overall(p),0)/starters.length:35;positions[pos]={count:group.length,quality,group}}
-    const top=sorted.slice(0,11),quality=top.length?top.reduce((n,p)=>n+overall(p),0)/top.length:45;
-    const needs=Object.keys(TARGET).map(pos=>({pos,count:positions[pos].count,quality:positions[pos].quality,score:Math.max(0,TARGET[pos]-positions[pos].count)*2.8+Math.max(0,quality-positions[pos].quality)*1.4+(positions[pos].count<(MINIMUM[pos]||2)?20:0)})).sort((a,b)=>b.score-a.score||a.pos.localeCompare(b.pos));
     const formation=tacticsFor(id)?.formation||'4-3-3',slots=window.FM_TACTICS?.slots(formation)||['POR','LI','DFC','DFC','LD','MC','MCD','MC','EI','DC','ED'],required={};for(const slot of slots)required[slot]=(required[slot]||0)+1;
-    const exactNeeds=Object.entries(required).map(([slot,starters])=>{const group=sorted.filter(p=>natural(p).includes(slot)),count=group.length,target=starters+1,slotQuality=group.slice(0,starters).reduce((n,p)=>n+observedQuality(p,id),0)/Math.max(1,Math.min(starters,count));return {slot,role:desiredRole(slot,tacticsFor(id)?.style),count,target,quality:slotQuality,score:Math.max(0,target-count)*5+Math.max(0,quality-slotQuality)*.8+(count<starters?18:0)}}).sort((a,b)=>b.score-a.score||a.slot.localeCompare(b.slot));
+    const eligibility=new Map(sorted.map(p=>[p.id,natural(p)])),tasks=[...slots,...Object.keys(required)],eligible=tasks.map(slot=>sorted.filter(p=>eligibility.get(p.id).includes(slot))),assigned=new Map(),placement=new Map();
+    // A versatile footballer can cover one role at a time. Backups use the remaining players.
+    function place(index,seen){for(const occupied of [false,true])for(const p of eligible[index]){if(seen.has(p.id)||placement.has(p.id)!==occupied)continue;seen.add(p.id);const previous=placement.get(p.id);if(previous==null||place(previous,seen)){assigned.set(index,p.id);placement.set(p.id,index);return true}}return false}
+    const first=slots.map((slot,i)=>i).sort((a,b)=>eligible[a].length-eligible[b].length);
+    for(const index of [...first,...tasks.slice(slots.length).map((_,i)=>slots.length+i)])place(index,new Set());
+    const starters=slots.map((_,i)=>player(assigned.get(i))).filter(Boolean),quality=slots.reduce((sum,_,i)=>sum+(assigned.has(i)?overall(player(assigned.get(i))):35),0)/slots.length;
+    for(const pos of Object.keys(TARGET)){const group=sorted.filter(p=>p.posicion===pos),firstTeam=starters.filter(p=>p.posicion===pos);positions[pos]={count:group.length,quality:firstTeam.length?firstTeam.reduce((n,p)=>n+overall(p),0)/firstTeam.length:group[0]?overall(group[0]):35,group}}
+    const needs=Object.keys(TARGET).map(pos=>({pos,count:positions[pos].count,quality:positions[pos].quality,score:Math.max(0,TARGET[pos]-positions[pos].count)*2.8+Math.max(0,quality-positions[pos].quality)*1.4+(positions[pos].count<(MINIMUM[pos]||2)?20:0)})).sort((a,b)=>b.score-a.score||a.pos.localeCompare(b.pos));
+    const exactNeeds=Object.entries(required).map(([slot,countRequired])=>{const group=[...assigned].filter(([i])=>tasks[i]===slot).map(([,pid])=>player(pid)),count=group.length,target=countRequired+1,firstTeam=[...assigned].filter(([i])=>i<slots.length&&tasks[i]===slot).map(([,pid])=>player(pid)),slotQuality=firstTeam.length?firstTeam.reduce((n,p)=>n+overall(p),0)/firstTeam.length:35;return {slot,role:desiredRole(slot,tacticsFor(id)?.style),count,target,quality:slotQuality,score:Math.max(0,target-count)*5+Math.max(0,quality-slotQuality)*.8+(firstTeam.length<countRequired?18:0)}}).sort((a,b)=>b.score-a.score||a.slot.localeCompare(b.slot));
     return{id,roster,positions,quality,needs,exactNeeds};
   }
   function natural(p){return window.FM_PLAYER?.naturalPositions(p)||[{POR:'POR',DEF:'DFC',MED:'MC',DEL:'DC'}[p.posicion]]}
@@ -21650,18 +21660,18 @@ window.WORLD_STORAGE = WORLD_STORAGE;
   }
   function appeal(p,id,wage){const c=club(id),e=economy(id),from=club(p.clubId);return positive(e.reputation||c?.reputation||c?.rating)+Math.min(18,(wage/Math.max(100,p.salario)-1)*25)+(from?.country===c?.country?4:0)+(p.edad<24?4:0)}
   function expectedWage(p,id){const rep=economy(id)?.reputation||club(id)?.reputation||60,origin=(p.clubId===userId()?economy(p.clubId)?.reputacion:economy(p.clubId)?.reputation)||club(p.clubId)?.reputation||60;return Math.max(100,roundMoney(p.salario*(rep+12<origin?1.35:p.clubId?1.08:1.02)))}
-  function interestFor(playerId){
-    if(!active())return[];const p=player(Number(playerId));if(!p||loanFor(p)||p.edad>40)return[];ensure();const fee=askingPrice(p);
+  function interestFor(playerId,options={}){
+    if(!active())return[];const p=player(Number(playerId));if(!p||loanFor(p)||p.edad>40)return[];ensure();const loan=options.dealType==='loan',fee=loan?Math.max(p.salario*4,Math.round(p.valor_mercado*.025)):askingPrice(p);if(loan&&(!p.clubId||(window.MARKET_CONTRACTS?.contractEnd(p)||`${p.contract}-12-31`)<MARKET_CONTRACTS.addMonths(GameState.today,6)))return[];
     const result=[];
     for(const c of getClubs()){
       if(c.id===userId()||c.id===p.clubId)continue;
-      const wage=expectedWage(p,c.id),bonus=wage*4;
+      const wage=loan?p.salario:expectedWage(p,c.id),bonus=loan?0:wage*4;
       if(window.MARKET_CONTRACTS?.committed(p.id)||!canReceive(p,c.id,wage).ok||availableBudget(c.id)<fee+bonus)continue;
       const s=summaryOf(c.id),need=s.needs.find(n=>n.pos===p.posicion),quality=observedQuality(p,c.id),future=observedFuture(p,c.id),rep=economy(c.id).reputation;
       if(future>=88&&rep<65&&wage<p.salario*1.7)continue;
       if(quality<s.positions[p.posicion].quality-4&&need.count>=TARGET[p.posicion])continue;
       if(quality>s.quality+15&&rep<70)continue;
-      const exact=s.exactNeeds.find(n=>natural(p).includes(n.slot));if(!exact||exact.score<2)continue;
+      const exact=s.exactNeeds.find(n=>natural(p).includes(n.slot));if(!exact||exact.score<2&&quality<=exact.quality+3)continue;
       const score=(window.FM_PROJECTS?.transferScore(p,c.id)||0)+(window.FM_DEPTH?.projectScore(p,c.id)||0)+need.score+exact.score*.6+(quality-s.positions[p.posicion].quality)*1.7+(p.edad<25?3:0)+(c.country===club(p.clubId)?.country?3:0);
       if(score<3)continue;
       result.push({id:c.id,nombre:c.nombre,score:Math.round(score),need:exact.slot+' · '+exact.role,playingTime:exact.count<1||quality>exact.quality+3?'Titular':'Rotación',offer:fee,wage,style:economy(c.id).style});
@@ -21672,14 +21682,14 @@ window.WORLD_STORAGE = WORLD_STORAGE;
     if(p.clubId===clubId||p.clubId===userId()||pendingOffer(p)||loanFor(p)||p.edad>36||(p.posicion!=='POR'&&p.edad>34))return null;
     if(p.clubId&&!(marketEvaluation?.releasable.has(p.id)||canRelease(p,p.clubId).ok))return null;
     const e=economy(clubId),need=summary.needs.find(n=>n.pos===p.posicion),quality=observedQuality(p,clubId),future=observedFuture(p,clubId),fee=askingPrice(p),wage=expectedWage(p,clubId),bonus=wage*4;
-    if(!need||need.score<2)return null;
+    if(!need||need.score<2&&quality<=summary.positions[p.posicion].quality+3)return null;
     if(quality<summary.positions[p.posicion].quality-3&&need.count>=TARGET[p.posicion]-1)return null;
     if(quality>summary.quality+15&&e.reputation<70)return null;
     if(future>=88&&e.reputation<65&&wage<p.salario*1.7)return null;
     const countryBonus=club(p.clubId)?.country===club(clubId)?.country?4:0;
     const score=(window.FM_PROJECTS?.transferScore(p,clubId)||0)+(window.FM_DEPTH?.projectScore(p,clubId)||0)+need.score+(quality-summary.positions[p.posicion].quality)*2+(p.edad<24?Math.min(6,(future-quality)*.35):0)+countryBonus-(p.edad>31?3:0);
     if(score<4)return null;
-    const exact=summary.exactNeeds.find(n=>natural(p).includes(n.slot));if(!exact||exact.score<2)return null;
+    const exact=summary.exactNeeds.find(n=>natural(p).includes(n.slot));if(!exact||exact.score<2&&quality<=exact.quality+3)return null;
     const bid={playerId:p.id,fromClub:p.clubId,toClub:clubId,type:'buy',dealType:'permanent',fee,wage,bonus,years:p.edad<25?4:p.edad<31?3:2,installments:0,upfrontPercent:100,sellOnPercent:0,releaseClause:roundMoney(Math.max(fee,p.valor_mercado)*2.2),score:score+exact.score*.6,targetPosition:exact.slot,targetRole:exact.role,playingTime:exact.count<1||quality>exact.quality+3?'Titular':'Rotación',appeal:appeal(p,clubId,wage)};
     const tooExpensive=availableBudget(clubId)<fee+bonus+Math.max(wage*6,10000)||fee>availableBudget(clubId)*.55&&need.count>=MINIMUM[p.posicion];
     if(tooExpensive){
@@ -21731,8 +21741,8 @@ window.WORLD_STORAGE = WORLD_STORAGE;
     for(const p of [...listed,...unsolicited]){
       if(created>=1)break;
       const unlisted=!listedIds.has(p.id);if(unlisted&&(recentUnsolicited>=2||contactRoll>=.055||gap<10))continue;
-      const bidders=interestFor(p.id);if(!bidders.length)continue;
-      const loan=window.FM_OFFICE?.isLoanListed(p.id),selected=bidders[0],fee=loan?Math.max(p.salario*4,Math.round(p.valor_mercado*.025)):selected.offer,wage=selected.wage,bonus=loan?0:wage*4;
+      const loan=window.FM_OFFICE?.isLoanListed(p.id),bidders=interestFor(p.id,{dealType:loan?'loan':'permanent'});if(!bidders.length)continue;
+      const selected=bidders[0],fee=loan?Math.max(p.salario*4,Math.round(p.valor_mercado*.025)):selected.offer,wage=selected.wage,bonus=loan?0:wage*4;
       if(loan&&window.MARKET_CONTRACTS?.contractEnd(p)<MARKET_CONTRACTS.addMonths(day,6))continue;
       if(availableBudget(selected.id)<fee+bonus||!canReceive(p,selected.id,wage).ok)continue;
       const offer={id:`ai-sale-${ai.nextId++}`,playerId:p.id,type:'sell',dealType:loan?'loan':'permanent',loanMonths:6,wageShare:100,purchaseMode:'none',purchaseFee:0,playingTime:selected.playingTime||'Rotación',fromClub:userId(),toClub:selected.id,fee,wage,bonus,years:p.edad<30?3:2,installments:0,upfrontPercent:100,sellOnPercent:0,releaseClause:roundMoney(Math.max(fee,p.valor_mercado)*2.2),status:'pending',createdAt:GameState.eventIndex,createdDate:day,expiresAt:iso(stamp(day)+14*DAY),rivals:[],unsolicited:unlisted};
@@ -21752,7 +21762,7 @@ window.WORLD_STORAGE = WORLD_STORAGE;
   }
   function simulateMarket(day){
     const summaries=new Map(getClubs().map(c=>[c.id,summaryOf(c.id)])),pool=poolForMarket(summaries),bids=new Map(),currentWeek=week(day);
-    const buyers=getClubs().filter(c=>c.id!==userId()&&squad(c.id).length<32&&(!window.MARKET_CONTRACTS||MARKET_CONTRACTS.registrationOpen(day,c.id))).sort((a,b)=>(seed(`${currentWeek}:${a.id}`)%997)-(seed(`${currentWeek}:${b.id}`)%997));
+    const buyers=getClubs().filter(c=>c.id!==userId()&&squad(c.id).length<40&&(!window.MARKET_CONTRACTS||MARKET_CONTRACTS.registrationOpen(day,c.id))).sort((a,b)=>(seed(`${currentWeek}:${a.id}`)%997)-(seed(`${currentWeek}:${b.id}`)%997));
     // Evaluate a read-only market snapshot, then clear it before any transfer changes money or ownership.
     marketEvaluation={prices:new Map(),budgets:new Map(),releasable:new Set(pool.map(p=>p.id))};
     try{for(const c of buyers){
@@ -21796,8 +21806,8 @@ window.WORLD_STORAGE = WORLD_STORAGE;
   function settleOperating(day){
     const ai=ensure(),weeks=Math.floor((stamp(day)-stamp(ai.lastFinancialDate))/(7*DAY));if(weeks<=0)return;
     const settled=iso(stamp(ai.lastFinancialDate)+weeks*7*DAY),from=ai.lastFinancialDate,gate=new Map();
-    for(const event of GameState.calendar.filter(event=>event.done&&event.date>=from&&event.date<settled))for(const game of event.games||[]){
-      if(!game.result||game.neutral||game.home===userId())continue;
+    for(const event of GameState.calendar.filter(event=>event.date>=from&&event.date<settled))for(const game of event.games||[]){
+      if(!game.result||game.neutral||event.neutral||game.home===userId())continue;
       const c=club(game.home),e=c&&economy(c.id);if(!c||!e)continue;
       const attendance=clamp(.46+(e.reputation||c.rating||60)*.004, .45,.92),ticket=WORLD_ENGINE.league(c.leagueId)?.confederation==='UEFA'?27:12;
       gate.set(c.id,(gate.get(c.id)||0)+Math.round((c.capacity||15000)*attendance*ticket));
@@ -22023,7 +22033,7 @@ window.WORLD_STORAGE = WORLD_STORAGE;
     const nationalities=p.nationalities||[p.nacionalidad];
     if(priority==='adaptation'&&origin?.country!==c?.country&&!nationalities.includes(c?.country)){factor+=.04;reasons.push('El cambio de país requiere una compensación por adaptación')}
     if(priority==='minutes'&&offer.playingTime==='Proyecto'&&p.edad>=24){factor+=.05;reasons.push('Busca responsabilidades de primera plantilla')}
-    const incentive=Math.min(.04,(Number(offer.appearanceBonus)||0)/Math.max(100,p.salario)*.025),agency=window.FM_AGENTS?.agency(p),relationship=agency?(agency.relationship-50)/2500:0;
+    const incentive=Math.min(.04,(Number(offer.appearanceBonus)||0)/Math.max(100,p.salario)*.025)+(offer.renewal?0:Math.min(.06,amount(offer.bonus)/Math.max(100,p.salario*Math.min(156,Math.max(1,Number(offer.years)||3)*52))*.45)),agency=window.FM_AGENTS?.agency(p),relationship=agency?(agency.relationship-50)/2500:0;
     if(agency&&agency.relationship!==50)reasons.push(agency.relationship>50?'La relación con su agencia facilita el diálogo':'La agencia recuerda negociaciones interrumpidas');
     const wage=Math.max(100,Math.ceil(base.wage*Math.max(.94,factor-incentive-relationship)/100)*100);
     return {name:agency?.name||['Río Gestión Deportiva','Fútbol Global','Proyecto Once','Puente Sports'][n%4],simulated:true,priority,label:labels[priority],patience:Math.max(4,7+n%8+(agency?Math.round((agency.relationship-50)/15):0)),wage,reasons:[...(base.reasons||[]),...reasons],refuse:base.refuse||'',project:window.FM_DEPTH?.project(target)?.policy||'academy',style:target===GameState.userClub.id?GameState.tactics.style:ai().economy(target)?.style,continental};
@@ -22255,6 +22265,16 @@ window.WORLD_STORAGE = WORLD_STORAGE;
     offer.status='rejected';offer.reason=reason;offer.resolvedDate=GameState.today;delete offer.awaitingUser;
     message('Negociación rechazada',`${player(offer.playerId)?.nombre||'Jugador'}: ${reason}.`,offer);
   }
+  function bargainingValue(o,p=player(o.playerId)){
+    if(o.stage==='club'||o.type==='sell')return Math.max(0,amount(o.fee))*(o.installments?1-(1-Number(o.upfrontPercent??100)/100)*.08:1)+(o.dealType==='loan'?amount(p?.salario)*Number(o.wageShare??100)/100*26*Number(o.loanMonths||6)/6:amount(p?.valor_mercado)*Number(o.sellOnPercent||0)*.002);
+    const years=Math.max(1,Math.min(3,Number(o.years)||1)),increase=Math.max(0,Math.min(.15,Number(o.annualIncrease||0)/100));let salary=0;
+    for(let year=0;year<years;year++)salary+=Math.max(0,amount(o.wage))*52*(1+increase)**year;
+    return salary+Math.max(0,amount(o.bonus));
+  }
+  function bargainingProgress(o,candidate=o){
+    const stage=o.type==='sell'?'sale':o.stage||'player',prior=o.bargaining?.stage===stage?o.bargaining:null,baseline=prior?prior.bestValue:bargainingValue(o),value=bargainingValue(candidate,player(o.playerId)),improved=value>baseline+Math.max(10,baseline*.005);
+    return {stage,bestValue:Math.max(baseline,value),concessions:(prior?.concessions||0)+(improved?1:0),stalled:(prior?.stalled||0)+(candidate!==o&&!improved?1:0)};
+  }
   function processOffers() {
     if (!world()) return;
     ensure();window.FM_RENEWALS?.process();expireOffers(GameState.today);processSaleCounters();processSaleConsent();processMedical();processLoanAmendments();
@@ -22264,15 +22284,17 @@ window.WORLD_STORAGE = WORLD_STORAGE;
       if (!reason) reason=statusReason(p,offer.toClub,offer.stage==='club'?0:offer.dealType==='loan'?amount(p.salario*offer.wageShare/100):offer.wage,offer);
       if (reason) {rejectOffer(offer,reason);continue}
       const requested=demands(p,offer),profile=clubNegotiation(p,offer);
+      offer.bargaining??=bargainingProgress(offer);if(offer.bargaining.stage!==(offer.stage||'player'))offer.bargaining=bargainingProgress(offer);
+      const progress=offer.bargaining.concessions||0;
       if((offer.counterRounds||0)>(offer.stage==='player'?Math.max(4,Math.floor(negotiationProfile(p,offer).patience/2)):profile.patience)){rejectOffer(offer,'La contraparte agotó su paciencia tras varias rondas sin acuerdo');continue}
-      if(offer.stage==='club'&&offer.counterRounds&&!offer.counterAccepted)requested.fee=Math.round(requested.fee*(1-Math.min(.12,offer.counterRounds*(1-profile.resistance)*.035)));
-      if(offer.stage==='player'&&offer.counterRounds&&!offer.counterAccepted)requested.wage=Math.ceil(requested.wage*(1-Math.min(.06,offer.counterRounds*.015))/100)*100;
+      if(offer.stage==='club'&&progress&&!offer.counterAccepted)requested.fee=Math.round(requested.fee*(1-Math.min(.12,progress*(1-profile.resistance)*.035)));
+      if(offer.stage==='player'&&progress&&!offer.counterAccepted)requested.wage=Math.ceil(requested.wage*(1-Math.min(.06,progress*.015))/100)*100;
       if (requested.refuse) {rejectOffer(offer,requested.refuse);continue}
       if(offer.counterAccepted){requested.fee=Math.min(requested.fee,offer.fee);requested.wage=Math.min(requested.wage,offer.wage);requested.wageShare=Math.min(requested.wageShare||0,offer.wageShare||0)}
       if(offer.stage==='club'){
         if(offer.fee<requested.fee||offer.dealType==='loan'&&offer.wageShare<requested.wageShare){
           offer.counter={fee:Math.max(offer.fee,requested.fee),wageShare:Math.max(offer.wageShare,requested.wageShare||0)};offer.awaitingUser=true;offer.counterDate=GameState.today;
-          message('Contraoferta del club',`${clubName(p.clubId)} pide ${cash(offer.counter.fee)}${offer.dealType==='loan'?` y ${offer.counter.wageShare}% del salario`:' por el pase'}. El contrato con el jugador se negociará después.`,offer);
+          message('Contraoferta del club',`${clubName(p.clubId)} pide ${cash(offer.counter.fee)}${offer.dealType==='loan'?` y ${offer.counter.wageShare}% del salario`:' por el pase'}. ${profile.label}: ${profile.reasons.join('; ')}. ${offer.bargaining.stalled?'Las últimas condiciones no mejoran el valor de la propuesta: repetir rondas consume paciencia sin abaratar el precio. ':''}El contrato con el jugador se negociará después.`,offer);
         }else{
           Object.assign(offer,{clubCounterRounds:offer.counterRounds||0,counterRounds:0,stage:'player',clubAccepted:true,awaitingPlayerTerms:true,awaitingUser:true,counterAccepted:false,counterDate:GameState.today,personalDeadline:addDays(GameState.today,negotiationProfile(p,offer).patience)});delete offer.counter;
           window.FM_DEPTH?.inviteRival(p,offer);
@@ -22379,6 +22401,7 @@ window.WORLD_STORAGE = WORLD_STORAGE;
     if(reason)return fail(reason);
     if(!allowed.some(key=>String(candidate[key]??'')!==String((o.counter||o)[key]??o[key]??'')))return fail('Modificá al menos una condición para enviar una contraoferta');
     if(o.counter)logNegotiation(o,'Contraparte',{...o,...o.counter});else if(!o.negotiationHistory?.length)logNegotiation(o,'Contraparte');
+    candidate.bargaining=bargainingProgress(o,candidate);
     o.previousBid={fee:o.fee,wage:o.wage,wageShare:o.wageShare};
     Object.assign(o,candidate,{counterRounds:(o.counterRounds||0)+1,awaitingUser:false,counterAccepted:false,responseDate:nextDay(GameState.today),dueAt:GameState.eventIndex+1,lastNegotiationDate:GameState.today});
     delete o.counter;if(o.type==='sell')o.saleResponsePending=true;
@@ -22699,7 +22722,7 @@ window.WORLD_STORAGE = WORLD_STORAGE;
   }
   // Display only terms that belong to this operation; legacy saves retain defaults.
   function offerPresentation(o) {
-    const t=o.awaitingUser&&o.counter?{...o,...o.counter}:o,p=player(o.playerId);
+    const t=(o.status??'pending')==='pending'&&o.awaitingUser&&o.counter?{...o,...o.counter}:o,p=player(o.playerId);
     const outgoing=t.fromClub===GameState.userClub.id||o.type==='sell'&&t.fromClub===undefined;
     const renewal=o.type==='renewal',loan=!renewal&&t.dealType==='loan',free=!renewal&&!loan&&(t.precontract||!t.fromClub);
     const label=renewal?'Renovación':loan?'Préstamo':t.precontract?'Precontrato':free?'Incorporación libre':outgoing?'Venta definitiva':'Compra definitiva';
@@ -22787,7 +22810,7 @@ window.WORLD_STORAGE = WORLD_STORAGE;
   },true);
   function renewContract(pid,terms={}) {return window.FM_RENEWALS?FM_RENEWALS.submit(pid,terms):{ok:false,reason:'La negociación de renovación no está disponible'}}
   const legacyRenew=renew;renew=function(pid){if(!world())return legacyRenew(pid);if(typeof MARKET_CONTRACTS.openRenewal==='function')return MARKET_CONTRACTS.openRenewal(pid);return legacyRenew(pid)};
-  window.MARKET_CONTRACTS={activeLoan,ownerClub,beginSaleConsent,processSaleConsent,medicalAssessment,processMedical,respondMedical,proposeLoanAmendment,processLoanAmendments,loanAmendment,cancelLoanAmendment,quotePurchaseClaim,settlePurchaseClaim,openPurchaseClaim,relatedOffer,recordLoanAppearances,offerPresentation,ensure,contractEnd,setContract,migrateContracts,renewContract,precontractEligibility,requestPrecontractConsent,progressContracts,terminationQuote,terminateContract,recallLoan,submitOffer,submitPlayerTerms,processOffers,settle,returnLoans,purchaseLoan,executeTransfer,agreeTransfer,registerAgreements,restoreAgreements,registrationOpen,nextRegistrationDate,negotiationProfile,committed,futureSlots,onResale,reserved,pendingWages,loanWageFor,returnSlots,respondCounter,counterOffer,clubNegotiation,processSaleCounters,cancelOffer,expireOffers,summary,addMonths,offerFeedback,offerResources};
+  window.MARKET_CONTRACTS={bargainingValue,bargainingProgress,activeLoan,ownerClub,beginSaleConsent,processSaleConsent,medicalAssessment,processMedical,respondMedical,proposeLoanAmendment,processLoanAmendments,loanAmendment,cancelLoanAmendment,quotePurchaseClaim,settlePurchaseClaim,openPurchaseClaim,relatedOffer,recordLoanAppearances,offerPresentation,ensure,contractEnd,setContract,migrateContracts,renewContract,precontractEligibility,requestPrecontractConsent,progressContracts,terminationQuote,terminateContract,recallLoan,submitOffer,submitPlayerTerms,processOffers,settle,returnLoans,purchaseLoan,executeTransfer,agreeTransfer,registerAgreements,restoreAgreements,registrationOpen,nextRegistrationDate,negotiationProfile,committed,futureSlots,onResale,reserved,pendingWages,loanWageFor,returnSlots,respondCounter,counterOffer,clubNegotiation,processSaleCounters,cancelOffer,expireOffers,summary,addMonths,offerFeedback,offerResources};
 })();
 
 /* A full player workspace for expanded careers. Historic source data stays separate. */
@@ -23700,7 +23723,7 @@ window.FM_MATCH_RULES=(()=>{
 window.FM_SIMULATION=(()=>{
   const bound=(n,a,b)=>Math.min(b,Math.max(a,Number(n)||0));
   const number=(n,f=50)=>Number.isFinite(Number(n))?Number(n):f;
-  let actionModifiers=null,actionContexts=null,actionFactors=null;
+  let actionModifiers=null,actionContexts=null,actionFactors=null,actionTuning;
   const active=(m,side)=>m.lineups[side].filter(id=>player(id)&&!m.red.includes(id)&&!m.injured.includes(id));
   const keeperId=(m,side)=>window.FM_MATCH_RULES?.keeperId(m,side)??active(m,side).find(id=>player(id).posicion==='POR');
   const attribute=(p,key)=>window.FM_ATTRIBUTES?.skill(p,key)??number(p?.[key]??p?.[({penales:'tiro',remate:'tiro',cabeceo:'tiro',balon_parado:'tiro'})[key]],55);
@@ -23722,7 +23745,7 @@ window.FM_SIMULATION=(()=>{
     if(!active(m,s.owner).includes(s.carrier))s.carrier=choosePlayer(m,s.owner,s.progress)?.id??null;
     return s;
   }
-  function tuning(m){return window.FM_CALIBRATION?.active()?FM_CALIBRATION.tuning(currentEvent()?.leagueId||club(m.home)?.leagueId):null}
+  function tuning(m){if(actionTuning!==undefined)return actionTuning;const event=GameState.calendar.find(e=>e.id===m.eventId);return window.FM_CALIBRATION?.active()?FM_CALIBRATION.tuning(event?.leagueId||club(m.home)?.leagueId):null}
   function fitness(p){return .72+bound(p.condicion_fisica,0,100)*.0028}
   function cohesion(p){if(actionModifiers?.has(p.id))return actionModifiers.get(p.id);const v=window.FM_DRESSING_ROOM?.matchModifier?.(p),value=typeof v==='number'?bound(v,.95,1.05):1;actionModifiers?.set(p.id,value);return value}
   function skill(p,key){return attribute(p,key)*fitness(p)*cohesion(p)*(window.FM_MEDICINE?FM_MEDICINE.factor(p):1)}
@@ -23822,7 +23845,7 @@ window.FM_SIMULATION=(()=>{
     return result;
   }
   function step(m,factors={}){
-    actionModifiers=new Map();actionContexts=new Map();actionFactors=[factors.home,factors.away];const s=ensure(m);s.lastShot=null;
+    actionTuning=undefined;actionTuning=tuning(m);actionModifiers=new Map();actionContexts=new Map();actionFactors=[factors.home,factors.away];const s=ensure(m);s.lastShot=null;
     const chain={id:`seq-${s.nextChain++}`,minute:m.minute,side:s.owner,start:worldPoint(m,s.owner,s.progress,s.lateral),end:null,actions:[],outcome:'circulación',reason:''};
     const tempo=mean([0,1],side=>number(tactics(m,side).tempo)),count=Math.round(bound(10+(tempo-50)*.035,8,13)),time=[0,0];let pending=null;
     for(let i=0;i<count;i++){
@@ -23886,7 +23909,7 @@ window.FM_SIMULATION=(()=>{
     move(m,s);
     const share=time[0]+time[1]?time[0]/(time[0]+time[1])*100:50;
     s.snapshots.push({minute:m.minute,shots:m.stats.map(x=>x.shots||0),xg:m.stats.map(x=>x.xg||0),entries:s.teamMetrics.map(x=>x.finalThirdEntries),losses:s.teamMetrics.map(x=>x.losses),counters:s.teamMetrics.map(x=>x.counters)});s.snapshots=s.snapshots.slice(-35);
-    actionModifiers=null;actionContexts=null;actionFactors=null;return {homeShare:share,side:pending?.side??s.owner,shot:!!pending,shotBoost:0,chainId:chain.id};
+    actionModifiers=null;actionContexts=null;actionFactors=null;actionTuning=undefined;return {homeShare:share,side:pending?.side??s.owner,shot:!!pending,shotBoost:0,chainId:chain.id};
   }
   function shotContext(m,side){const c=m.simulation?.lastShot;if(!c||c.side!==side)return null;const ids=active(m,side);if(!ids.includes(c.shooterId))return null;return {...c,shooter:player(c.shooterId),supplier:ids.includes(c.supplierId)?player(c.supplierId):null}}
   function recordChance(m,chance){const s=m.simulation,c=s?.lastShot,chain=s?.chains.find(p=>p.id===c?.chainId);if(!c||!chain||chance.side!==c.side)return;chance.chainId=chain.id;chance.reason=chain.reason;chance.shotLocation={...(chain.actions.findLast(a=>a.type==='remate')?.from||chain.start)};chance.sequencePoints=chain.actions.filter(a=>a.side===chance.side&&a.success).map(a=>({...a.to}));chain.outcome=chance.outcome;chain.xg=chance.xg;chain.playerId=chance.playerId;chain.shooterId=chance.playerId;const remate=chain.actions.findLast(a=>a.type==='remate');if(remate)remate.playerId=chance.playerId;if(chance.outcome==='gol'||chance.outcome==='anulado'){s.owner=1-chance.side;s.progress=50;s.lateral=50;s.carrier=choosePlayer(m,s.owner,50)?.id;move(m,s)}}
@@ -23931,15 +23954,18 @@ window.FM_CALIBRATION=(()=>{
 window.FM_INBOX = (() => {
   const legacyInbox = window.inboxView, legacyRender = render;
   const categories = {mercado:'Mercado',contratos:'Contratos',ojeo:'Ojeo',plantel:'Plantel',partidos:'Partidos',directiva:'Directiva',sistema:'Sistema',prensa:'Prensa'};
-  const supported = new Set(['sale','offer','scout','contract','tactics','medical','match','finance','recovery','career','incident']);
+  const supported = new Set(['sale','offer','scout','contract','tactics','medical','match','matchday','tables','training','finance','recovery','career','incident']);
   const active = () => !!GameState?.world && GameState.version === 3;
   const owned = p => !!p && p.clubId === GameState.userClub.id;
   const lookup = id => Number.isSafeInteger(Number(id)) ? player(Number(id)) : null;
   const offerFor = message => {const o=GameState.offers.find(o=>String(o.id)===String(message.offerId))||window.FM_RENEWALS?.byId(String(message.offerId));return o&&MARKET_CONTRACTS.relatedOffer(o)?o:null};
   const clubName = id => GameState.world.clubs.find(c => c.id === id)?.nombre || 'Club';
-  const category = m => ['medico','médico','lesion','lesión','entrenamiento'].includes(m.type) ? 'plantel' : m.action==='match' ? 'partidos' : categories[m.type] ? m.type : 'prensa';
+  const category = m => ['medico','médico','lesion','lesión','entrenamiento'].includes(m.type) ? 'plantel' : ['finanzas','finances'].includes(m.type)?'directiva':m.action==='match' ? 'partidos' : categories[m.type] ? m.type : 'prensa';
   const identifier = m => `message-${m.id}`;
   let pushing = false;
+  let messageIndex=null,messageList=null,messageCount=-1,messageFirst=null;
+  function latestOfferMessage(id){const rows=GameState.inbox;if(rows!==messageList||rows.length!==messageCount||rows[0]?.id!==messageFirst){messageList=rows;messageCount=rows.length;messageFirst=rows[0]?.id;messageIndex=new Map();for(const m of rows)if(m.offerId!=null&&!messageIndex.has(String(m.offerId)))messageIndex.set(String(m.offerId),m.id)}return messageIndex.get(String(id));}
+  function trimMessages(){if(GameState.inbox.length<=150)return;const decisions=new Set(GameState.inbox.filter(isPending).slice(0,150).map(m=>m.id)),keep=GameState.inbox.filter(m=>!decisions.has(m.id)).slice(0,150-decisions.size);keep.forEach(m=>decisions.add(m.id));GameState.inbox=GameState.inbox.filter(m=>decisions.has(m.id));}
 
   function ui() {
     if(!GameState.world.inboxUI||typeof GameState.world.inboxUI!=='object'||Array.isArray(GameState.world.inboxUI))GameState.world.inboxUI={selected:null,filter:'all',category:'all',query:'',lastAlertDay:null};
@@ -23961,8 +23987,8 @@ window.FM_INBOX = (() => {
     if(supported.has(message.action))m.action=message.action;
     if(lookup(message.playerId))m.playerId=Number(message.playerId);
     if(typeof message.offerId==='string'||Number.isSafeInteger(message.offerId))m.offerId=String(message.offerId).slice(0,160);
-    for(const key of ['contractAtCreation','contractEndAtCreation','issue','matchDate','fixtureId','proTab','staffNegotiationId','staffId','incidentId'])if(typeof message[key]==='string'||Number.isSafeInteger(message[key]))m[key]=message[key];
-    GameState.inbox.unshift(m);GameState.inbox=GameState.inbox.slice(0,150);return m;
+    for(const key of ['contractAtCreation','contractEndAtCreation','issue','matchDate','fixtureId','eventId','proTab','staffNegotiationId','staffId','incidentId','sender','section','jobId','applicationId'])if(typeof message[key]==='string'||Number.isSafeInteger(message[key]))m[key]=typeof message[key]==='string'?message[key].slice(0,512):message[key];
+    GameState.inbox.unshift(m);trimMessages();return m;
   }
   function onMessage(message) {
     if(!active()||!message)return;
@@ -23970,7 +23996,7 @@ window.FM_INBOX = (() => {
   }
   function lineupNeedsAttention() {
     const ids=GameState.tactics?.xi||[];
-    return ids.length!==11 || new Set(ids).size!==11 || ids.some(id=>!owned(lookup(id))||!available(lookup(id)));
+    const event=window.WORLD_CLOCK?.nextFixture();return ids.length!==11 || new Set(ids).size!==11 || ids.some(id=>!owned(lookup(id))||!(window.WORLD_ENGINE?.canPlay?WORLD_ENGINE.canPlay(lookup(id),event):available(lookup(id))));
   }
   function refreshAlerts(force=false) {
     if(!active())return;
@@ -24002,7 +24028,7 @@ window.FM_INBOX = (() => {
       episode(key,true,{title:p.injury>0?`Parte médico: ${p.nombre}`:`Fatiga: ${p.nombre}`,body,type:'medico',action:'medical',playerId:p.id});
       const existing=GameState.inbox.find(m=>m.id===episodes[key]?.messageId);if(existing)existing.body=body;
     }
-    if(lineupNeedsAttention()&&!GameState.match)push({title:'La alineación necesita una revisión',body:'El once tiene plazas vacías o futbolistas no disponibles. Revisá titulares y banco antes de confirmar el próximo partido.',type:'plantel',action:'tactics',issue:'lineup',sourceKey:`lineup:${GameState.today}`});
+    episode('lineup',lineupNeedsAttention()&&!GameState.match,{title:'La alineación necesita una revisión',body:'El once tiene plazas vacías o futbolistas no disponibles para el próximo compromiso. Revisá titulares y banco antes de confirmar el partido.',type:'plantel',action:'tactics',issue:'lineup'});
     episode('recovery',members.length>0&&members.reduce((sum,p)=>sum+p.condicion_fisica,0)/members.length<73,{title:'El plantel necesita bajar la carga',body:'La condición media del equipo está por debajo del 73%. Podés aplicar recuperación colectiva con intensidad baja y revisar quiénes necesitan descansar.',type:'plantel',action:'recovery'});
     episode('finance:cash',GameState.userClub.presupuesto_dolares<0,{title:'Revisar el equilibrio financiero',body:'La caja está en negativo. Revisá gastos, ventas y compromisos pendientes.',type:'directiva',action:'finance'});
     episode('finance:wages',MANAGEMENT.wageBill()>GameState.userClub.wageBudget,{title:'Revisar el presupuesto salarial',body:'Los salarios semanales superan el margen aprobado por la directiva. Revisá contratos y el presupuesto salarial.',type:'directiva',action:'finance'});
@@ -24010,7 +24036,7 @@ window.FM_INBOX = (() => {
   function ensure() {
     if(!active())return false;
     if(!Array.isArray(GameState.inbox))GameState.inbox=[];
-    GameState.inbox=GameState.inbox.filter(m=>m&&typeof m==='object'&&typeof m.title==='string'&&typeof m.body==='string').slice(0,150);
+    GameState.inbox=GameState.inbox.filter(m=>m&&typeof m==='object'&&typeof m.title==='string'&&typeof m.body==='string');
     GameState.offers??=[];GameState.scouting??={shortlist:[],reports:{}};
     GameState.nextMessageId=Math.max(Number.isSafeInteger(GameState.nextMessageId)?GameState.nextMessageId:1,...GameState.inbox.map(m=>(Number.isSafeInteger(m.id)?m.id:0)+1));
     const seen=new Set();
@@ -24032,6 +24058,7 @@ window.FM_INBOX = (() => {
       }
       window.FM_INCIDENTS?.ensureMessages();
       refreshAlerts();
+      trimMessages();
     } finally {pushing=false;}
     return true;
   }
@@ -24040,7 +24067,7 @@ window.FM_INBOX = (() => {
     const p=lookup(m.playerId),o=m.offerId?offerFor(m):null;
     if(m.proTab)return !!window.FM_PRO?.needsDecision(m);
     if(m.staffNegotiationId)return !!window.FM_GOVERNANCE?.officeState()?.staffNegotiations.find(r=>r.id===m.staffNegotiationId&&r.status==='pending'&&r.awaitingUser);
-    if(m.offerId)return !!o&&(o.type==='sell'||o.awaitingUser)&&!o.awaitingRegistration&&!o.awaitingPlayerConsent&&(!o.awaitingMedical||o.medicalReport&&o.awaitingUser)&&!o.saleResponsePending&&o.status==='pending'&&(o.type!=='renewal'||o.awaitingUser&&(!o.lastMessageId||o.lastMessageId===m.id))&&(o.type!=='sell'||owned(p));
+    if(m.offerId)return latestOfferMessage(m.offerId)===m.id&&!!o&&(o.type==='sell'||o.awaitingUser)&&!o.awaitingRegistration&&!o.awaitingPlayerConsent&&(!o.awaitingMedical||o.medicalReport&&o.awaitingUser)&&!o.saleResponsePending&&o.status==='pending'&&(o.type!=='renewal'||o.awaitingUser&&(!o.lastMessageId||o.lastMessageId===m.id))&&(o.type!=='sell'||owned(p));
     if(m.action==='incident')return !!window.FM_INCIDENTS?.pending(m.incidentId);
     if(m.action==='career')return !!GameState.world.governance?.jobs?.some(j=>j.status==='open'&&j.expires>=GameState.today)||!!GameState.world.governance?.applications?.some(a=>['offer','counter'].includes(a.status));
     if(m.action==='contract')return owned(p)&&!p.loanId&&!window.FM_RENEWALS?.current(p.id)&&MARKET_CONTRACTS.contractEnd(p)<=MARKET_CONTRACTS.addMonths(GameState.today,12)&&(!m.contractEndAtCreation||m.contractEndAtCreation===MARKET_CONTRACTS.contractEnd(p))&&(!Number.isInteger(m.contractAtCreation)||p.contract===m.contractAtCreation);
@@ -24053,7 +24080,7 @@ window.FM_INBOX = (() => {
   function status(m) {
     if(m.action==='incident'){const e=window.FM_INCIDENTS?.get(m.incidentId);return ({pending:isPending(m)?'Tu decisión':'Fuera de plazo',resolved:'Decisión aplicada',expired:'Resuelto por vencimiento',cancelled:'Archivado por cambio de club'})[e?.status]||'Archivado';}
     if(m.offerId) {
-      const o=offerFor(m);if(!o)return 'Oferta archivada';if(o.awaitingPlayerConsent)return 'Jugador negociando con el comprador';if(o.awaitingMedical)return o.medicalReport&&o.awaitingUser?'Dictamen médico · tu decisión':'Reconocimiento médico programado';if(o.awaitingRegistration)return 'Inscripción el '+date(o.registrationDate);if(o.saleResponsePending)return 'Esperando al comprador';if(o.type==='renewal'&&o.lastMessageId&&o.lastMessageId!==m.id)return 'Propuesta anterior · ver estado actual';
+      const o=offerFor(m);if(!o)return 'Oferta archivada';if(o.status!=='pending')return ({accepted:'Acuerdo cerrado',rejected:'Oferta rechazada',expired:'Oferta vencida',cancelled:'Oferta retirada',canceled:'Oferta retirada'})[o.status]||'Negociación finalizada';if(latestOfferMessage(m.offerId)!==m.id)return 'Mensaje anterior · ver estado actual';if(o.awaitingPlayerConsent)return 'Jugador negociando con el comprador';if(o.awaitingMedical)return o.medicalReport&&o.awaitingUser?'Dictamen médico · tu decisión':'Reconocimiento médico programado';if(o.awaitingRegistration)return 'Inscripción el '+date(o.registrationDate);if(o.saleResponsePending)return 'Esperando al comprador';if(o.type==='renewal'&&o.lastMessageId&&o.lastMessageId!==m.id)return 'Propuesta anterior · ver estado actual';
       return ({pending:o.type==='sell'||o.awaitingUser?'Tu decisión':'En negociación',accepted:'Acuerdo cerrado',rejected:'Oferta rechazada',expired:'Oferta vencida',cancelled:'Oferta retirada',canceled:'Oferta retirada'})[o.status]||'Negociación finalizada';
     }
     if(m.dismissed)return 'Revisado';
@@ -24068,7 +24095,8 @@ window.FM_INBOX = (() => {
     if(m.proTab){add('pro-'+m.proTab,'Abrir expediente de '+m.proTab,blocked,true);return result;}
     if(m.staffNegotiationId){add('staff-review','Revisar contraoferta del empleado',blocked,true);return result;}
     if(m.action==='incident'){for(const c of window.FM_INCIDENTS?.choices(m.incidentId)||[])add('incident:'+c.id,c.label,blocked||c.disabled);return result;}
-    if(o?.status==='pending'&&!o.awaitingRegistration&&!o.awaitingPlayerConsent) {
+    if(o?.status==='pending'&&latestOfferMessage(m.offerId)!==m.id)add('offer-current','Ver estado actual de la negociación',false,true);
+    else if(o?.status==='pending'&&!o.awaitingRegistration&&!o.awaitingPlayerConsent) {
       if(o.awaitingMedical){if(o.medicalReport&&o.awaitingUser)add('medical-report','Revisar dictamen médico y decidir',blocked,true);add('offer-cancel','Retirar incorporación',blocked);}
       else
       if(o.type==='renewal'&&owned(p)){add('renewal-open',o.counter?'Contraofertar renovación':'Ver renovación',blocked);if(!o.lastMessageId||o.lastMessageId===m.id){if(o.counter)add('renewal-accept','Aceptar condiciones',blocked,true);add('renewal-cancel','Retirar propuesta',blocked);}}
@@ -24090,9 +24118,10 @@ window.FM_INBOX = (() => {
     }
     if(m.action==='medical'||m.action==='tactics')add('go-tactics','Revisar alineación');
     if(m.action==='recovery'&&isPending(m))add('team-recovery','Aplicar recuperación colectiva',blocked,true);
-    if(m.action==='recovery'||m.action==='medical')add('go-training','Plan de entrenamiento');
+    if(m.action==='recovery'||m.action==='medical'||m.action==='training')add('go-training','Plan de entrenamiento');
     if(m.action==='finance')add('go-finances','Revisar finanzas');
     if(m.action==='career')add('go-career','Revisar proyectos',false,true);
+    if(m.action==='tables')add('go-tables','Ver competición',false,true);
     if(m.action==='match')add('report','Ver informe del partido');
     if(m.action==='match'||m.type==='partidos')add('go-match','Centro de partido');
     if(!m.offerId&&isPending(m))add('dismiss','Revisado por el DT');
@@ -24109,7 +24138,7 @@ window.FM_INBOX = (() => {
   function offerInfo(m) {
     const o=offerFor(m);if(!o)return '';
     const parts=MARKET_CONTRACTS.offerPresentation(o).facts;
-    if(o.awaitingPlayerConsent)parts.unshift(['Etapa','Clubes de acuerdo · el jugador negocia con el comprador']);else if(o.awaitingMedical)parts.unshift(['Etapa',o.medicalReport?'Dictamen médico disponible · revisá antes de firmar':'Reconocimiento médico programado para '+date(o.medicalDate)]);else if(o.awaitingRegistration)parts.unshift(['Etapa','Acuerdo firmado · inscripción el '+date(o.registrationDate)]);else if(o.awaitingPlayerTerms)parts.unshift(['Etapa','Club de acuerdo · falta negociar con el jugador']);else if(o.awaitingUser&&o.counter)parts.unshift(['Etapa',o.stage==='player'?'Contraoferta del representante pendiente':'Contraoferta del club pendiente']);else if(o.status==='pending')parts.unshift(['Etapa',o.type==='sell'?(o.saleResponsePending?'Comprador evaluando contraoferta':'Propuesta recibida · tu decisión'):o.stage==='player'?'Representante evaluando contrato':o.dealType==='loan'?'Club evaluando la cesión':'Club evaluando el pase']);
+    if(o.status!=='pending')parts.unshift(['Etapa',status(m)]);else if(o.awaitingPlayerConsent)parts.unshift(['Etapa','Clubes de acuerdo · el jugador negocia con el comprador']);else if(o.awaitingMedical)parts.unshift(['Etapa',o.medicalReport?'Dictamen médico disponible · revisá antes de firmar':'Reconocimiento médico programado para '+date(o.medicalDate)]);else if(o.awaitingRegistration)parts.unshift(['Etapa','Acuerdo firmado · inscripción el '+date(o.registrationDate)]);else if(o.awaitingPlayerTerms)parts.unshift(['Etapa','Club de acuerdo · falta negociar con el jugador']);else if(o.awaitingUser&&o.counter)parts.unshift(['Etapa',o.stage==='player'?'Contraoferta del representante pendiente':'Contraoferta del club pendiente']);else if(o.status==='pending')parts.unshift(['Etapa',o.type==='sell'?(o.saleResponsePending?'Comprador evaluando contraoferta':'Propuesta recibida · tu decisión'):o.stage==='player'?'Representante evaluando contrato':o.dealType==='loan'?'Club evaluando la cesión':'Club evaluando el pase']);
     return `<div class="fm-inbox-facts">${parts.map(([label,value])=>`<div><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`).join('')}</div>${o.reason?`<p class="fm-inbox-note">${esc(o.reason)}</p>`:''}`;
   }
   function reportInfo(m) {
@@ -24122,9 +24151,9 @@ window.FM_INBOX = (() => {
   }
   function messageContext(m){
     const o=m.offerId?offerFor(m):null,p=lookup(m.playerId),pending=isPending(m),r=p&&window.FM_DEPTH?FM_DEPTH.ensure()?.reports?.[p.id]:null;
-    const sender=o?(o.type==='renewal'?MARKET_CONTRACTS.negotiationProfile(p,o).name+' · representante simulado':clubName(o.type==='sell'?o.toClub:o.fromClub)):r?.staffName&&category(m)==='ojeo'?r.staffName:({ojeo:'Secretaría técnica',contratos:'Secretaría técnica',directiva:'Directiva del club',plantel:'Cuerpo técnico y servicios médicos',partidos:'Analista de rendimiento',mercado:'Departamento de fichajes',prensa:'Resumen de prensa',sistema:'Secretaría del club'})[category(m)]||'Secretaría del club';
-    const deadline=o?.status==='pending'?(o.expiresAt||o.expiresDate):null;
-    const next=o?.awaitingPlayerConsent?'Los clubes acordaron la operación. El comprador y el representante negocian el contrato; el futbolista puede aceptar, contraofertar o rechazar. Avanzá el tiempo para recibir la respuesta.':o?.awaitingMedical?(o.medicalReport?'El dictamen está disponible. Revisá el informe antes de confirmar la incorporación o retirarte sin pagar el pase.':'El reconocimiento está programado. Avanzá el tiempo para recibir el dictamen antes de firmar.'):o?.awaitingRegistration?'El acuerdo está firmado. El jugador permanece en su club hasta la fecha de inscripción; los fondos y la plaza quedan comprometidos.':o?.status==='pending'?(o.type==='sell'?(o.saleResponsePending?'El comprador está evaluando tu contraoferta. Avanzá el tiempo para recibir respuesta.':'Evaluá las condiciones: podés aceptar, rechazar o enviar una contraoferta.'):o.awaitingPlayerTerms?'El pase está acordado. Abrí la negociación del contrato con el jugador.':o.awaitingUser&&o.counter?'Revisá la contraoferta del club.':'La contraparte está evaluando la propuesta; avanzá el tiempo para recibir respuesta.'):pending?'Revisá el informe y elegí una de las acciones disponibles.':'Mensaje informativo; no requiere una decisión pendiente.';
+    const sender=m.sender|| (o?(o.type==='renewal'||o.stage==='player'&&!o.awaitingPlayerTerms?(MARKET_CONTRACTS.negotiationProfile(p,o)?.name||'Representante')+' · representante simulado':clubName(o.type==='sell'?o.toClub:o.fromClub)):r?.staffName&&category(m)==='ojeo'?r.staffName:({ojeo:'Secretaría técnica',contratos:'Secretaría técnica',directiva:'Directiva del club',plantel:'Cuerpo técnico y servicios médicos',partidos:'Analista de rendimiento',mercado:'Departamento de fichajes',prensa:'Resumen de prensa',sistema:'Secretaría del club'})[category(m)]||'Secretaría del club');
+    const deadline=o?.status==='pending'?(o.personalDeadline||o.expiresAt||o.expiresDate):null;
+    const next=o&&o.status!=='pending'?`La negociación terminó: ${status(m).toLowerCase()}. ${o.reason||'Las condiciones y el resultado figuran en el expediente.'}`:o?.awaitingPlayerConsent?'Los clubes acordaron la operación. El comprador y el representante negocian el contrato; el futbolista puede aceptar, contraofertar o rechazar. Avanzá el tiempo para recibir la respuesta.':o?.awaitingMedical?(o.medicalReport?'El dictamen está disponible. Revisá el informe antes de confirmar la incorporación o retirarte sin pagar el pase.':'El reconocimiento está programado. Avanzá el tiempo para recibir el dictamen antes de firmar.'):o?.awaitingRegistration?'El acuerdo está firmado. El jugador permanece en su club hasta la fecha de inscripción; los fondos y la plaza quedan comprometidos.':o?.status==='pending'?(o.type==='sell'?(o.saleResponsePending?'El comprador está evaluando tu contraoferta. Avanzá el tiempo para recibir respuesta.':'Evaluá las condiciones: podés aceptar, rechazar o enviar una contraoferta.'):o.awaitingPlayerTerms?'El pase está acordado. Abrí la negociación del contrato con el jugador.':o.awaitingUser&&o.counter?(o.stage==='player'?'Revisá las condiciones del representante: salario, primas y papel en el plantel.':'Revisá la contraoferta del club: precio y condiciones del pase.'):'La contraparte está evaluando la propuesta; avanzá el tiempo para recibir respuesta.'):pending?'Revisá el informe y elegí una de las acciones disponibles.':'Mensaje informativo; no requiere una decisión pendiente.';
     return `<section class="office-inbox-context"><p><b>De:</b> ${esc(sender)} · <b>${pending?'Requiere atención':'Información'}</b></p>${deadline?`<p><b>Vencimiento:</b> ${date(deadline)}</p>`:''}<p><b>Próximo paso:</b> ${esc(next)}</p>${r&&category(m)==='ojeo'?`<p>Observación: ${r.level}% · ${r.status==='active'?'en curso':r.status==='cancelled'?'cancelada':'finalizada'}${r.duration?' · plazo '+r.duration+' días':''}${r.status==='active'&&r.dueDate?' · fecha prevista '+date(r.dueDate):''}.</p>`:''}</section>`;
   }
   function readPanel(m) {
@@ -24144,6 +24173,7 @@ window.FM_INBOX = (() => {
     if(!active())return;ensure();const m=GameState.inbox.find(q=>q.id===Number(id));if(!m)return;
     const allowed=actionsFor(m).find(a=>a.id===action&&!a.disabled);if(!allowed)return toast('La situación cambió. Revisá el estado del mensaje.');
     const p=lookup(m.playerId);m.read=true;
+    if(action==='offer-current'){ui().selected=latestOfferMessage(m.offerId);ui().reportOpen=null;markRead(ui().selected);render();return;}
     if(action.startsWith('incident:')){const result=FM_INCIDENTS.resolve(m.incidentId,action.slice(9));if(!result.ok)toast(result.reason);render();return;}
     if(action==='scout-cancel')return window.FM_OFFICE?.cancelObservation(p.id);
     if(action==='profile'){WORLD_STORAGE.scheduleSave();return details(p.id);}
@@ -24176,13 +24206,18 @@ window.FM_INBOX = (() => {
     if(b.dataset.inboxGo){view=b.dataset.inboxGo;render();}
     if(b.dataset.inboxPlayer)details(Number(b.dataset.inboxPlayer));
   });
-  document.addEventListener('input',event=>{if(active()&&event.target.id==='inboxSearch'){ui().query=event.target.value.slice(0,120);WORLD_STORAGE.scheduleSave();render();}});
+  let searchTimer;
+  function updateSearch(event){if(!active()||event.target.id!=='inboxSearch')return;ui().query=event.target.value.slice(0,120);clearTimeout(searchTimer);if(event.isComposing)return;searchTimer=setTimeout(()=>{
+    if(view!=='inbox'||!document.getElementById('inboxSearch'))return;
+    const list=document.querySelector('.fm-inbox-list'),template=document.createElement('template');template.innerHTML=renderInbox();const replacement=template.content.querySelector('.fm-inbox-list');if(list&&replacement){list.replaceChildren(...replacement.childNodes);list.scrollTop=0;}WORLD_STORAGE.scheduleSave();
+  },160);}
+  document.addEventListener('input',updateSearch);document.addEventListener('compositionend',updateSearch);
   document.addEventListener('change',event=>{if(active()&&event.target.id==='inboxCategory'){ui().category=event.target.value;WORLD_STORAGE.scheduleSave();render();}});
   window.inboxView=renderInbox;
   render=function(){
-    const focus=document.activeElement,searching=focus?.id==='inboxSearch',caret=searching?focus.selectionStart:null;
+    const focus=document.activeElement,searching=focus?.id==='inboxSearch',selection=searching?[focus.selectionStart,focus.selectionEnd,focus.selectionDirection]:null;
     if(active())ensure();legacyRender();
-    if(searching){const replacement=document.getElementById('inboxSearch');if(replacement){replacement.focus({preventScroll:true});if(typeof caret==='number')replacement.setSelectionRange(caret,caret);}}
+    if(searching){const replacement=document.getElementById('inboxSearch');if(replacement){replacement.focus({preventScroll:true});if(typeof selection?.[0]==='number')replacement.setSelectionRange(...selection);}}
   };
   return {ensure,push,onMessage,refreshAlerts,render:renderInbox,readAll,markRead,actionsFor,isPending,execute};
 })();
@@ -24397,15 +24432,18 @@ window.FM_DRESSING_ROOM=(()=>{
     const side=1-m.userSide,margin=m.score[side]-m.score[m.userSide],t=m.aiTactics??={},s=m.simulation;
     const own=m.stats[side],rival=m.stats[m.userSide],metrics=s?.teamMetrics?.[side],other=s?.teamMetrics?.[m.userSide];
     const before={mentality:t.mentality,tempo:t.tempo,line:t.line,pressing:t.pressing,width:t.width};let reason='',evidence='';
+    const phaseBefore=JSON.stringify(t.phases||{}),live=which=>m.lineups[which].filter(id=>!(m.red||[]).includes(id)&&!(m.injured||[]).includes(id)),outfield=live(side).map(player).filter(p=>p&&p.posicion!=='POR'),condition=outfield.reduce((sum,p)=>sum+p.condicion_fisica,0)/Math.max(1,outfield.length),shortHanded=live(side).length<live(m.userSide).length;
     const shift=(key,delta)=>t[key]=clamp(Number(t[key]??50)+delta,20,85);
     const setPhase=(key,field,value)=>{t.phases??={};t.phases[key]??={};t.phases[key][field]=value};
-    if(margin<0&&milestone>=60){t.mentality=milestone>=75?'Ofensiva':'Positiva';shift('line',10);shift('pressing',12);shift('tempo',8);setPhase('transition','onLoss','Contrapresión');reason='adelanta el bloque y busca recuperar cerca del área';evidence=`Pierde por ${Math.abs(margin)} gol${margin<-1?'es':''} a los ${m.minute} minutos`}
+    if(shortHanded&&margin>=0){t.mentality='Cauta';t.line=Math.min(Number(t.line??50),38);t.pressing=Math.min(Number(t.pressing??50),48);setPhase('transition','onLoss','Reagrupar');setPhase('transition','onWin','Contraatacar');reason='reorganiza el bloque con inferioridad numérica y conserva una salida';evidence=`Juega con ${live(side).length} contra ${live(m.userSide).length}; marcador ${m.score[side]}–${m.score[m.userSide]}`}
+    else if(condition<60&&Number(t.pressing??50)>65){shift('pressing',-15);shift('tempo',-6);setPhase('transition','onLoss','Reagrupar');reason='reduce la presión sostenida por el desgaste del equipo';evidence=`Condición media de sus jugadores de campo: ${Math.round(condition)}%`}
+    else if(margin<0&&milestone>=60){t.mentality=milestone>=75&&!shortHanded?'Ofensiva':'Positiva';shift('line',10);shift('pressing',12);shift('tempo',8);if(condition<65||shortHanded)t.pressing=Math.min(t.pressing,60);setPhase('transition','onLoss',condition<65||shortHanded?'Reagrupar':'Contrapresión');reason='adelanta el bloque y busca recuperar cerca del área';evidence=`Pierde por ${Math.abs(margin)} gol${margin<-1?'es':''} a los ${m.minute} minutos${condition<65||shortHanded?'; dosifica la presión por desgaste o inferioridad numérica':''}`}
     else if(margin>0&&milestone>=60){t.mentality='Cauta';shift('line',-10);shift('pressing',-8);shift('tempo',-7);setPhase('transition','onWin','Contraatacar');setPhase('transition','onLoss','Reagrupar');reason='protege la ventaja y prepara la salida rápida';evidence=`Defiende una ventaja de ${margin} gol${margin>1?'es':''}`}
     else if(metrics&&m.minute>=20&&own.passes>=35&&own.completedPasses/own.passes<.72){shift('tempo',-6);setPhase('inPossession','buildUp','Directa');setPhase('transition','keeper','Largo');reason='salta la primera presión con una salida más directa';evidence=`Sólo ${Math.round(own.completedPasses/own.passes*100)}% de sus ${own.passes} pases encontraron destino`}
     else if(other&&other.crosses>=4&&other.completedCrosses>=2){shift('width',8);setPhase('outOfPossession','trap','Dentro');reason='cubre las bandas y orienta la circulación hacia el centro';evidence=`Tu equipo conectó ${other.completedCrosses} de ${other.crosses} centros`}
     else if(metrics&&metrics.counters>=3&&Number(GameState.tactics.line)>60){setPhase('transition','onWin','Contraatacar');setPhase('inPossession','buildUp','Directa');reason='busca con más frecuencia el espacio detrás de tu defensa';evidence=`Registró ${metrics.counters} transiciones y observó tu línea adelantada`}
     else if(other&&other.finalThirdEntries>=Math.max(7,(metrics?.finalThirdEntries||0)*1.6)&&Number(rival.xg||0)>Number(own.xg||0)+.25){shift('line',-7);setPhase('outOfPossession','block','Medio');setPhase('transition','onWin','Contraatacar');reason='reduce el espacio entre líneas y guarda una salida de contraataque';evidence=`Tu equipo suma ${other.finalThirdEntries} entradas al último tercio y ${Number(rival.xg||0).toFixed(2)} xG`}
-    if(!reason)return false;
+    if(!reason||Object.keys(before).every(key=>before[key]===t[key])&&phaseBefore===JSON.stringify(t.phases||{}))return false;
     const decision={minute:m.minute,side,reason,evidence,before,after:{mentality:t.mentality,tempo:t.tempo,line:t.line,pressing:t.pressing,width:t.width}};
     if(s){s.aiDecisions??=[];s.aiDecisions.push(decision);s.aiDecisions=s.aiDecisions.slice(-8)}
     log(`📋 El DT rival ${reason}. ${evidence}.`);return true;
@@ -24625,7 +24663,8 @@ window.FM_RENEWALS=(()=>{
     if(r&&fields.every(k=>t[k]===r.counter[k]))return {ok:false,reason:'Modificá una condición o aceptá la contraoferta del representante'};
     let row=r;
     if(!row){const s=state();row={id:`renewal-${GameState.year}-${s.nextId++}`,type:'renewal',stage:'player',playerId:p.id,fromClub:ownership(p),toClub:ownership(p),fee:0,status:'pending',createdDate:GameState.today,expiresDate:addDays(GameState.today,MARKET_CONTRACTS.negotiationProfile(p,{...t,toClub:ownership(p),renewal:true}).patience),counterRounds:0,negotiationHistory:[],baselineEnd:MARKET_CONTRACTS.contractEnd(p)};s.renewals.unshift(row)}else row.counterRounds++;
-    Object.assign(row,t,{awaitingUser:false,responseDate:addDays(GameState.today,1),acceptedCounter:false});delete row.counter;record(row,'DT');
+    const bargaining=row.wage==null?{stage:'player',bestValue:MARKET_CONTRACTS.bargainingValue(t),concessions:0,stalled:0}:MARKET_CONTRACTS.bargainingProgress(row,t);
+    Object.assign(row,t,{bargaining,awaitingUser:false,responseDate:addDays(GameState.today,1),acceptedCounter:false});delete row.counter;record(row,'DT');
     notify(row,r?'Nueva propuesta de renovación':'Renovación propuesta',`${p.nombre}: salario ${money(t.wage)}/semana, prima ${money(t.bonus)}, hasta ${date(t.endDate)} y papel de ${t.playingTime.toLowerCase()}. El representante responderá desde el ${date(row.responseDate)}. Se reserva la prima y sólo el incremento salarial; todavía no se paga ni se cambia el vínculo.`);
     WORLD_STORAGE.scheduleSave();return {ok:true,negotiation:row};
   }
@@ -24649,11 +24688,12 @@ window.FM_RENEWALS=(()=>{
       const wanted=expectations(p,r),round=r.counterRounds||0;
       if(wanted.refuse){finish(r,'rejected',wanted.refuse);continue}
       if(round>wanted.patience){finish(r,'rejected','Las posiciones no se acercaron y el representante se retiró');continue}
-      const wage=Math.ceil(wanted.wage*(1-Math.min(.06,round*.015))/100)*100,bonus=Math.round(wanted.bonus*(1-Math.min(.15,round*.035)));
+      r.bargaining??=MARKET_CONTRACTS.bargainingProgress(r);const progress=r.bargaining.concessions||0;
+      const wage=Math.ceil(wanted.wage*(1-Math.min(.06,progress*.015))/100)*100,bonus=Math.round(wanted.bonus*(1-Math.min(.15,progress*.035)));
       const credit=Math.max(0,r.wage-wage)*Math.min(104,r.years*52),bonusNeeded=Math.max(0,bonus-credit);
       if(!r.acceptedCounter&&(r.wage<wage||r.bonus<bonusNeeded||r.years<wanted.years||r.releaseClause>wanted.maxClause)){
         r.counter={...Object.fromEntries(fields.map(k=>[k,r[k]])),wage:Math.max(r.wage,wage),bonus:Math.max(r.bonus,bonusNeeded),years:Math.max(r.years,wanted.years),releaseClause:Math.min(r.releaseClause,wanted.maxClause),endDate:contractEnd(p,Math.max(r.years,wanted.years),`${Number(r.endDate.slice(0,4))-r.years}-01-01`)};r.awaitingUser=true;r.counterDate=GameState.today;r.expectations=wanted;record(r,'Representante',r.counter);
-        notify(r,'Contraoferta de renovación',`${p.nombre} propone ${money(r.counter.wage)}/semana, prima ${money(r.counter.bonus)}, ${r.counter.years} años y papel de ${r.counter.playingTime.toLowerCase()}. ${wanted.reasons.join('. ')}. Podés aceptar, contraofertar o retirarte antes del ${date(r.expiresDate)}.`);continue;
+        notify(r,'Contraoferta de renovación',`${p.nombre} propone ${money(r.counter.wage)}/semana, prima ${money(r.counter.bonus)}, ${r.counter.years} años y papel de ${r.counter.playingTime.toLowerCase()}. ${wanted.reasons.join('. ')}. ${r.bargaining.stalled?'El paquete no mejoró frente a la mejor propuesta anterior; las rondas por sí solas no rebajan las exigencias. ':''}Podés aceptar, contraofertar o retirarte antes del ${date(r.expiresDate)}.`);continue;
       }
       if(!CLUB_AI.transaction(r.fromClub,-r.bonus,`Prima de renovación: ${p.nombre}`,'contratos')){finish(r,'rejected','La caja no alcanza para la prima');continue}
       const loan=outgoing(p),borrowerCost=loan?MARKET_CONTRACTS.loanWageFor(p,loan.borrowerClub):0;
@@ -25306,7 +25346,7 @@ window.FM_MEDICINE=(()=>{
   function travel(homeId,awayId,neutral=false){const home=club(homeId),away=club(awayId),a=coordinates(home),b=coordinates(away);if(homeId===awayId)return {km:0,estimated:true,basis:'Mismo club'};
     if(!a.point||!b.point)return {km:home?.country===away?.country?600:2200,estimated:true,basis:'Distancia orientativa sin ubicación disponible'};
     const rad=x=>x*Math.PI/180,[la,loa]=a.point.map(rad),[lb,lob]=b.point.map(rad),h=Math.sin((la-lb)/2)**2+Math.cos(la)*Math.cos(lb)*Math.sin((loa-lob)/2)**2,km=Math.round(6371*2*Math.asin(Math.min(1,Math.sqrt(h))));
-    return {km:Math.max(home?.city&&home.city===away?.city?15:0,km),estimated:true,basis:(a.precise&&b.precise?'Centros urbanos aproximados':'Capitales como referencia orientativa')+(neutral?' · sede neutral no geolocalizada':'')};
+    return {km:Math.max(home?.city&&home.city===away?.city?15:0,km),estimated:true,basis:(a.precise&&b.precise?'Centros urbanos aproximados':'Capitales como referencia orientativa')+(neutral?' · sede neutral no geolocalizada: reparto simétrico orientativo entre ambos clubes':'')};
   }
   function appearance(p,{id,date=GameState.today,minutes=90,load=1,distance=0,random=Math.random,fatigue=true}){
     const r=state(p,date),time=bound(minutes,0,130);if(!time||!work(p,{id,date,minutes:time,load:Math.round(time*load+Math.min(35,distance/160)),distance:Math.round(distance)}))return false;
@@ -25319,14 +25359,14 @@ window.FM_MEDICINE=(()=>{
     if(!m||!active())return false;m.medical??={minutes:{},lastMinute:m.minute,closed:false};if(m.medical.closed)return false;
     const distance=travel(m.home,m.away,m.neutral),ids=new Set([...Object.keys(m.minutesPlayed||{}),...Object.keys(m.medical.minutes||{})]);
     for(const value of ids){const p=player(Number(value));if(!p)continue;const minutes=Number(m.minutesPlayed?.[value]??m.medical.minutes[value]??0),side=p.clubId===m.home?0:1;
-      appearance(p,{id:`match-${m.eventId}-${m.home}-${m.away}`,minutes,load:intensity(m,side),distance:side===1?distance.km*2:0,fatigue:false});
+      appearance(p,{id:`match-${m.eventId}-${m.home}-${m.away}`,minutes,load:intensity(m,side),distance:m.neutral?distance.km:side===1?distance.km*2:0,fatigue:false});
       if(p.injury>0&&!state(p).injury)state(p); // Adopt legacy engine injury without rerolling its duration.
     }
     m.medical.closed=true;return true;
   }
   function afterQuickMatch(event,g,result,lineups){
-    if(!active())return false;const journey=travel(g.home,g.away,event?.neutral),length=result?.extraTime?120:90;let count=0;
-    for(let side=0;side<2;side++){const ids=lineups?.[side]||WORLD_ENGINE.aiXI?.(side?g.away:g.home)||[];for(const id of ids){const p=player(id);if(p&&appearance(p,{id:`match-${event?.id||event?.date}-${g.home}-${g.away}`,date:event?.date||GameState.today,minutes:g.playerMinutes?.[id]??length,load:window.FM_TACTICS?.matchLoad?.(CLUB_AI.tacticsFor(side?g.away:g.home))??1,distance:side?journey.km*2:0}))count++}}
+    if(!active())return false;const journey=travel(g.home,g.away,event?.neutral||g.neutral),length=result?.extraTime?120:90;let count=0;
+    for(let side=0;side<2;side++){const ids=lineups?.[side]||WORLD_ENGINE.aiXI?.(side?g.away:g.home)||[];for(const id of ids){const p=player(id);if(p&&appearance(p,{id:`match-${event?.id||event?.date}-${g.home}-${g.away}`,date:event?.date||GameState.today,minutes:g.playerMinutes?.[id]??length,load:window.FM_TACTICS?.matchLoad?.(CLUB_AI.tacticsFor(side?g.away:g.home))??1,distance:event?.neutral||g.neutral?journey.km:side?journey.km*2:0}))count++}}
     return count>0;
   }
   function resting(p,day=GameState.today){const r=state(p);return !!(r?.restUntil&&day<=r.restUntil)}
@@ -25371,10 +25411,10 @@ window.FM_DEVELOPMENT=(()=>{
     if(!p||!s)return null;
     return s.plans[p.id]??={load:'Normal',position:'NONE',positionProgress:0,attributeProgress:{},weeklyLoad:0,loadDate:GameState.today,restUntil:null,baseline:overall(p),lastReview:null};
   }
-  function fixtures(){const id=GameState.userClub.id;return GameState.calendar.filter(e=>!e.done&&e.date>=GameState.today&&(WORLD_ENGINE.eventGames(e)||[]).some(g=>g.home===id||g.away===id)).sort((a,b)=>a.date.localeCompare(b.date))}
+  function fixtures(){const id=GameState.userClub.id;return GameState.calendar.filter(e=>!e.done&&e.date>=GameState.today&&(WORLD_ENGINE.eventGames(e)||[]).some(g=>!g.result&&!g.cancelled&&(g.home===id||g.away===id))).sort((a,b)=>a.date.localeCompare(b.date))}
   function schedule(day=GameState.today){
     const future=fixtures(),next=future.find(e=>e.date>=day),until=next?days(next.date,day):30;
-    const recent=GameState.calendar.filter(e=>e.done&&days(day,e.date)>=0&&days(day,e.date)<=2&&(WORLD_ENGINE.eventGames(e)||[]).some(g=>g.home===GameState.userClub.id||g.away===GameState.userClub.id));
+    const recent=GameState.calendar.filter(e=>days(day,e.date)>=0&&days(day,e.date)<=2&&(WORLD_ENGINE.eventGames(e)||[]).some(g=>g.result&&(g.home===GameState.userClub.id||g.away===GameState.userClub.id)));
     const average=mine().reduce((n,p)=>n+p.condicion_fisica,0)/Math.max(1,mine().length),style=GameState.tactics.style;
     let focus=GameState.training.focus,intensity=GameState.training.intensity,phase='Construcción';
     if(until===0){focus='Recuperación';intensity='Baja';phase='Activación de partido'}
@@ -25402,7 +25442,7 @@ window.FM_DEVELOPMENT=(()=>{
     }return e;
   }
   function minutesSupport(p,day=GameState.today){
-    const since=Math.max(35,days(day,day.slice(0,4)+'-01-01')),expected=Math.min(2200,since*6),reserve=(p.reserveHistory||[]).filter(r=>days(day,r.date)>=0&&days(day,r.date)<=90).reduce((n,r)=>n+(Number(r.minutes)||0),0),actual=Math.max(0,(Number(p.minutes)||0)+Math.min(1500,reserve)*.35);
+    const season=window.FM_SEASONS?.leagueSeason(club(p.clubId||p.academyClub)?.leagueId),start=season?.start&&season.start<=day?season.start:day.slice(0,4)+'-01-01',since=Math.max(35,days(day,start)),expected=Math.min(2200,since*6),reserve=(p.reserveHistory||[]).filter(r=>days(day,r.date)>=0&&days(day,r.date)<=90).reduce((n,r)=>n+(Number(r.minutes)||0),0),actual=Math.max(0,(Number(p.minutes)||0)+Math.min(1500,reserve)*.35);
     return Math.max(.55,Math.min(1.2,.55+actual/Math.max(250,expected)*.5));
   }
   function developmentRate(p,key,{count=1,intensity=1,coach=65,manager=10,day=GameState.today}={}){
@@ -26736,9 +26776,18 @@ window.FM_PROGRAMMES=(()=>{
   function onDay(day){const s=ensure();if(s.lastDay===day)return;s.lastDay=day;for(const r of Object.values(s.routes).filter(r=>r.status==='active')){const e=FM_OFFICE.office().staff.find(e=>e.id===r.staffId);if(!e||day>r.end){r.status='completed';continue;}while(day>=r.nextPayment&&r.nextPayment<r.end){if(FM_FINANCES.operatingAvailable()<r.weekly){r.status='suspended';FM_INBOX.push({title:'Ruta suspendida por falta de fondos',body:`${e.name}, ${r.country}. No se cobró una semana sin caja; los encargos se detienen y podés organizar una nueva ruta.`,type:'ojeo',proTab:'scouting'});for(const report of Object.values(FM_DEPTH.ensure().reports))if(report.staffId===e.id&&report.status==='active')report.status='cancelled';break;}MANAGEMENT.transaction(-r.weekly,'Estadía de ojeo en '+r.country,'ojeo');r.nextPayment=plus(r.nextPayment,7);}if(day>=r.arrives&&r.status==='active'){e.regionKnowledge??={};e.regionKnowledge[r.country]=Math.min(100,(e.regionKnowledge[r.country]||0)+.75);r.knowledge=e.regionKnowledge[r.country];}}
   }
   function configure(raw){const s=ensure(),t=s.training,week=[];if(locked())return{ok:false,reason:'Terminá el partido antes de editar el microciclo'};for(let i=0;i<7;i++){const am=raw['am'+i],pm=raw['pm'+i];if(!sessions[am]||!sessions[pm])return{ok:false,reason:'Elegí dos sesiones válidas para cada día'};week.push({am,pm});}const load=Number(raw.load);if(!Number.isFinite(load)||load<.5||load>1.5)return{ok:false,reason:'La carga debe estar entre 0,5 y 1,5'};if(raw.staffId!=='auto'&&!FM_OFFICE.office().staff.some(e=>e.id===raw.staffId))return{ok:false,reason:'El empleado elegido ya no está en el club'};Object.assign(t,{enabled:raw.enabled===true||raw.enabled==='on',week,load,staffId:raw.staffId});WORLD_STORAGE.scheduleSave();return{ok:true};}
-  function applySession(period='am'){const t=ensure().training;if(!t.enabled)return false;const key=GameState.today+':'+period;if(t.applied.includes(key))return false;t.applied.push(key);t.applied=t.applied.slice(-42);const weekday=(new Date(GameState.today).getUTCDay()+6)%7,choice=t.week[weekday][period],defined=sessions[choice],fixture=FM_DEVELOPMENT.fixtures().find(e=>e.date===GameState.today),selected=fixture&&choice!=='recovery'?sessions.matchprep:defined,staff=FM_OFFICE.office().staff.find(e=>e.id===t.staffId),ability=staff?.ability||FM_DEVELOPMENT.coachQuality();let gains=0,rests=0;
-    for(const p of mine()){if(p.injury||FM_NATIONALS.unavailable(p))continue;const rest=selected.load===0||p.condicion_fisica<65||FM_MEDICINE.resting(p)||FM_MEDICINE.risk(p).label==='Alto',dose=rest?0:selected.load*t.load;FM_MEDICINE.trainingLoad(p,dose,{date:GameState.today,recovery:rest,session:'programme-'+period});if(rest){rests++;continue;}const e=FM_DEVELOPMENT.evolution(p),headroom=Math.max(0,e.ceiling-overall(p)),gain=.05*(ability/70)*Math.min(1,headroom/5)*(t.load>.9?1: .85),result=FM_ATTRIBUTES.train(p,selected.attribute,gain,99);if(result.improved)gains++;FM_DEVELOPMENT.playerPlan(p).weeklyLoad+=dose;}
-    if(choice==='matchprep'||choice==='setpieces')FM_TACTICS.trainFamiliarity(.3);const report={date:GameState.today,period,session:selected.name,ability,gains,rests,load:selected.load*t.load};t.history.unshift(report);t.history=t.history.slice(0,42);GameState.training.sessions=(GameState.training.sessions||0)+1;GameState.training.lastReport=`${selected.name}, ${period==='am'?'mañana':'tarde'}: ${gains} mejoras; ${rests} jugadores con recuperación. Carga ${report.load.toFixed(2)}.`;return true;
+  function applySession(period='am'){
+    const t=ensure().training,s=FM_DEVELOPMENT.ensure();if(!t.enabled||!['am','pm'].includes(period))return false;
+    const key=GameState.today+':'+period;if(t.applied.includes(key)||s.trainingDate===GameState.today&&!t.applied.some(k=>k.startsWith(GameState.today+':')))return false;
+    t.applied.push(key);t.applied=t.applied.slice(-42);s.trainingDate=GameState.today;
+    const weekday=(new Date(GameState.today).getUTCDay()+6)%7,choice=t.week[weekday][period],defined=sessions[choice],fixture=FM_DEVELOPMENT.fixtures().find(e=>e.date===GameState.today),played=GameState.calendar.some(e=>e.date===GameState.today&&WORLD_ENGINE.eventGames(e).some(g=>g.result&&[g.home,g.away].includes(user()))),selected=played?sessions.recovery:fixture&&choice!=='recovery'?sessions.matchprep:defined,staff=FM_OFFICE.office().staff.find(e=>e.id===t.staffId),ability=staff?.ability||FM_DEVELOPMENT.coachQuality(),manager=FM_OFFICE.ensure().profile.stats.entrenamiento;let gains=0,rests=0;
+    for(const p of mine()){
+      if(p.injury||FM_NATIONALS.unavailable(p))continue;const q=FM_DEVELOPMENT.playerPlan(p),since=Math.max(0,Math.round((Date.parse(GameState.today)-Date.parse(q.loadDate))/DAY));q.weeklyLoad=Math.max(0,q.weeklyLoad-since*.85);q.loadDate=GameState.today;
+      const rest=selected.load===0||p.trainingFocus==='Recuperación'||p.condicion_fisica<s.policy.restBelow||q.restUntil&&q.restUntil>=GameState.today||FM_MEDICINE.resting(p)||s.policy.highRiskRest&&FM_MEDICINE.risk(p).label==='Alto',individual={Reducida:.55,Normal:1,Intensa:1.35}[q.load]||1,dose=rest?0:selected.load*t.load*individual;
+      const exposure=FM_MEDICINE.trainingLoad(p,dose,{date:GameState.today,recovery:rest,session:'programme-'+period});if(!exposure.applied)continue;if(rest){q.weeklyLoad=Math.max(0,q.weeklyLoad-.25);rests++;continue;}
+      const attribute=q.attribute||selected.attribute,keyAttribute={Posesión:'pase',Ataque:'tiro',Defensa:'defensa',Físico:'fisico',Técnica:'regate'}[attribute]||attribute,gain=FM_DEVELOPMENT.developmentRate(p,keyAttribute,{count:.5,intensity:dose/.6,coach:ability,manager})*3,result=FM_ATTRIBUTES.train(p,attribute,gain,99);if(result.improved)gains++;q.weeklyLoad+=dose;
+    }
+    if(!played&&(choice==='matchprep'||choice==='setpieces'))FM_TACTICS.trainFamiliarity(.3);const report={date:GameState.today,period,session:selected.name,ability,gains,rests,load:selected.load*t.load};t.history.unshift(report);t.history=t.history.slice(0,42);GameState.training.sessions=(GameState.training.sessions||0)+1;GameState.training.lastReport=`${selected.name}, ${period==='am'?'mañana':'tarde'}: ${gains} mejoras; ${rests} jugadores con recuperación. Carga ${report.load.toFixed(2)}.`;return true;
   }
   const original=MANAGEMENT.applyTraining;MANAGEMENT.applyTraining=function(input){return GameState?.worldVersion&&ensure().training.enabled?applySession('am'):original(input);};
   function observableFixtures(){const routes=ensure().routes,rows=[];for(const [pid,r]of Object.entries(FM_DEPTH.ensure().reports)){if(r.status!=='active')continue;const p=player(Number(pid)),route=routes[r.staffId];if(!p?.clubId||!route||route.status!=='active')continue;for(const e of GameState.calendar.filter(e=>!e.done&&e.date>=GameState.today&&e.date>=route.arrives&&e.date<=route.end))for(const g of e.games)if([g.home,g.away].includes(p.clubId)&&club(p.clubId)?.country===route.country)rows.push({playerId:p.id,name:p.nombre,date:e.date,home:g.home,away:g.away,staffId:r.staffId});}return rows.sort((a,b)=>a.date.localeCompare(b.date)).slice(0,30);}

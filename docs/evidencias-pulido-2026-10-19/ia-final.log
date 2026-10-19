@@ -1,0 +1,8 @@
+test_weekly_bids_preserve_cash_and_discard_read_only_snapshot_before_transfers (test_club_market_snapshot.ClubMarketSnapshot.test_weekly_bids_preserve_cash_and_discard_read_only_snapshot_before_transfers) ... ok
+test_loan_interest_uses_loan_cost_rather_than_the_price_of_the_whole_player (test_gameplay_polish.GameplayPolish.test_loan_interest_uses_loan_cost_rather_than_the_price_of_the_whole_player) ... ok
+test_ai_keeps_starting_quality_and_protects_a_lone_specialist (test_gameplay_polish.GameplayPolish.test_ai_keeps_starting_quality_and_protects_a_lone_specialist) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 26.918s
+
+OK

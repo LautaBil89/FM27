@@ -13,7 +13,7 @@ function world(listed=false){
   let id=1;const players=[];
   for(const c of clubs)for(const [position,count]of Object.entries(c.id==='ours'?{POR:3,DEF:7,MED:7,DEL:7}:{POR:2,DEF:6,MED:7,DEL:7}))for(let n=0;n<count;n++)players.push({id:id++,clubId:c.id,nombre:c.id+' '+position+' '+n,posicion:position,edad:26,nacionalidad:'Argentina',valor_mercado:10000,salario:100,clausula_rescision:100000,contract:2028,contractEnd:'2028-12-31',registered:true,moral:70,quality:c.id==='ours'?70:60});
   const state={worldVersion:1,today:'2026-01-01',year:2026,eventIndex:0,userClub:{...clubs[0],presupuesto_dolares:1e8,reputacion:70},world:{clubs,cups:{}},players,offers:[],transferListed:listed?players.filter(p=>p.clubId==='ours').map(p=>p.id):[]};
-  const ctx={GameState:state,console,document:{addEventListener(){}},messages:[],render(){},nextSeason(){},actions:{},saveGame(){},toast(){},news(){},autoLineup(){},locked:()=>false,money:n=>String(n),date:s=>s,foreigners:()=>0,overall:p=>p.quality,WORLD_ENGINE:{isForeign:()=>false,foreignLimit:()=>32,reindex(){}},FM_OFFICE:{office:()=>({loanListed:[]}),isLoanListed:()=>false},MANAGEMENT:{addMessage(...args){ctx.messages.push(args)},transaction(){}}};
+  const ctx={GameState:state,console,document:{addEventListener(){}},messages:[],render(){},nextSeason(){},actions:{},saveGame(){},toast(){},news(){},autoLineup(){},locked:()=>false,money:n=>String(n),date:s=>s,foreigners:()=>0,overall:p=>p.quality,WORLD_ENGINE:{isForeign:()=>false,foreignLimit:()=>32,hasContinentalCompetition:()=>false,reindex(){}},FM_OFFICE:{office:()=>({loanListed:[]}),isLoanListed:()=>false},MANAGEMENT:{addMessage(...args){ctx.messages.push(args)},transaction(){}}};
   ctx.window=ctx;ctx.squad=id=>ctx.GameState.players.filter(p=>p.clubId===id);ctx.mine=()=>ctx.squad(ctx.GameState.userClub.id);ctx.player=id=>ctx.GameState.players.find(p=>p.id===Number(id));ctx.club=id=>ctx.GameState.world.clubs.find(c=>c.id===id);
   vm.createContext(ctx);vm.runInContext(fs.readFileSync(process.argv[1],'utf8'),ctx);vm.runInContext(fs.readFileSync(process.argv[2],'utf8'),ctx);return ctx;
 }
@@ -39,6 +39,12 @@ if(scenario==='confirmed-only'){
   c.FM_DEPTH.ensure().rivalBids.push({playerId:p.id,fromClub:p.clubId,toClub:'buyer-b',status:'open',expires:day(10)});assert.equal(c.FM_DEPTH.rivalOffers(p,offer).length,1);assert(c.FM_DEPTH.personal(p,offer).wage>original);
   p.clubId='buyer-c';assert.equal(c.FM_DEPTH.rivalOffers(p,offer).length,0,'rival proposal must end when ownership changes');
 }
+if(scenario==='quality-upgrade'){
+  const c=world(),p=c.mine()[5],role=c.CLUB_AI.summaryOf('buyer-a').exactNeeds.find(n=>n.slot==='DFC');
+  assert(role.count>=role.target&&role.score===0,'the target position is already covered');
+  assert(c.CLUB_AI.interestFor(p.id).some(b=>b.id==='buyer-a'),'a clear quality upgrade should still interest a solvent club');
+  p.quality=60;assert.equal(c.CLUB_AI.interestFor(p.id).length,0,'equal quality without a vacancy must not create redundant interest');
+}
 '''
 
 
@@ -59,6 +65,9 @@ class MarketFrequency(unittest.TestCase):
 
     def test_only_current_firm_rival_proposals_affect_player_demands(self):
         self.run_case('confirmed-only')
+
+    def test_fully_covered_position_can_improve_without_buying_equal_duplicates(self):
+        self.run_case('quality-upgrade')
 
 
 if __name__ == '__main__':

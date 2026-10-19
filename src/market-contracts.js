@@ -64,7 +64,7 @@
     const nationalities=p.nationalities||[p.nacionalidad];
     if(priority==='adaptation'&&origin?.country!==c?.country&&!nationalities.includes(c?.country)){factor+=.04;reasons.push('El cambio de país requiere una compensación por adaptación')}
     if(priority==='minutes'&&offer.playingTime==='Proyecto'&&p.edad>=24){factor+=.05;reasons.push('Busca responsabilidades de primera plantilla')}
-    const incentive=Math.min(.04,(Number(offer.appearanceBonus)||0)/Math.max(100,p.salario)*.025),agency=window.FM_AGENTS?.agency(p),relationship=agency?(agency.relationship-50)/2500:0;
+    const incentive=Math.min(.04,(Number(offer.appearanceBonus)||0)/Math.max(100,p.salario)*.025)+(offer.renewal?0:Math.min(.06,amount(offer.bonus)/Math.max(100,p.salario*Math.min(156,Math.max(1,Number(offer.years)||3)*52))*.45)),agency=window.FM_AGENTS?.agency(p),relationship=agency?(agency.relationship-50)/2500:0;
     if(agency&&agency.relationship!==50)reasons.push(agency.relationship>50?'La relación con su agencia facilita el diálogo':'La agencia recuerda negociaciones interrumpidas');
     const wage=Math.max(100,Math.ceil(base.wage*Math.max(.94,factor-incentive-relationship)/100)*100);
     return {name:agency?.name||['Río Gestión Deportiva','Fútbol Global','Proyecto Once','Puente Sports'][n%4],simulated:true,priority,label:labels[priority],patience:Math.max(4,7+n%8+(agency?Math.round((agency.relationship-50)/15):0)),wage,reasons:[...(base.reasons||[]),...reasons],refuse:base.refuse||'',project:window.FM_DEPTH?.project(target)?.policy||'academy',style:target===GameState.userClub.id?GameState.tactics.style:ai().economy(target)?.style,continental};
@@ -296,6 +296,16 @@
     offer.status='rejected';offer.reason=reason;offer.resolvedDate=GameState.today;delete offer.awaitingUser;
     message('Negociación rechazada',`${player(offer.playerId)?.nombre||'Jugador'}: ${reason}.`,offer);
   }
+  function bargainingValue(o,p=player(o.playerId)){
+    if(o.stage==='club'||o.type==='sell')return Math.max(0,amount(o.fee))*(o.installments?1-(1-Number(o.upfrontPercent??100)/100)*.08:1)+(o.dealType==='loan'?amount(p?.salario)*Number(o.wageShare??100)/100*26*Number(o.loanMonths||6)/6:amount(p?.valor_mercado)*Number(o.sellOnPercent||0)*.002);
+    const years=Math.max(1,Math.min(3,Number(o.years)||1)),increase=Math.max(0,Math.min(.15,Number(o.annualIncrease||0)/100));let salary=0;
+    for(let year=0;year<years;year++)salary+=Math.max(0,amount(o.wage))*52*(1+increase)**year;
+    return salary+Math.max(0,amount(o.bonus));
+  }
+  function bargainingProgress(o,candidate=o){
+    const stage=o.type==='sell'?'sale':o.stage||'player',prior=o.bargaining?.stage===stage?o.bargaining:null,baseline=prior?prior.bestValue:bargainingValue(o),value=bargainingValue(candidate,player(o.playerId)),improved=value>baseline+Math.max(10,baseline*.005);
+    return {stage,bestValue:Math.max(baseline,value),concessions:(prior?.concessions||0)+(improved?1:0),stalled:(prior?.stalled||0)+(candidate!==o&&!improved?1:0)};
+  }
   function processOffers() {
     if (!world()) return;
     ensure();window.FM_RENEWALS?.process();expireOffers(GameState.today);processSaleCounters();processSaleConsent();processMedical();processLoanAmendments();
@@ -305,15 +315,17 @@
       if (!reason) reason=statusReason(p,offer.toClub,offer.stage==='club'?0:offer.dealType==='loan'?amount(p.salario*offer.wageShare/100):offer.wage,offer);
       if (reason) {rejectOffer(offer,reason);continue}
       const requested=demands(p,offer),profile=clubNegotiation(p,offer);
+      offer.bargaining??=bargainingProgress(offer);if(offer.bargaining.stage!==(offer.stage||'player'))offer.bargaining=bargainingProgress(offer);
+      const progress=offer.bargaining.concessions||0;
       if((offer.counterRounds||0)>(offer.stage==='player'?Math.max(4,Math.floor(negotiationProfile(p,offer).patience/2)):profile.patience)){rejectOffer(offer,'La contraparte agotó su paciencia tras varias rondas sin acuerdo');continue}
-      if(offer.stage==='club'&&offer.counterRounds&&!offer.counterAccepted)requested.fee=Math.round(requested.fee*(1-Math.min(.12,offer.counterRounds*(1-profile.resistance)*.035)));
-      if(offer.stage==='player'&&offer.counterRounds&&!offer.counterAccepted)requested.wage=Math.ceil(requested.wage*(1-Math.min(.06,offer.counterRounds*.015))/100)*100;
+      if(offer.stage==='club'&&progress&&!offer.counterAccepted)requested.fee=Math.round(requested.fee*(1-Math.min(.12,progress*(1-profile.resistance)*.035)));
+      if(offer.stage==='player'&&progress&&!offer.counterAccepted)requested.wage=Math.ceil(requested.wage*(1-Math.min(.06,progress*.015))/100)*100;
       if (requested.refuse) {rejectOffer(offer,requested.refuse);continue}
       if(offer.counterAccepted){requested.fee=Math.min(requested.fee,offer.fee);requested.wage=Math.min(requested.wage,offer.wage);requested.wageShare=Math.min(requested.wageShare||0,offer.wageShare||0)}
       if(offer.stage==='club'){
         if(offer.fee<requested.fee||offer.dealType==='loan'&&offer.wageShare<requested.wageShare){
           offer.counter={fee:Math.max(offer.fee,requested.fee),wageShare:Math.max(offer.wageShare,requested.wageShare||0)};offer.awaitingUser=true;offer.counterDate=GameState.today;
-          message('Contraoferta del club',`${clubName(p.clubId)} pide ${cash(offer.counter.fee)}${offer.dealType==='loan'?` y ${offer.counter.wageShare}% del salario`:' por el pase'}. El contrato con el jugador se negociará después.`,offer);
+          message('Contraoferta del club',`${clubName(p.clubId)} pide ${cash(offer.counter.fee)}${offer.dealType==='loan'?` y ${offer.counter.wageShare}% del salario`:' por el pase'}. ${profile.label}: ${profile.reasons.join('; ')}. ${offer.bargaining.stalled?'Las últimas condiciones no mejoran el valor de la propuesta: repetir rondas consume paciencia sin abaratar el precio. ':''}El contrato con el jugador se negociará después.`,offer);
         }else{
           Object.assign(offer,{clubCounterRounds:offer.counterRounds||0,counterRounds:0,stage:'player',clubAccepted:true,awaitingPlayerTerms:true,awaitingUser:true,counterAccepted:false,counterDate:GameState.today,personalDeadline:addDays(GameState.today,negotiationProfile(p,offer).patience)});delete offer.counter;
           window.FM_DEPTH?.inviteRival(p,offer);
@@ -420,6 +432,7 @@
     if(reason)return fail(reason);
     if(!allowed.some(key=>String(candidate[key]??'')!==String((o.counter||o)[key]??o[key]??'')))return fail('Modificá al menos una condición para enviar una contraoferta');
     if(o.counter)logNegotiation(o,'Contraparte',{...o,...o.counter});else if(!o.negotiationHistory?.length)logNegotiation(o,'Contraparte');
+    candidate.bargaining=bargainingProgress(o,candidate);
     o.previousBid={fee:o.fee,wage:o.wage,wageShare:o.wageShare};
     Object.assign(o,candidate,{counterRounds:(o.counterRounds||0)+1,awaitingUser:false,counterAccepted:false,responseDate:nextDay(GameState.today),dueAt:GameState.eventIndex+1,lastNegotiationDate:GameState.today});
     delete o.counter;if(o.type==='sell')o.saleResponsePending=true;
@@ -740,7 +753,7 @@
   }
   // Display only terms that belong to this operation; legacy saves retain defaults.
   function offerPresentation(o) {
-    const t=o.awaitingUser&&o.counter?{...o,...o.counter}:o,p=player(o.playerId);
+    const t=(o.status??'pending')==='pending'&&o.awaitingUser&&o.counter?{...o,...o.counter}:o,p=player(o.playerId);
     const outgoing=t.fromClub===GameState.userClub.id||o.type==='sell'&&t.fromClub===undefined;
     const renewal=o.type==='renewal',loan=!renewal&&t.dealType==='loan',free=!renewal&&!loan&&(t.precontract||!t.fromClub);
     const label=renewal?'Renovación':loan?'Préstamo':t.precontract?'Precontrato':free?'Incorporación libre':outgoing?'Venta definitiva':'Compra definitiva';
@@ -828,5 +841,5 @@
   },true);
   function renewContract(pid,terms={}) {return window.FM_RENEWALS?FM_RENEWALS.submit(pid,terms):{ok:false,reason:'La negociación de renovación no está disponible'}}
   const legacyRenew=renew;renew=function(pid){if(!world())return legacyRenew(pid);if(typeof MARKET_CONTRACTS.openRenewal==='function')return MARKET_CONTRACTS.openRenewal(pid);return legacyRenew(pid)};
-  window.MARKET_CONTRACTS={activeLoan,ownerClub,beginSaleConsent,processSaleConsent,medicalAssessment,processMedical,respondMedical,proposeLoanAmendment,processLoanAmendments,loanAmendment,cancelLoanAmendment,quotePurchaseClaim,settlePurchaseClaim,openPurchaseClaim,relatedOffer,recordLoanAppearances,offerPresentation,ensure,contractEnd,setContract,migrateContracts,renewContract,precontractEligibility,requestPrecontractConsent,progressContracts,terminationQuote,terminateContract,recallLoan,submitOffer,submitPlayerTerms,processOffers,settle,returnLoans,purchaseLoan,executeTransfer,agreeTransfer,registerAgreements,restoreAgreements,registrationOpen,nextRegistrationDate,negotiationProfile,committed,futureSlots,onResale,reserved,pendingWages,loanWageFor,returnSlots,respondCounter,counterOffer,clubNegotiation,processSaleCounters,cancelOffer,expireOffers,summary,addMonths,offerFeedback,offerResources};
+  window.MARKET_CONTRACTS={bargainingValue,bargainingProgress,activeLoan,ownerClub,beginSaleConsent,processSaleConsent,medicalAssessment,processMedical,respondMedical,proposeLoanAmendment,processLoanAmendments,loanAmendment,cancelLoanAmendment,quotePurchaseClaim,settlePurchaseClaim,openPurchaseClaim,relatedOffer,recordLoanAppearances,offerPresentation,ensure,contractEnd,setContract,migrateContracts,renewContract,precontractEligibility,requestPrecontractConsent,progressContracts,terminationQuote,terminateContract,recallLoan,submitOffer,submitPlayerTerms,processOffers,settle,returnLoans,purchaseLoan,executeTransfer,agreeTransfer,registerAgreements,restoreAgreements,registrationOpen,nextRegistrationDate,negotiationProfile,committed,futureSlots,onResale,reserved,pendingWages,loanWageFor,returnSlots,respondCounter,counterOffer,clubNegotiation,processSaleCounters,cancelOffer,expireOffers,summary,addMonths,offerFeedback,offerResources};
 })();

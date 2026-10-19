@@ -82,7 +82,7 @@ window.FM_MEDICINE=(()=>{
   function travel(homeId,awayId,neutral=false){const home=club(homeId),away=club(awayId),a=coordinates(home),b=coordinates(away);if(homeId===awayId)return {km:0,estimated:true,basis:'Mismo club'};
     if(!a.point||!b.point)return {km:home?.country===away?.country?600:2200,estimated:true,basis:'Distancia orientativa sin ubicación disponible'};
     const rad=x=>x*Math.PI/180,[la,loa]=a.point.map(rad),[lb,lob]=b.point.map(rad),h=Math.sin((la-lb)/2)**2+Math.cos(la)*Math.cos(lb)*Math.sin((loa-lob)/2)**2,km=Math.round(6371*2*Math.asin(Math.min(1,Math.sqrt(h))));
-    return {km:Math.max(home?.city&&home.city===away?.city?15:0,km),estimated:true,basis:(a.precise&&b.precise?'Centros urbanos aproximados':'Capitales como referencia orientativa')+(neutral?' · sede neutral no geolocalizada':'')};
+    return {km:Math.max(home?.city&&home.city===away?.city?15:0,km),estimated:true,basis:(a.precise&&b.precise?'Centros urbanos aproximados':'Capitales como referencia orientativa')+(neutral?' · sede neutral no geolocalizada: reparto simétrico orientativo entre ambos clubes':'')};
   }
   function appearance(p,{id,date=GameState.today,minutes=90,load=1,distance=0,random=Math.random,fatigue=true}){
     const r=state(p,date),time=bound(minutes,0,130);if(!time||!work(p,{id,date,minutes:time,load:Math.round(time*load+Math.min(35,distance/160)),distance:Math.round(distance)}))return false;
@@ -95,14 +95,14 @@ window.FM_MEDICINE=(()=>{
     if(!m||!active())return false;m.medical??={minutes:{},lastMinute:m.minute,closed:false};if(m.medical.closed)return false;
     const distance=travel(m.home,m.away,m.neutral),ids=new Set([...Object.keys(m.minutesPlayed||{}),...Object.keys(m.medical.minutes||{})]);
     for(const value of ids){const p=player(Number(value));if(!p)continue;const minutes=Number(m.minutesPlayed?.[value]??m.medical.minutes[value]??0),side=p.clubId===m.home?0:1;
-      appearance(p,{id:`match-${m.eventId}-${m.home}-${m.away}`,minutes,load:intensity(m,side),distance:side===1?distance.km*2:0,fatigue:false});
+      appearance(p,{id:`match-${m.eventId}-${m.home}-${m.away}`,minutes,load:intensity(m,side),distance:m.neutral?distance.km:side===1?distance.km*2:0,fatigue:false});
       if(p.injury>0&&!state(p).injury)state(p); // Adopt legacy engine injury without rerolling its duration.
     }
     m.medical.closed=true;return true;
   }
   function afterQuickMatch(event,g,result,lineups){
-    if(!active())return false;const journey=travel(g.home,g.away,event?.neutral),length=result?.extraTime?120:90;let count=0;
-    for(let side=0;side<2;side++){const ids=lineups?.[side]||WORLD_ENGINE.aiXI?.(side?g.away:g.home)||[];for(const id of ids){const p=player(id);if(p&&appearance(p,{id:`match-${event?.id||event?.date}-${g.home}-${g.away}`,date:event?.date||GameState.today,minutes:g.playerMinutes?.[id]??length,load:window.FM_TACTICS?.matchLoad?.(CLUB_AI.tacticsFor(side?g.away:g.home))??1,distance:side?journey.km*2:0}))count++}}
+    if(!active())return false;const journey=travel(g.home,g.away,event?.neutral||g.neutral),length=result?.extraTime?120:90;let count=0;
+    for(let side=0;side<2;side++){const ids=lineups?.[side]||WORLD_ENGINE.aiXI?.(side?g.away:g.home)||[];for(const id of ids){const p=player(id);if(p&&appearance(p,{id:`match-${event?.id||event?.date}-${g.home}-${g.away}`,date:event?.date||GameState.today,minutes:g.playerMinutes?.[id]??length,load:window.FM_TACTICS?.matchLoad?.(CLUB_AI.tacticsFor(side?g.away:g.home))??1,distance:event?.neutral||g.neutral?journey.km:side?journey.km*2:0}))count++}}
     return count>0;
   }
   function resting(p,day=GameState.today){const r=state(p);return !!(r?.restUntil&&day<=r.restUntil)}

@@ -81,15 +81,24 @@
     const roster=squad(id).filter(q=>!loanFor(q));
     if(roster.length<=18)return{ok:false,reason:'la salida dejaría menos de 18 jugadores'};
     if(roster.filter(q=>q.posicion===p.posicion).length<=(MINIMUM[p.posicion]||2))return{ok:false,reason:`faltaría cobertura en ${p.posicion}; se conservan dos arqueros y un once equilibrado`};
+    if(id!==userId()){
+      const required={};for(const slot of window.FM_TACTICS?.slots(tacticsFor(id)?.formation||'4-3-3')||[])required[slot]=(required[slot]||0)+1;
+      for(const slot of natural(p))if(required[slot]&&roster.filter(q=>q.id!==p.id&&natural(q).includes(slot)).length<required[slot])return{ok:false,reason:`el club conserva a su especialista en ${slot} hasta cubrir ese puesto`};
+    }
     return{ok:true,reason:''};
   }
   function summaryOf(id){
     const roster=squad(id),sorted=[...roster].sort((a,b)=>overall(b)-overall(a)),positions={};
-    for(const pos of Object.keys(TARGET)){const group=sorted.filter(p=>p.posicion===pos),starters=group.slice(0,pos==='POR'?1:pos==='DEF'?4:3),quality=starters.length?starters.reduce((n,p)=>n+overall(p),0)/starters.length:35;positions[pos]={count:group.length,quality,group}}
-    const top=sorted.slice(0,11),quality=top.length?top.reduce((n,p)=>n+overall(p),0)/top.length:45;
-    const needs=Object.keys(TARGET).map(pos=>({pos,count:positions[pos].count,quality:positions[pos].quality,score:Math.max(0,TARGET[pos]-positions[pos].count)*2.8+Math.max(0,quality-positions[pos].quality)*1.4+(positions[pos].count<(MINIMUM[pos]||2)?20:0)})).sort((a,b)=>b.score-a.score||a.pos.localeCompare(b.pos));
     const formation=tacticsFor(id)?.formation||'4-3-3',slots=window.FM_TACTICS?.slots(formation)||['POR','LI','DFC','DFC','LD','MC','MCD','MC','EI','DC','ED'],required={};for(const slot of slots)required[slot]=(required[slot]||0)+1;
-    const exactNeeds=Object.entries(required).map(([slot,starters])=>{const group=sorted.filter(p=>natural(p).includes(slot)),count=group.length,target=starters+1,slotQuality=group.slice(0,starters).reduce((n,p)=>n+observedQuality(p,id),0)/Math.max(1,Math.min(starters,count));return {slot,role:desiredRole(slot,tacticsFor(id)?.style),count,target,quality:slotQuality,score:Math.max(0,target-count)*5+Math.max(0,quality-slotQuality)*.8+(count<starters?18:0)}}).sort((a,b)=>b.score-a.score||a.slot.localeCompare(b.slot));
+    const eligibility=new Map(sorted.map(p=>[p.id,natural(p)])),tasks=[...slots,...Object.keys(required)],eligible=tasks.map(slot=>sorted.filter(p=>eligibility.get(p.id).includes(slot))),assigned=new Map(),placement=new Map();
+    // A versatile footballer can cover one role at a time. Backups use the remaining players.
+    function place(index,seen){for(const occupied of [false,true])for(const p of eligible[index]){if(seen.has(p.id)||placement.has(p.id)!==occupied)continue;seen.add(p.id);const previous=placement.get(p.id);if(previous==null||place(previous,seen)){assigned.set(index,p.id);placement.set(p.id,index);return true}}return false}
+    const first=slots.map((slot,i)=>i).sort((a,b)=>eligible[a].length-eligible[b].length);
+    for(const index of [...first,...tasks.slice(slots.length).map((_,i)=>slots.length+i)])place(index,new Set());
+    const starters=slots.map((_,i)=>player(assigned.get(i))).filter(Boolean),quality=slots.reduce((sum,_,i)=>sum+(assigned.has(i)?overall(player(assigned.get(i))):35),0)/slots.length;
+    for(const pos of Object.keys(TARGET)){const group=sorted.filter(p=>p.posicion===pos),firstTeam=starters.filter(p=>p.posicion===pos);positions[pos]={count:group.length,quality:firstTeam.length?firstTeam.reduce((n,p)=>n+overall(p),0)/firstTeam.length:group[0]?overall(group[0]):35,group}}
+    const needs=Object.keys(TARGET).map(pos=>({pos,count:positions[pos].count,quality:positions[pos].quality,score:Math.max(0,TARGET[pos]-positions[pos].count)*2.8+Math.max(0,quality-positions[pos].quality)*1.4+(positions[pos].count<(MINIMUM[pos]||2)?20:0)})).sort((a,b)=>b.score-a.score||a.pos.localeCompare(b.pos));
+    const exactNeeds=Object.entries(required).map(([slot,countRequired])=>{const group=[...assigned].filter(([i])=>tasks[i]===slot).map(([,pid])=>player(pid)),count=group.length,target=countRequired+1,firstTeam=[...assigned].filter(([i])=>i<slots.length&&tasks[i]===slot).map(([,pid])=>player(pid)),slotQuality=firstTeam.length?firstTeam.reduce((n,p)=>n+overall(p),0)/firstTeam.length:35;return {slot,role:desiredRole(slot,tacticsFor(id)?.style),count,target,quality:slotQuality,score:Math.max(0,target-count)*5+Math.max(0,quality-slotQuality)*.8+(firstTeam.length<countRequired?18:0)}}).sort((a,b)=>b.score-a.score||a.slot.localeCompare(b.slot));
     return{id,roster,positions,quality,needs,exactNeeds};
   }
   function natural(p){return window.FM_PLAYER?.naturalPositions(p)||[{POR:'POR',DEF:'DFC',MED:'MC',DEL:'DC'}[p.posicion]]}
@@ -105,18 +114,18 @@
   }
   function appeal(p,id,wage){const c=club(id),e=economy(id),from=club(p.clubId);return positive(e.reputation||c?.reputation||c?.rating)+Math.min(18,(wage/Math.max(100,p.salario)-1)*25)+(from?.country===c?.country?4:0)+(p.edad<24?4:0)}
   function expectedWage(p,id){const rep=economy(id)?.reputation||club(id)?.reputation||60,origin=(p.clubId===userId()?economy(p.clubId)?.reputacion:economy(p.clubId)?.reputation)||club(p.clubId)?.reputation||60;return Math.max(100,roundMoney(p.salario*(rep+12<origin?1.35:p.clubId?1.08:1.02)))}
-  function interestFor(playerId){
-    if(!active())return[];const p=player(Number(playerId));if(!p||loanFor(p)||p.edad>40)return[];ensure();const fee=askingPrice(p);
+  function interestFor(playerId,options={}){
+    if(!active())return[];const p=player(Number(playerId));if(!p||loanFor(p)||p.edad>40)return[];ensure();const loan=options.dealType==='loan',fee=loan?Math.max(p.salario*4,Math.round(p.valor_mercado*.025)):askingPrice(p);if(loan&&(!p.clubId||(window.MARKET_CONTRACTS?.contractEnd(p)||`${p.contract}-12-31`)<MARKET_CONTRACTS.addMonths(GameState.today,6)))return[];
     const result=[];
     for(const c of getClubs()){
       if(c.id===userId()||c.id===p.clubId)continue;
-      const wage=expectedWage(p,c.id),bonus=wage*4;
+      const wage=loan?p.salario:expectedWage(p,c.id),bonus=loan?0:wage*4;
       if(window.MARKET_CONTRACTS?.committed(p.id)||!canReceive(p,c.id,wage).ok||availableBudget(c.id)<fee+bonus)continue;
       const s=summaryOf(c.id),need=s.needs.find(n=>n.pos===p.posicion),quality=observedQuality(p,c.id),future=observedFuture(p,c.id),rep=economy(c.id).reputation;
       if(future>=88&&rep<65&&wage<p.salario*1.7)continue;
       if(quality<s.positions[p.posicion].quality-4&&need.count>=TARGET[p.posicion])continue;
       if(quality>s.quality+15&&rep<70)continue;
-      const exact=s.exactNeeds.find(n=>natural(p).includes(n.slot));if(!exact||exact.score<2)continue;
+      const exact=s.exactNeeds.find(n=>natural(p).includes(n.slot));if(!exact||exact.score<2&&quality<=exact.quality+3)continue;
       const score=(window.FM_PROJECTS?.transferScore(p,c.id)||0)+(window.FM_DEPTH?.projectScore(p,c.id)||0)+need.score+exact.score*.6+(quality-s.positions[p.posicion].quality)*1.7+(p.edad<25?3:0)+(c.country===club(p.clubId)?.country?3:0);
       if(score<3)continue;
       result.push({id:c.id,nombre:c.nombre,score:Math.round(score),need:exact.slot+' · '+exact.role,playingTime:exact.count<1||quality>exact.quality+3?'Titular':'Rotación',offer:fee,wage,style:economy(c.id).style});
@@ -127,14 +136,14 @@
     if(p.clubId===clubId||p.clubId===userId()||pendingOffer(p)||loanFor(p)||p.edad>36||(p.posicion!=='POR'&&p.edad>34))return null;
     if(p.clubId&&!(marketEvaluation?.releasable.has(p.id)||canRelease(p,p.clubId).ok))return null;
     const e=economy(clubId),need=summary.needs.find(n=>n.pos===p.posicion),quality=observedQuality(p,clubId),future=observedFuture(p,clubId),fee=askingPrice(p),wage=expectedWage(p,clubId),bonus=wage*4;
-    if(!need||need.score<2)return null;
+    if(!need||need.score<2&&quality<=summary.positions[p.posicion].quality+3)return null;
     if(quality<summary.positions[p.posicion].quality-3&&need.count>=TARGET[p.posicion]-1)return null;
     if(quality>summary.quality+15&&e.reputation<70)return null;
     if(future>=88&&e.reputation<65&&wage<p.salario*1.7)return null;
     const countryBonus=club(p.clubId)?.country===club(clubId)?.country?4:0;
     const score=(window.FM_PROJECTS?.transferScore(p,clubId)||0)+(window.FM_DEPTH?.projectScore(p,clubId)||0)+need.score+(quality-summary.positions[p.posicion].quality)*2+(p.edad<24?Math.min(6,(future-quality)*.35):0)+countryBonus-(p.edad>31?3:0);
     if(score<4)return null;
-    const exact=summary.exactNeeds.find(n=>natural(p).includes(n.slot));if(!exact||exact.score<2)return null;
+    const exact=summary.exactNeeds.find(n=>natural(p).includes(n.slot));if(!exact||exact.score<2&&quality<=exact.quality+3)return null;
     const bid={playerId:p.id,fromClub:p.clubId,toClub:clubId,type:'buy',dealType:'permanent',fee,wage,bonus,years:p.edad<25?4:p.edad<31?3:2,installments:0,upfrontPercent:100,sellOnPercent:0,releaseClause:roundMoney(Math.max(fee,p.valor_mercado)*2.2),score:score+exact.score*.6,targetPosition:exact.slot,targetRole:exact.role,playingTime:exact.count<1||quality>exact.quality+3?'Titular':'Rotación',appeal:appeal(p,clubId,wage)};
     const tooExpensive=availableBudget(clubId)<fee+bonus+Math.max(wage*6,10000)||fee>availableBudget(clubId)*.55&&need.count>=MINIMUM[p.posicion];
     if(tooExpensive){
@@ -186,8 +195,8 @@
     for(const p of [...listed,...unsolicited]){
       if(created>=1)break;
       const unlisted=!listedIds.has(p.id);if(unlisted&&(recentUnsolicited>=2||contactRoll>=.055||gap<10))continue;
-      const bidders=interestFor(p.id);if(!bidders.length)continue;
-      const loan=window.FM_OFFICE?.isLoanListed(p.id),selected=bidders[0],fee=loan?Math.max(p.salario*4,Math.round(p.valor_mercado*.025)):selected.offer,wage=selected.wage,bonus=loan?0:wage*4;
+      const loan=window.FM_OFFICE?.isLoanListed(p.id),bidders=interestFor(p.id,{dealType:loan?'loan':'permanent'});if(!bidders.length)continue;
+      const selected=bidders[0],fee=loan?Math.max(p.salario*4,Math.round(p.valor_mercado*.025)):selected.offer,wage=selected.wage,bonus=loan?0:wage*4;
       if(loan&&window.MARKET_CONTRACTS?.contractEnd(p)<MARKET_CONTRACTS.addMonths(day,6))continue;
       if(availableBudget(selected.id)<fee+bonus||!canReceive(p,selected.id,wage).ok)continue;
       const offer={id:`ai-sale-${ai.nextId++}`,playerId:p.id,type:'sell',dealType:loan?'loan':'permanent',loanMonths:6,wageShare:100,purchaseMode:'none',purchaseFee:0,playingTime:selected.playingTime||'Rotación',fromClub:userId(),toClub:selected.id,fee,wage,bonus,years:p.edad<30?3:2,installments:0,upfrontPercent:100,sellOnPercent:0,releaseClause:roundMoney(Math.max(fee,p.valor_mercado)*2.2),status:'pending',createdAt:GameState.eventIndex,createdDate:day,expiresAt:iso(stamp(day)+14*DAY),rivals:[],unsolicited:unlisted};
@@ -207,7 +216,7 @@
   }
   function simulateMarket(day){
     const summaries=new Map(getClubs().map(c=>[c.id,summaryOf(c.id)])),pool=poolForMarket(summaries),bids=new Map(),currentWeek=week(day);
-    const buyers=getClubs().filter(c=>c.id!==userId()&&squad(c.id).length<32&&(!window.MARKET_CONTRACTS||MARKET_CONTRACTS.registrationOpen(day,c.id))).sort((a,b)=>(seed(`${currentWeek}:${a.id}`)%997)-(seed(`${currentWeek}:${b.id}`)%997));
+    const buyers=getClubs().filter(c=>c.id!==userId()&&squad(c.id).length<40&&(!window.MARKET_CONTRACTS||MARKET_CONTRACTS.registrationOpen(day,c.id))).sort((a,b)=>(seed(`${currentWeek}:${a.id}`)%997)-(seed(`${currentWeek}:${b.id}`)%997));
     // Evaluate a read-only market snapshot, then clear it before any transfer changes money or ownership.
     marketEvaluation={prices:new Map(),budgets:new Map(),releasable:new Set(pool.map(p=>p.id))};
     try{for(const c of buyers){
@@ -251,8 +260,8 @@
   function settleOperating(day){
     const ai=ensure(),weeks=Math.floor((stamp(day)-stamp(ai.lastFinancialDate))/(7*DAY));if(weeks<=0)return;
     const settled=iso(stamp(ai.lastFinancialDate)+weeks*7*DAY),from=ai.lastFinancialDate,gate=new Map();
-    for(const event of GameState.calendar.filter(event=>event.done&&event.date>=from&&event.date<settled))for(const game of event.games||[]){
-      if(!game.result||game.neutral||game.home===userId())continue;
+    for(const event of GameState.calendar.filter(event=>event.date>=from&&event.date<settled))for(const game of event.games||[]){
+      if(!game.result||game.neutral||event.neutral||game.home===userId())continue;
       const c=club(game.home),e=c&&economy(c.id);if(!c||!e)continue;
       const attendance=clamp(.46+(e.reputation||c.rating||60)*.004, .45,.92),ticket=WORLD_ENGINE.league(c.leagueId)?.confederation==='UEFA'?27:12;
       gate.set(c.id,(gate.get(c.id)||0)+Math.round((c.capacity||15000)*attendance*ticket));

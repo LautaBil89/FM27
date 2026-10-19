@@ -1,0 +1,540 @@
+{
+  "date": "2026-10-19",
+  "uniqueCases": 93,
+  "passed": 93,
+  "unresolved": [],
+  "runs": [
+    {
+      "log": "nuevas-inicial.log",
+      "completed": true,
+      "results": 13,
+      "failed": 1
+    },
+    {
+      "log": "frecuencia-inicial.log",
+      "completed": true,
+      "results": 4,
+      "failed": 3
+    },
+    {
+      "log": "mercado-inicial.log",
+      "completed": true,
+      "results": 40,
+      "failed": 4
+    },
+    {
+      "log": "salud-interfaz.log",
+      "completed": true,
+      "results": 16,
+      "failed": 0
+    },
+    {
+      "log": "partido-guardado-calibracion.log",
+      "completed": true,
+      "results": 28,
+      "failed": 0
+    },
+    {
+      "log": "nuevas-y-negociacion-final.log",
+      "completed": true,
+      "results": 19,
+      "failed": 0
+    },
+    {
+      "log": "ia-final.log",
+      "completed": true,
+      "results": 3,
+      "failed": 0
+    },
+    {
+      "log": "mensajes-final.log",
+      "completed": true,
+      "results": 1,
+      "failed": 0
+    },
+    {
+      "log": "atributos-final.log",
+      "completed": true,
+      "results": 1,
+      "failed": 0
+    },
+    {
+      "log": "frecuencia-final.log",
+      "completed": true,
+      "results": 5,
+      "failed": 0
+    }
+  ],
+  "cases": [
+    {
+      "case": "test_background_save.BackgroundSave.test_background_roundtrip_and_event_loop_remain_responsive",
+      "status": "ok",
+      "log": "partido-guardado-calibracion.log"
+    },
+    {
+      "case": "test_background_save.BackgroundSave.test_import_cannot_be_overwritten_and_failed_background_write_keeps_backup",
+      "status": "ok",
+      "log": "partido-guardado-calibracion.log"
+    },
+    {
+      "case": "test_background_save.BackgroundSave.test_newer_revision_manual_save_and_reload_win_over_inflight_worker",
+      "status": "ok",
+      "log": "partido-guardado-calibracion.log"
+    },
+    {
+      "case": "test_background_save.BackgroundSave.test_newest_autosave_and_no_worker_fallback",
+      "status": "ok",
+      "log": "partido-guardado-calibracion.log"
+    },
+    {
+      "case": "test_club_market_snapshot.ClubMarketSnapshot.test_weekly_bids_preserve_cash_and_discard_read_only_snapshot_before_transfers",
+      "status": "ok",
+      "log": "ia-final.log"
+    },
+    {
+      "case": "test_development_centre.DevelopmentCentre.test_01_microcycle_changes_around_real_fixtures",
+      "status": "ok",
+      "log": "salud-interfaz.log"
+    },
+    {
+      "case": "test_development_centre.DevelopmentCentre.test_02_training_is_once_per_day_and_fatigue_triggers_rest",
+      "status": "ok",
+      "log": "salud-interfaz.log"
+    },
+    {
+      "case": "test_development_centre.DevelopmentCentre.test_03_position_learning_changes_usable_positions_without_source_edits",
+      "status": "ok",
+      "log": "salud-interfaz.log"
+    },
+    {
+      "case": "test_gameplay_polish.GameplayPolish.test_ai_counts_played_gate_receipts_in_an_unfinished_round",
+      "status": "ok",
+      "log": "nuevas-y-negociacion-final.log"
+    },
+    {
+      "case": "test_gameplay_polish.GameplayPolish.test_ai_doses_pressure_and_reorganizes_with_fewer_players",
+      "status": "ok",
+      "log": "nuevas-y-negociacion-final.log"
+    },
+    {
+      "case": "test_gameplay_polish.GameplayPolish.test_ai_keeps_starting_quality_and_protects_a_lone_specialist",
+      "status": "ok",
+      "log": "ia-final.log"
+    },
+    {
+      "case": "test_gameplay_polish.GameplayPolish.test_closed_offer_does_not_display_pending_medical_or_registration",
+      "status": "ok",
+      "log": "nuevas-y-negociacion-final.log"
+    },
+    {
+      "case": "test_gameplay_polish.GameplayPolish.test_club_depth_does_not_count_one_versatile_player_four_times",
+      "status": "ok",
+      "log": "nuevas-y-negociacion-final.log"
+    },
+    {
+      "case": "test_gameplay_polish.GameplayPolish.test_custom_training_respects_individual_rest_and_age_development",
+      "status": "ok",
+      "log": "nuevas-y-negociacion-final.log"
+    },
+    {
+      "case": "test_gameplay_polish.GameplayPolish.test_inbox_keeps_one_current_decision_and_retains_it_among_news",
+      "status": "ok",
+      "log": "mensajes-final.log"
+    },
+    {
+      "case": "test_gameplay_polish.GameplayPolish.test_inbox_typing_and_selection_keep_the_same_input_node",
+      "status": "ok",
+      "log": "nuevas-y-negociacion-final.log"
+    },
+    {
+      "case": "test_gameplay_polish.GameplayPolish.test_loan_interest_uses_loan_cost_rather_than_the_price_of_the_whole_player",
+      "status": "ok",
+      "log": "ia-final.log"
+    },
+    {
+      "case": "test_gameplay_polish.GameplayPolish.test_match_tuning_uses_its_fixture_and_is_calculated_once_per_minute",
+      "status": "ok",
+      "log": "nuevas-y-negociacion-final.log"
+    },
+    {
+      "case": "test_gameplay_polish.GameplayPolish.test_neutral_travel_is_symmetric_and_repeated_recording_is_idempotent",
+      "status": "ok",
+      "log": "nuevas-y-negociacion-final.log"
+    },
+    {
+      "case": "test_gameplay_polish.GameplayPolish.test_renewal_uses_best_package_and_keeps_guaranteed_terms_unchanged",
+      "status": "ok",
+      "log": "nuevas-y-negociacion-final.log"
+    },
+    {
+      "case": "test_gameplay_polish.GameplayPolish.test_training_mode_switch_does_not_give_a_second_morning_session",
+      "status": "ok",
+      "log": "nuevas-y-negociacion-final.log"
+    },
+    {
+      "case": "test_gameplay_polish.GameplayPolish.test_training_recognizes_own_result_in_an_unfinished_round",
+      "status": "ok",
+      "log": "nuevas-y-negociacion-final.log"
+    },
+    {
+      "case": "test_gameplay_polish.GameplayPolish.test_worse_transfer_bids_consume_patience_without_buying_discounts",
+      "status": "ok",
+      "log": "nuevas-y-negociacion-final.log"
+    },
+    {
+      "case": "test_market_frequency.MarketFrequency.test_fully_covered_position_can_improve_without_buying_equal_duplicates",
+      "status": "ok",
+      "log": "frecuencia-final.log"
+    },
+    {
+      "case": "test_market_frequency.MarketFrequency.test_only_current_firm_rival_proposals_affect_player_demands",
+      "status": "ok",
+      "log": "frecuencia-final.log"
+    },
+    {
+      "case": "test_market_frequency.MarketFrequency.test_pending_limit_and_existing_career_history_are_respected",
+      "status": "ok",
+      "log": "frecuencia-final.log"
+    },
+    {
+      "case": "test_market_frequency.MarketFrequency.test_rival_bids_are_occasional_and_negative_rolls_persist",
+      "status": "ok",
+      "log": "frecuencia-final.log"
+    },
+    {
+      "case": "test_market_frequency.MarketFrequency.test_yearly_contact_volume_spacing_cooldowns_and_reload",
+      "status": "ok",
+      "log": "frecuencia-final.log"
+    },
+    {
+      "case": "test_match_calibration.MatchCalibration.test_01_fifteen_leagues_have_auditable_nonfabricated_samples",
+      "status": "ok",
+      "log": "partido-guardado-calibracion.log"
+    },
+    {
+      "case": "test_match_calibration.MatchCalibration.test_02_metrics_reconcile_with_actual_results_or_final_table",
+      "status": "ok",
+      "log": "partido-guardado-calibracion.log"
+    },
+    {
+      "case": "test_match_calibration.MatchCalibration.test_03_two_hundred_seasons_per_league_match_goals_draws_and_locality",
+      "status": "ok",
+      "log": "partido-guardado-calibracion.log"
+    },
+    {
+      "case": "test_match_calibration.MatchCalibration.test_04_strength_and_neutral_venue_change_probabilities_without_extra_goals",
+      "status": "ok",
+      "log": "partido-guardado-calibracion.log"
+    },
+    {
+      "case": "test_match_calibration.MatchCalibration.test_05_fallbacks_and_home_advantage_estimates_are_disclosed",
+      "status": "ok",
+      "log": "partido-guardado-calibracion.log"
+    },
+    {
+      "case": "test_match_calibration.MatchCalibration.test_06_seed_reproduces_results_and_tuning_stays_bounded",
+      "status": "ok",
+      "log": "partido-guardado-calibracion.log"
+    },
+    {
+      "case": "test_match_calibration.MatchCalibration.test_07_two_hundred_balanced_league_seasons_preserve_total_goals",
+      "status": "ok",
+      "log": "partido-guardado-calibracion.log"
+    },
+    {
+      "case": "test_match_regulations_depth.MatchRegulationsDepth.test_competition_rules_are_snapshotted_and_extra_time_adds_one_change",
+      "status": "ok",
+      "log": "partido-guardado-calibracion.log"
+    },
+    {
+      "case": "test_match_regulations_depth.MatchRegulationsDepth.test_fewer_than_seven_abandons_without_fictional_scorers",
+      "status": "ok",
+      "log": "partido-guardado-calibracion.log"
+    },
+    {
+      "case": "test_match_regulations_depth.MatchRegulationsDepth.test_individual_shootout_order_excludes_extra_eligible_players",
+      "status": "ok",
+      "log": "partido-guardado-calibracion.log"
+    },
+    {
+      "case": "test_match_regulations_depth.MatchRegulationsDepth.test_live_formation_and_emergency_keeper_use_existing_players",
+      "status": "ok",
+      "log": "partido-guardado-calibracion.log"
+    },
+    {
+      "case": "test_match_regulations_depth.MatchRegulationsDepth.test_penalty_sequence_uses_the_actual_fallback_taker",
+      "status": "ok",
+      "log": "partido-guardado-calibracion.log"
+    },
+    {
+      "case": "test_match_regulations_depth.MatchRegulationsDepth.test_tactical_team_factors_reach_recorded_possessions",
+      "status": "ok",
+      "log": "partido-guardado-calibracion.log"
+    },
+    {
+      "case": "test_match_simulation.MatchSimulation.test_01_chains_reconcile_passes_xg_and_participating_players",
+      "status": "ok",
+      "log": "partido-guardado-calibracion.log"
+    },
+    {
+      "case": "test_match_simulation.MatchSimulation.test_02_old_live_match_migrates_and_stays_paused_after_reload",
+      "status": "ok",
+      "log": "partido-guardado-calibracion.log"
+    },
+    {
+      "case": "test_match_simulation.MatchSimulation.test_03_red_cards_and_injuries_exclude_players_from_future_actions",
+      "status": "ok",
+      "log": "partido-guardado-calibracion.log"
+    },
+    {
+      "case": "test_match_simulation.MatchSimulation.test_04_short_and_direct_play_change_observed_pass_success",
+      "status": "ok",
+      "log": "partido-guardado-calibracion.log"
+    },
+    {
+      "case": "test_match_simulation.MatchSimulation.test_05_opponent_adjustments_have_evidence_and_bounded_changes",
+      "status": "ok",
+      "log": "partido-guardado-calibracion.log"
+    },
+    {
+      "case": "test_match_simulation.MatchSimulation.test_06_seeded_match_distribution_remains_football_like",
+      "status": "ok",
+      "log": "partido-guardado-calibracion.log"
+    },
+    {
+      "case": "test_match_simulation.MatchSimulation.test_07_open_play_shooter_is_actual_carrier_without_fictional_assist",
+      "status": "ok",
+      "log": "partido-guardado-calibracion.log"
+    },
+    {
+      "case": "test_match_simulation.MatchSimulation.test_08_short_corner_records_actual_taker_and_receiver",
+      "status": "ok",
+      "log": "partido-guardado-calibracion.log"
+    },
+    {
+      "case": "test_match_simulation.MatchSimulation.test_09_extra_time_match_saves_complete_highlights_below_storage_budget",
+      "status": "ok",
+      "log": "partido-guardado-calibracion.log"
+    },
+    {
+      "case": "test_negotiation_integrity.NegotiationIntegrity.test_accepting_personal_counter_preserves_club_terms_and_checks_deadline",
+      "status": "ok",
+      "log": "mercado-inicial.log"
+    },
+    {
+      "case": "test_negotiation_integrity.NegotiationIntegrity.test_invalid_counter_bonus_and_role_are_rejected_without_mutation",
+      "status": "ok",
+      "log": "mercado-inicial.log"
+    },
+    {
+      "case": "test_negotiation_integrity.NegotiationIntegrity.test_loan_personal_counter_preserves_owner_and_club_terms",
+      "status": "ok",
+      "log": "mercado-inicial.log"
+    },
+    {
+      "case": "test_negotiation_integrity.NegotiationIntegrity.test_mode_switch_restores_separate_purchase_and_loan_drafts",
+      "status": "ok",
+      "log": "mercado-inicial.log"
+    },
+    {
+      "case": "test_negotiation_integrity.NegotiationIntegrity.test_stale_loan_clause_does_not_reserve_money_for_permanent_transfer",
+      "status": "ok",
+      "log": "mercado-inicial.log"
+    },
+    {
+      "case": "test_negotiation_integrity.NegotiationIntegrity.test_unused_transfer_fields_do_not_block_a_loan",
+      "status": "ok",
+      "log": "mercado-inicial.log"
+    },
+    {
+      "case": "test_negotiation_rounds.NegotiationRounds.test_buy_counter_twice_then_personal_counter_preserves_agreed_fee",
+      "status": "ok",
+      "log": "nuevas-y-negociacion-final.log"
+    },
+    {
+      "case": "test_negotiation_rounds.NegotiationRounds.test_club_context_varies_and_stale_actions_are_atomic",
+      "status": "ok",
+      "log": "nuevas-y-negociacion-final.log"
+    },
+    {
+      "case": "test_negotiation_rounds.NegotiationRounds.test_inbox_counter_button_and_mobile_loan_terms",
+      "status": "ok",
+      "log": "nuevas-y-negociacion-final.log"
+    },
+    {
+      "case": "test_negotiation_rounds.NegotiationRounds.test_received_sale_market_controls_multiple_rounds_reload_and_no_early_transfer",
+      "status": "ok",
+      "log": "nuevas-y-negociacion-final.log"
+    },
+    {
+      "case": "test_offer_form.OfferFormScenarios.test_01_forty_player_roster_explains_failure_and_links_to_squad",
+      "status": "ok",
+      "log": "mercado-inicial.log"
+    },
+    {
+      "case": "test_offer_form.OfferFormScenarios.test_02_valid_actual_form_persists_and_signs_after_four_turns",
+      "status": "ok",
+      "log": "mercado-inicial.log"
+    },
+    {
+      "case": "test_offer_form.OfferFormScenarios.test_03_insufficient_cash_preserves_terms_and_allows_corrected_resubmission",
+      "status": "ok",
+      "log": "mercado-inicial.log"
+    },
+    {
+      "case": "test_offer_form.OfferFormScenarios.test_04_full_foreign_registration_does_not_block_offer",
+      "status": "ok",
+      "log": "mercado-inicial.log"
+    },
+    {
+      "case": "test_offer_form.OfferFormScenarios.test_05_native_invalid_amount_is_reported_inside_form_and_integer_wage_is_valid",
+      "status": "ok",
+      "log": "mercado-inicial.log"
+    },
+    {
+      "case": "test_offer_form.OfferFormScenarios.test_06_loan_mode_ignores_disabled_stale_purchase_terms_and_sends_once",
+      "status": "ok",
+      "log": "mercado-inicial.log"
+    },
+    {
+      "case": "test_offer_presentation.OfferPresentation.test_incoming_offer_inbox_market_and_saved_career_agree",
+      "status": "ok",
+      "log": "mercado-inicial.log"
+    },
+    {
+      "case": "test_offer_presentation.OfferPresentation.test_legacy_defaults_and_counter_terms_are_operation_specific",
+      "status": "ok",
+      "log": "mercado-inicial.log"
+    },
+    {
+      "case": "test_offer_presentation.OfferPresentation.test_real_form_hides_inapplicable_purchase_clauses",
+      "status": "ok",
+      "log": "mercado-inicial.log"
+    },
+    {
+      "case": "test_professional_upgrade.ProfessionalUpgrade.test_staff_counter_and_waiting_purchase_have_correct_inbox_actions",
+      "status": "ok",
+      "log": "partido-guardado-calibracion.log"
+    },
+    {
+      "case": "test_professional_upgrade.ProfessionalUpgrade.test_training_routes_and_sessions_have_real_load_and_are_idempotent",
+      "status": "ok",
+      "log": "partido-guardado-calibracion.log"
+    },
+    {
+      "case": "test_renewal_negotiations.RenewalNegotiations.test_actual_form_counter_two_rounds_then_accept_without_resetting_relationship",
+      "status": "ok",
+      "log": "mercado-inicial.log"
+    },
+    {
+      "case": "test_renewal_negotiations.RenewalNegotiations.test_agreed_end_date_does_not_grow_an_extra_year_at_midnight",
+      "status": "ok",
+      "log": "mercado-inicial.log"
+    },
+    {
+      "case": "test_renewal_negotiations.RenewalNegotiations.test_auxiliary_coaching_cannot_push_fractional_attributes_above_99",
+      "status": "ok",
+      "log": "atributos-final.log"
+    },
+    {
+      "case": "test_renewal_negotiations.RenewalNegotiations.test_budget_expiry_departure_and_counter_errors_leave_old_contract_intact",
+      "status": "ok",
+      "log": "mercado-inicial.log"
+    },
+    {
+      "case": "test_renewal_negotiations.RenewalNegotiations.test_counter_facts_and_only_latest_message_requires_decision",
+      "status": "ok",
+      "log": "mercado-inicial.log"
+    },
+    {
+      "case": "test_renewal_negotiations.RenewalNegotiations.test_form_stays_in_view_and_switches_to_invalid_bonus_tab",
+      "status": "ok",
+      "log": "mercado-inicial.log"
+    },
+    {
+      "case": "test_renewal_negotiations.RenewalNegotiations.test_player_departure_releases_reservations_and_signed_exit_blocks_renewal",
+      "status": "ok",
+      "log": "mercado-inicial.log"
+    },
+    {
+      "case": "test_renewal_negotiations.RenewalNegotiations.test_repeated_low_offers_end_dialogue_and_impose_reopening_date",
+      "status": "ok",
+      "log": "mercado-inicial.log"
+    },
+    {
+      "case": "test_renewal_negotiations.RenewalNegotiations.test_reply_arrives_after_four_real_daily_turns_without_waiting_for_match",
+      "status": "ok",
+      "log": "mercado-inicial.log"
+    },
+    {
+      "case": "test_renewal_negotiations.RenewalNegotiations.test_reservations_count_only_raise_and_survive_reload_then_cancel",
+      "status": "ok",
+      "log": "mercado-inicial.log"
+    },
+    {
+      "case": "test_sports_medicine.SportsMedicine.test_01_load_travel_and_rest_change_risk_without_changing_real_identity",
+      "status": "ok",
+      "log": "salud-interfaz.log"
+    },
+    {
+      "case": "test_sports_medicine.SportsMedicine.test_02_legacy_injury_migrates_without_rerolling_and_recovers_only_once",
+      "status": "ok",
+      "log": "salud-interfaz.log"
+    },
+    {
+      "case": "test_sports_medicine.SportsMedicine.test_03_rehab_stages_return_and_recurrence_are_linked_to_same_case",
+      "status": "ok",
+      "log": "salud-interfaz.log"
+    },
+    {
+      "case": "test_sports_medicine.SportsMedicine.test_05_match_minute_and_appearance_are_idempotent_and_keeper_load_is_lower",
+      "status": "ok",
+      "log": "salud-interfaz.log"
+    },
+    {
+      "case": "test_sports_medicine.SportsMedicine.test_09_development_has_plateaus_and_environment_changes_actual_growth",
+      "status": "ok",
+      "log": "salud-interfaz.log"
+    },
+    {
+      "case": "test_visual_workspace.VisualWorkspace.test_batched_market_sort_preserves_each_order_and_refreshes_observations",
+      "status": "ok",
+      "log": "salud-interfaz.log"
+    },
+    {
+      "case": "test_visual_workspace.VisualWorkspace.test_dashboard_message_opens_exact_reader_and_marks_read",
+      "status": "ok",
+      "log": "salud-interfaz.log"
+    },
+    {
+      "case": "test_visual_workspace.VisualWorkspace.test_dashboard_panels_and_primary_match_action_fit",
+      "status": "ok",
+      "log": "salud-interfaz.log"
+    },
+    {
+      "case": "test_visual_workspace.VisualWorkspace.test_decoration_is_idempotent_and_does_not_replace_search_control",
+      "status": "ok",
+      "log": "salud-interfaz.log"
+    },
+    {
+      "case": "test_visual_workspace.VisualWorkspace.test_finance_chart_uses_recorded_cash_and_fits_its_card",
+      "status": "ok",
+      "log": "salud-interfaz.log"
+    },
+    {
+      "case": "test_visual_workspace.VisualWorkspace.test_visual_player_attributes_do_not_reveal_scouting_secrets",
+      "status": "ok",
+      "log": "salud-interfaz.log"
+    },
+    {
+      "case": "test_visual_workspace.VisualWorkspace.test_weekly_training_and_scouting_empty_state_are_actionable",
+      "status": "ok",
+      "log": "salud-interfaz.log"
+    }
+  ],
+  "notes": [
+    "Los casos repetidos se cuentan una sola vez; la última ejecución reemplaza el resultado anterior.",
+    "Los fallos iniciales se conservan en los registros y se explican en README.md.",
+    "Las muestras de calibración son ensayos del modelo de marcadores, no carreras completas."
+  ]
+}

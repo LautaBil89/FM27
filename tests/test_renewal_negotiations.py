@@ -1,13 +1,13 @@
 """Existing players answer renewal proposals; signing is dated, budgeted and atomic."""
 import unittest
-from test_offer_form import OfferFormScenarios
+import test_offer_form as fixture
 
 class RenewalNegotiations(unittest.TestCase):
-    setUpClass=classmethod(OfferFormScenarios.setUpClass.__func__)
-    tearDownClass=classmethod(OfferFormScenarios.tearDownClass.__func__)
-    setUp=OfferFormScenarios.setUp
-    tearDown=OfferFormScenarios.tearDown
-    seed=OfferFormScenarios.seed
+    setUpClass=classmethod(fixture.OfferFormScenarios.setUpClass.__func__)
+    tearDownClass=classmethod(fixture.OfferFormScenarios.tearDownClass.__func__)
+    setUp=fixture.OfferFormScenarios.setUp
+    tearDown=fixture.OfferFormScenarios.tearDown
+    seed=fixture.OfferFormScenarios.seed
 
     def player_fixture(self):
         return self.page.evaluate("""()=>{FM_DRESSING_ROOM.ensure();const p=mine().find(p=>p.edad>=24&&p.edad<30&&!p.loanId&&p.salario<25000);if(!p)throw Error('No hay candidato');GameState.userClub.wageBudget=10000000;window.renewPid=p.id;return {id:p.id,wage:p.salario,end:MARKET_CONTRACTS.contractEnd(p),cash:GameState.userClub.presupuesto_dolares}}""")
@@ -74,7 +74,9 @@ class RenewalNegotiations(unittest.TestCase):
 
     def test_auxiliary_coaching_cannot_push_fractional_attributes_above_99(self):
         self.player_fixture()
-        result=self.page.evaluate("""()=>{FM_OFFICE.ensure().profile.stats.entrenamiento=20;const key=FM_OFFICE.ensure().profile.style==='Tiki-Taka'?'pase':'fisico';for(const p of mine()){p.edad=20;p.injury=0;p.ban=0;p.registered=true;p[key]=98.75;p.potential=99}let day=GameState.today;for(let i=1;i<=32;i++){day=new Date(Date.parse(day)+86400000).toISOString().slice(0,10);GameState.today=day;FM_OFFICE.onDay(day)}WORLD_STORAGE.validate(GameState);return {max:Math.max(...mine().map(p=>p[key])),grew:mine().some(p=>p[key]===99)}}""")
+        # Only one eligible trainee, close to a real attribute improvement. The
+        # six headline values are averages and need not gain a whole point.
+        result=self.page.evaluate("""()=>{FM_OFFICE.ensure().profile.stats.entrenamiento=20;for(const p of mine())p.edad=30;const p=mine()[0],keys=['ritmo','tiro','pase','regate','defensa','fisico'];p.edad=20;p.injury=0;p.ban=0;p.registered=true;p.potential=99;FM_MEDICINE.state(p).restUntil=null;for(const key of keys)p[key]=98.75;p.attributes=Object.fromEntries(FM_ATTRIBUTES.keys.map(k=>[k,98.75]));p.attributeBaseline=keys.map(()=>98.75);p.attributeProjection=Array(12).fill(98.75);p.attributeTrainingProgress=Object.fromEntries(FM_ATTRIBUTES.keys.map(k=>[k,.9]));let day=GameState.today;for(let i=1;i<=32;i++){day=new Date(Date.parse(day)+86400000).toISOString().slice(0,10);GameState.today=day;FM_OFFICE.onDay(day)}WORLD_STORAGE.validate(GameState);const values=[...Object.values(FM_ATTRIBUTES.values(p)),...keys.map(k=>p[k])];return {max:Math.max(...values),grew:Object.values(p.attributes).some(n=>n===99)}}""")
         self.assertLessEqual(result['max'],99);self.assertTrue(result['grew'])
 
     def test_counter_facts_and_only_latest_message_requires_decision(self):

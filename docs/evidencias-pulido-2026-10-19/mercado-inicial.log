@@ -1,0 +1,103 @@
+test_buy_counter_twice_then_personal_counter_preserves_agreed_fee (test_negotiation_rounds.NegotiationRounds.test_buy_counter_twice_then_personal_counter_preserves_agreed_fee) ... FAIL
+test_club_context_varies_and_stale_actions_are_atomic (test_negotiation_rounds.NegotiationRounds.test_club_context_varies_and_stale_actions_are_atomic) ... ok
+test_inbox_counter_button_and_mobile_loan_terms (test_negotiation_rounds.NegotiationRounds.test_inbox_counter_button_and_mobile_loan_terms) ... ok
+test_received_sale_market_controls_multiple_rounds_reload_and_no_early_transfer (test_negotiation_rounds.NegotiationRounds.test_received_sale_market_controls_multiple_rounds_reload_and_no_early_transfer) ... FAIL
+test_01_forty_player_roster_explains_failure_and_links_to_squad (test_offer_form.OfferFormScenarios.test_01_forty_player_roster_explains_failure_and_links_to_squad) ... ok
+test_02_valid_actual_form_persists_and_signs_after_four_turns (test_offer_form.OfferFormScenarios.test_02_valid_actual_form_persists_and_signs_after_four_turns) ... ok
+test_03_insufficient_cash_preserves_terms_and_allows_corrected_resubmission (test_offer_form.OfferFormScenarios.test_03_insufficient_cash_preserves_terms_and_allows_corrected_resubmission) ... ok
+test_04_full_foreign_registration_does_not_block_offer (test_offer_form.OfferFormScenarios.test_04_full_foreign_registration_does_not_block_offer) ... ok
+test_05_native_invalid_amount_is_reported_inside_form_and_integer_wage_is_valid (test_offer_form.OfferFormScenarios.test_05_native_invalid_amount_is_reported_inside_form_and_integer_wage_is_valid) ... ok
+test_06_loan_mode_ignores_disabled_stale_purchase_terms_and_sends_once (test_offer_form.OfferFormScenarios.test_06_loan_mode_ignores_disabled_stale_purchase_terms_and_sends_once) ... ok
+test_accepting_personal_counter_preserves_club_terms_and_checks_deadline (test_negotiation_integrity.NegotiationIntegrity.test_accepting_personal_counter_preserves_club_terms_and_checks_deadline) ... ok
+test_invalid_counter_bonus_and_role_are_rejected_without_mutation (test_negotiation_integrity.NegotiationIntegrity.test_invalid_counter_bonus_and_role_are_rejected_without_mutation) ... ok
+test_loan_personal_counter_preserves_owner_and_club_terms (test_negotiation_integrity.NegotiationIntegrity.test_loan_personal_counter_preserves_owner_and_club_terms) ... ok
+test_mode_switch_restores_separate_purchase_and_loan_drafts (test_negotiation_integrity.NegotiationIntegrity.test_mode_switch_restores_separate_purchase_and_loan_drafts) ... ok
+test_stale_loan_clause_does_not_reserve_money_for_permanent_transfer (test_negotiation_integrity.NegotiationIntegrity.test_stale_loan_clause_does_not_reserve_money_for_permanent_transfer) ... ok
+test_unused_transfer_fields_do_not_block_a_loan (test_negotiation_integrity.NegotiationIntegrity.test_unused_transfer_fields_do_not_block_a_loan) ... ok
+test_01_forty_player_roster_explains_failure_and_links_to_squad (test_offer_form.OfferFormScenarios.test_01_forty_player_roster_explains_failure_and_links_to_squad) ... ok
+test_02_valid_actual_form_persists_and_signs_after_four_turns (test_offer_form.OfferFormScenarios.test_02_valid_actual_form_persists_and_signs_after_four_turns) ... ok
+test_03_insufficient_cash_preserves_terms_and_allows_corrected_resubmission (test_offer_form.OfferFormScenarios.test_03_insufficient_cash_preserves_terms_and_allows_corrected_resubmission) ... ok
+test_04_full_foreign_registration_does_not_block_offer (test_offer_form.OfferFormScenarios.test_04_full_foreign_registration_does_not_block_offer) ... ok
+test_05_native_invalid_amount_is_reported_inside_form_and_integer_wage_is_valid (test_offer_form.OfferFormScenarios.test_05_native_invalid_amount_is_reported_inside_form_and_integer_wage_is_valid) ... ok
+test_06_loan_mode_ignores_disabled_stale_purchase_terms_and_sends_once (test_offer_form.OfferFormScenarios.test_06_loan_mode_ignores_disabled_stale_purchase_terms_and_sends_once) ... ok
+test_actual_form_counter_two_rounds_then_accept_without_resetting_relationship (test_renewal_negotiations.RenewalNegotiations.test_actual_form_counter_two_rounds_then_accept_without_resetting_relationship) ... ok
+test_agreed_end_date_does_not_grow_an_extra_year_at_midnight (test_renewal_negotiations.RenewalNegotiations.test_agreed_end_date_does_not_grow_an_extra_year_at_midnight) ... ok
+test_auxiliary_coaching_cannot_push_fractional_attributes_above_99 (test_renewal_negotiations.RenewalNegotiations.test_auxiliary_coaching_cannot_push_fractional_attributes_above_99) ... FAIL
+test_budget_expiry_departure_and_counter_errors_leave_old_contract_intact (test_renewal_negotiations.RenewalNegotiations.test_budget_expiry_departure_and_counter_errors_leave_old_contract_intact) ... ok
+test_counter_facts_and_only_latest_message_requires_decision (test_renewal_negotiations.RenewalNegotiations.test_counter_facts_and_only_latest_message_requires_decision) ... ok
+test_form_stays_in_view_and_switches_to_invalid_bonus_tab (test_renewal_negotiations.RenewalNegotiations.test_form_stays_in_view_and_switches_to_invalid_bonus_tab) ... ok
+test_player_departure_releases_reservations_and_signed_exit_blocks_renewal (test_renewal_negotiations.RenewalNegotiations.test_player_departure_releases_reservations_and_signed_exit_blocks_renewal) ... ok
+test_repeated_low_offers_end_dialogue_and_impose_reopening_date (test_renewal_negotiations.RenewalNegotiations.test_repeated_low_offers_end_dialogue_and_impose_reopening_date) ... ok
+test_reply_arrives_after_four_real_daily_turns_without_waiting_for_match (test_renewal_negotiations.RenewalNegotiations.test_reply_arrives_after_four_real_daily_turns_without_waiting_for_match) ... ok
+test_reservations_count_only_raise_and_survive_reload_then_cancel (test_renewal_negotiations.RenewalNegotiations.test_reservations_count_only_raise_and_survive_reload_then_cancel) ... ok
+test_only_current_firm_rival_proposals_affect_player_demands (test_market_frequency.MarketFrequency.test_only_current_firm_rival_proposals_affect_player_demands) ... FAIL
+test_pending_limit_and_existing_career_history_are_respected (test_market_frequency.MarketFrequency.test_pending_limit_and_existing_career_history_are_respected) ... ok
+test_rival_bids_are_occasional_and_negative_rolls_persist (test_market_frequency.MarketFrequency.test_rival_bids_are_occasional_and_negative_rolls_persist) ... ok
+test_yearly_contact_volume_spacing_cooldowns_and_reload (test_market_frequency.MarketFrequency.test_yearly_contact_volume_spacing_cooldowns_and_reload) ... ok
+test_weekly_bids_preserve_cash_and_discard_read_only_snapshot_before_transfers (test_club_market_snapshot.ClubMarketSnapshot.test_weekly_bids_preserve_cash_and_discard_read_only_snapshot_before_transfers) ... ok
+test_incoming_offer_inbox_market_and_saved_career_agree (test_offer_presentation.OfferPresentation.test_incoming_offer_inbox_market_and_saved_career_agree) ... ok
+test_legacy_defaults_and_counter_terms_are_operation_specific (test_offer_presentation.OfferPresentation.test_legacy_defaults_and_counter_terms_are_operation_specific) ... ok
+test_real_form_hides_inapplicable_purchase_clauses (test_offer_presentation.OfferPresentation.test_real_form_hides_inapplicable_purchase_clauses) ... ok
+
+======================================================================
+FAIL: test_buy_counter_twice_then_personal_counter_preserves_agreed_fee (test_negotiation_rounds.NegotiationRounds.test_buy_counter_twice_then_personal_counter_preserves_agreed_fee)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/FM27/tests/test_negotiation_rounds.py", line 45, in test_buy_counter_twice_then_personal_counter_preserves_agreed_fee
+    self.assertEqual(self.page.evaluate('(id)=>GameState.offers.find(o=>o.id===id).status',oid),'accepted')
+AssertionError: 'pending' != 'accepted'
+- pending
++ accepted
+
+
+======================================================================
+FAIL: test_received_sale_market_controls_multiple_rounds_reload_and_no_early_transfer (test_negotiation_rounds.NegotiationRounds.test_received_sale_market_controls_multiple_rounds_reload_and_no_early_transfer)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/FM27/tests/test_negotiation_rounds.py", line 73, in test_received_sale_market_controls_multiple_rounds_reload_and_no_early_transfer
+    self.assertEqual(self.page.evaluate('(id)=>player(id).clubId',fixture['player']),'river')
+AssertionError: 'boca' != 'river'
+- boca
++ river
+
+
+======================================================================
+FAIL: test_auxiliary_coaching_cannot_push_fractional_attributes_above_99 (test_renewal_negotiations.RenewalNegotiations.test_auxiliary_coaching_cannot_push_fractional_attributes_above_99)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/FM27/tests/test_renewal_negotiations.py", line 78, in test_auxiliary_coaching_cannot_push_fractional_attributes_above_99
+    self.assertLessEqual(result['max'],99);self.assertTrue(result['grew'])
+                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true
+
+======================================================================
+FAIL: test_only_current_firm_rival_proposals_affect_player_demands (test_market_frequency.MarketFrequency.test_only_current_firm_rival_proposals_affect_player_demands)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/FM27/tests/test_market_frequency.py", line 61, in test_only_current_firm_rival_proposals_affect_player_demands
+    self.run_case('confirmed-only')
+  File "/workspace/FM27/tests/test_market_frequency.py", line 49, in run_case
+    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+AssertionError: 1 != 0 : evalmachine.<anonymous>:26
+  function continental(id){return WORLD_ENGINE.hasContinentalCompetition(id)}
+                                               ^
+
+TypeError: WORLD_ENGINE.hasContinentalCompetition is not a function
+    at continental (evalmachine.<anonymous>:26:48)
+    at Object.personal (evalmachine.<anonymous>:38:8)
+    at [eval]:30:141
+    at runScriptInThisContext (node:internal/vm:219:10)
+    at node:internal/process/execution:451:12
+    at [eval]-wrapper:6:24
+    at runScriptInContext (node:internal/process/execution:449:60)
+    at evalFunction (node:internal/process/execution:283:30)
+    at evalTypeScript (node:internal/process/execution:295:3)
+    at node:internal/main/eval_string:71:3
+
+Node.js v24.19.0
+
+
+----------------------------------------------------------------------
+Ran 40 tests in 627.857s
+
+FAILED (failures=4)

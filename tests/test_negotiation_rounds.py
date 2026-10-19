@@ -1,14 +1,14 @@
 """Repeat negotiations through real controls, daily replies and saved careers."""
 import unittest
-from test_offer_form import OfferFormScenarios
+import test_offer_form as fixture
 
 class NegotiationRounds(unittest.TestCase):
-    setUpClass=classmethod(OfferFormScenarios.setUpClass.__func__)
-    tearDownClass=classmethod(OfferFormScenarios.tearDownClass.__func__)
-    setUp=OfferFormScenarios.setUp
-    tearDown=OfferFormScenarios.tearDown
-    seed=OfferFormScenarios.seed
-    vacancy=OfferFormScenarios.vacancy
+    setUpClass=classmethod(fixture.OfferFormScenarios.setUpClass.__func__)
+    tearDownClass=classmethod(fixture.OfferFormScenarios.tearDownClass.__func__)
+    setUp=fixture.OfferFormScenarios.setUp
+    tearDown=fixture.OfferFormScenarios.tearDown
+    seed=fixture.OfferFormScenarios.seed
+    vacancy=fixture.OfferFormScenarios.vacancy
 
     def tomorrow(self):
         self.page.evaluate("""()=>{GameState.today=new Date(Date.parse(GameState.today)+86400000).toISOString().slice(0,10);MARKET_CONTRACTS.processOffers();render()}""")
@@ -42,6 +42,11 @@ class NegotiationRounds(unittest.TestCase):
         self.page.click('#counter-negotiation button[type=submit]')
         self.assertEqual(self.page.evaluate('(id)=>GameState.offers.find(o=>o.id===id).fee',oid),agreed)
         self.tomorrow()
+        self.assertTrue(self.page.evaluate('(id)=>GameState.offers.find(o=>o.id===id).awaitingMedical',oid))
+        self.assertNotEqual(self.page.evaluate('player(1068088).clubId'),'boca')
+        self.tomorrow()
+        result=self.page.evaluate('(id)=>MARKET_CONTRACTS.respondMedical(id,true)',oid)
+        self.assertTrue(result['ok'],result)
         self.assertEqual(self.page.evaluate('(id)=>GameState.offers.find(o=>o.id===id).status',oid),'accepted')
         self.assertEqual(self.page.evaluate('player(1068088).clubId'),'boca')
 
@@ -70,6 +75,11 @@ class NegotiationRounds(unittest.TestCase):
         self.page.evaluate("view='market';render()")
         self.page.locator('[data-ws-tab="offers"]').click()
         self.page.locator('[data-sale="sale-counter-test"][data-decision="accept"]').click()
+        self.assertTrue(self.page.evaluate("GameState.offers.find(o=>o.id==='sale-counter-test').awaitingPlayerConsent"))
+        self.assertEqual(self.page.evaluate('(id)=>player(id).clubId',fixture['player']),'boca')
+        for _ in range(3):
+            if self.page.evaluate("GameState.offers.find(o=>o.id==='sale-counter-test').status!=='pending'"):break
+            self.tomorrow()
         self.assertEqual(self.page.evaluate('(id)=>player(id).clubId',fixture['player']),'river')
         self.assertGreater(self.page.evaluate('GameState.userClub.presupuesto_dolares'),fixture['cash'])
         self.assertFalse(self.page.evaluate("MARKET_CONTRACTS.counterOffer('sale-counter-test',{fee:9000}).ok"))

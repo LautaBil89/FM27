@@ -1,0 +1,6 @@
+test_auxiliary_coaching_cannot_push_fractional_attributes_above_99 (test_renewal_negotiations.RenewalNegotiations.test_auxiliary_coaching_cannot_push_fractional_attributes_above_99) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 10.849s
+
+OK

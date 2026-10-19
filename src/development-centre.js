@@ -22,10 +22,10 @@ window.FM_DEVELOPMENT=(()=>{
     if(!p||!s)return null;
     return s.plans[p.id]??={load:'Normal',position:'NONE',positionProgress:0,attributeProgress:{},weeklyLoad:0,loadDate:GameState.today,restUntil:null,baseline:overall(p),lastReview:null};
   }
-  function fixtures(){const id=GameState.userClub.id;return GameState.calendar.filter(e=>!e.done&&e.date>=GameState.today&&(WORLD_ENGINE.eventGames(e)||[]).some(g=>g.home===id||g.away===id)).sort((a,b)=>a.date.localeCompare(b.date))}
+  function fixtures(){const id=GameState.userClub.id;return GameState.calendar.filter(e=>!e.done&&e.date>=GameState.today&&(WORLD_ENGINE.eventGames(e)||[]).some(g=>!g.result&&!g.cancelled&&(g.home===id||g.away===id))).sort((a,b)=>a.date.localeCompare(b.date))}
   function schedule(day=GameState.today){
     const future=fixtures(),next=future.find(e=>e.date>=day),until=next?days(next.date,day):30;
-    const recent=GameState.calendar.filter(e=>e.done&&days(day,e.date)>=0&&days(day,e.date)<=2&&(WORLD_ENGINE.eventGames(e)||[]).some(g=>g.home===GameState.userClub.id||g.away===GameState.userClub.id));
+    const recent=GameState.calendar.filter(e=>days(day,e.date)>=0&&days(day,e.date)<=2&&(WORLD_ENGINE.eventGames(e)||[]).some(g=>g.result&&(g.home===GameState.userClub.id||g.away===GameState.userClub.id)));
     const average=mine().reduce((n,p)=>n+p.condicion_fisica,0)/Math.max(1,mine().length),style=GameState.tactics.style;
     let focus=GameState.training.focus,intensity=GameState.training.intensity,phase='Construcción';
     if(until===0){focus='Recuperación';intensity='Baja';phase='Activación de partido'}
@@ -53,7 +53,7 @@ window.FM_DEVELOPMENT=(()=>{
     }return e;
   }
   function minutesSupport(p,day=GameState.today){
-    const since=Math.max(35,days(day,day.slice(0,4)+'-01-01')),expected=Math.min(2200,since*6),reserve=(p.reserveHistory||[]).filter(r=>days(day,r.date)>=0&&days(day,r.date)<=90).reduce((n,r)=>n+(Number(r.minutes)||0),0),actual=Math.max(0,(Number(p.minutes)||0)+Math.min(1500,reserve)*.35);
+    const season=window.FM_SEASONS?.leagueSeason(club(p.clubId||p.academyClub)?.leagueId),start=season?.start&&season.start<=day?season.start:day.slice(0,4)+'-01-01',since=Math.max(35,days(day,start)),expected=Math.min(2200,since*6),reserve=(p.reserveHistory||[]).filter(r=>days(day,r.date)>=0&&days(day,r.date)<=90).reduce((n,r)=>n+(Number(r.minutes)||0),0),actual=Math.max(0,(Number(p.minutes)||0)+Math.min(1500,reserve)*.35);
     return Math.max(.55,Math.min(1.2,.55+actual/Math.max(250,expected)*.5));
   }
   function developmentRate(p,key,{count=1,intensity=1,coach=65,manager=10,day=GameState.today}={}){
